@@ -256,6 +256,11 @@ body.staff .wrap{max-width:1200px}
 .pago .mine{margin-top:4px;border:0;padding:0 4px}
 .dia{font-family:var(--f-display);font-size:1.05em;margin:18px 0 8px}
 .dia::first-letter{text-transform:uppercase}
+.quienes{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
+.quienes button{min-height:76px;border:2px solid var(--brand);background:var(--card);color:var(--ink);border-radius:18px;font-weight:800;font-size:1.2em}
+.quienes button.yo{background:var(--brand);color:var(--brand-ink)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:grid;place-items:center;padding:16px}
+.mbox{background:var(--bg);color:var(--ink);border-radius:20px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow:auto;display:grid;gap:8px}
 .hist{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 
 /* QR imprimibles */
@@ -286,7 +291,8 @@ const CONFIG = {
   SUPABASE_KEY: "sb_publishable_tAC4xxO1Lrxjo1NFSxMK4Q_S5VF1r1m",   // clave pública (publishable)
   // Con Supabase, cada trabajador entra con SU PIN (se dan de alta en supabase.sql).
   // Estos solo sirven en modo prueba:
-  TRABAJADORES_PRUEBA: [ {id:1, nombre:"Jamal", pin:"1234", admin:true}, {id:2, nombre:"Camarero de prueba", pin:"0000", admin:false} ],
+  TRABAJADORES_PRUEBA: [ {id:1, nombre:"Admin", pin:"1234", admin:true}, {id:2, nombre:"Ana", pin:"0000", admin:false},
+    {id:3, nombre:"Susana", pin:"", admin:false}, {id:4, nombre:"Antonio", pin:"", admin:false}, {id:5, nombre:"Luis", pin:"", admin:false}, {id:6, nombre:"Sara", pin:"", admin:false} ],
   MESAS: 16,                 // nº de mesas para generar los QR
   VAPID_PUBLICA: "BEIE4Gc_uNxebH9mcZqLJp9ISJvwUkWlc6y98yzQ3ZBUYjgZI5AIsd9TQuVrzFmVd15rKO78uJ8g0Re9XCcklWo",   // avisos con el móvil bloqueado (clave pública)
   FONDO: "fondo.jpg",        // foto de fondo (junto a este archivo). Vacío = dibujo del puente
@@ -430,7 +436,7 @@ const qs = new URLSearchParams(location.search);
 if (/\/camareros\/?$/.test(location.pathname) && !qs.has("qr") && !qs.has("fichajes")) qs.set("panel","");   // app de camareros instalada aparte
 { const h = location.hash.slice(1); if (h==="panel"||h==="qr"||h==="fichajes") qs.set(h,""); else if (/^mesa[0-9A-Za-z-]+$/.test(h)) qs.set("mesa", h.slice(4)); }
 const PREVIEW = !!window.ESENCIA_PREVIEW;
-if (PREVIEW) { try{ localStorage.setItem("esencia_trab", JSON.stringify({id:1,nombre:"Jamal",pin:"1234",admin:true})); }catch{} if (!qs.has("panel")&&!qs.has("qr")&&!qs.get("mesa")) qs.set("mesa","5"); }
+if (PREVIEW) { try{ localStorage.setItem("esencia_trab", JSON.stringify({id:1,nombre:"Admin",pin:"1234",admin:true})); }catch{} if (!qs.has("panel")&&!qs.has("qr")&&!qs.get("mesa")) qs.set("mesa","5"); }
 const eur = n => (Number(n)||0).toLocaleString("es-ES",{style:"currency",currency:"EUR"});
 const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ls = { get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},
@@ -557,6 +563,25 @@ const Store = {
   async trabEntrar(pin){
     if (sb){ const {data,error} = await sb.rpc("esencia_entrar",{p_pin:pin}); if (error) throw error; return data&&data[0] ? {...data[0], pin} : null; }
     const t = CONFIG.TRABAJADORES_PRUEBA.find(t=>t.pin===pin); return t ? {...t} : null;
+  },
+  // entrada por nombre: lista de nombres, primera vez elegir PIN, luego nombre + PIN
+  async trabLista(){
+    if (sb){ const {data,error} = await sb.rpc("esencia_lista_trabajadores"); if (error) throw error; return data; }
+    const pins = ls.get("esencia_demo_pins", {});
+    return CONFIG.TRABAJADORES_PRUEBA.map(t=>({id:t.id, nombre:t.nombre, tiene_pin:!!(pins[t.id]??t.pin)}));
+  },
+  async trabPonerPin(id, pin){
+    if (sb){ const {error} = await sb.rpc("esencia_poner_pin",{p_id:id, p_pin:pin}); if (error) throw error; return; }
+    const pins = ls.get("esencia_demo_pins", {}); pins[id] = pin; ls.set("esencia_demo_pins", pins);
+  },
+  async trabEntrarNombre(id, pin){
+    if (sb){ const {data,error} = await sb.rpc("esencia_entrar_nombre",{p_id:id, p_pin:pin}); if (error) throw error; return data&&data[0] ? {...data[0], pin} : null; }
+    const pins = ls.get("esencia_demo_pins", {}), t = CONFIG.TRABAJADORES_PRUEBA.find(t=>t.id===id);
+    return t && (pins[id]??t.pin) === pin ? {...t, pin} : null;
+  },
+  async trabBorrarPin(admin, id){
+    if (sb){ const {error} = await sb.rpc("esencia_borrar_pin",{p_pin:admin.pin, p_id:id}); if (error) throw error; return; }
+    const pins = ls.get("esencia_demo_pins", {}); pins[id] = ""; ls.set("esencia_demo_pins", pins);
   },
   async fichar(trab, tipo){
     if (sb){ const {data,error} = await sb.rpc("esencia_fichar",{p_pin:trab.pin, p_tipo:tipo, p_dispositivo:DISPOSITIVO}); if (error) throw error; return data; }
@@ -919,18 +944,72 @@ function bloqueAvisos(){
 }
 
 let trab = ls.get("esencia_trab", null);   // trabajador que ha entrado en este móvil
-function pantallaPin(titulo, despues){
-  $app.innerHTML = `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>${esc(titulo)}</small></div></div></header>
-    <main class="wrap pick" style="max-width:420px"><p class="hello">Tu PIN personal</p>
-    <p class="sub">Cada trabajador tiene el suyo. Sirve para fichar la entrada y la salida.</p>
-    <form id="pf"><input id="pin" type="password" inputmode="numeric" autocomplete="off" aria-label="PIN personal" required>
-    <button class="cta c" style="margin-top:14px">Entrar</button></form></main>`;
-  document.getElementById("pf").onsubmit = async e => { e.preventDefault();
-    const btn = e.target.querySelector("button"); btn.disabled = true;
-    try { const t = await Store.trabEntrar(document.getElementById("pin").value.trim());
-          if (!t){ btn.disabled=false; return toast("PIN incorrecto"); }
-          trab = t; ls.set("esencia_trab", t); despues(); }
-    catch { btn.disabled=false; toast("Sin conexión con el servidor"); } };
+// Entrada: cada camarero toca su nombre y pone su PIN. La primera vez elige su PIN.
+async function pantallaPin(titulo, despues){
+  const cab = `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>${esc(titulo)}</small></div></div></header>`;
+  const entrar = t => { trab = t; ls.set("esencia_trab", t); ls.set("esencia_trab_ultimo", t.id); despues(); };
+  let lista = null;
+  try { lista = await Store.trabLista(); } catch {}
+  if (!lista){   // si aún no está la lista de nombres en el servidor: solo PIN, como antes
+    $app.innerHTML = cab + `<main class="wrap pick" style="max-width:420px"><p class="hello">Tu PIN personal</p>
+      <p class="sub">Cada trabajador tiene el suyo. Sirve para fichar la entrada y la salida.</p>
+      <form id="pf"><input id="pin" type="password" inputmode="numeric" autocomplete="off" aria-label="PIN personal" required>
+      <button class="cta c" style="margin-top:14px">Entrar</button></form></main>`;
+    document.getElementById("pf").onsubmit = async e => { e.preventDefault();
+      const btn = e.target.querySelector("button"); btn.disabled = true;
+      try { const t = await Store.trabEntrar(document.getElementById("pin").value.trim());
+            if (!t){ btn.disabled=false; return toast("PIN incorrecto"); }
+            entrar(t); }
+      catch { btn.disabled=false; toast("Sin conexión con el servidor"); } };
+    return;
+  }
+  const ultimo = ls.get("esencia_trab_ultimo", null);
+  const nombres = () => {
+    $app.innerHTML = cab + `<main class="wrap pick" style="max-width:520px"><p class="hello">¿Quién eres?</p>
+      <p class="sub">Toca tu nombre.</p>
+      <div class="quienes">${lista.map(t=>`<button class="${t.id===ultimo?"yo":""}" data-t="${t.id}">${esc(t.nombre)}</button>`).join("")}</div></main>`;
+    $app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>pin(lista.find(t=>t.id==b.dataset.t)));
+  };
+  const pin = t => {
+    const nuevo = !t.tiene_pin;
+    $app.innerHTML = cab + `<main class="wrap pick" style="max-width:420px">
+      <button class="back" id="otro">${ICON.back} No soy ${esc(t.nombre)}</button>
+      <p class="hello" style="margin-top:0">Hola, ${esc(t.nombre)}</p>
+      <p class="sub">${nuevo?"Es tu primera vez. Elige un PIN de 4 a 8 números y apréndetelo: será solo tuyo.":"Pon tu PIN."}</p>
+      <form id="pf"><input id="pin" type="password" inputmode="numeric" autocomplete="off" aria-label="${nuevo?"Elige tu PIN":"Tu PIN"}" required>
+      ${nuevo?`<input id="pin2" type="password" inputmode="numeric" autocomplete="off" aria-label="Repite el PIN" placeholder="Repite el PIN" required style="margin-top:10px">`:""}
+      <button class="cta c" style="margin-top:14px">${nuevo?"Guardar mi PIN y entrar":"Entrar"}</button></form></main>`;
+    document.getElementById("otro").onclick = nombres;
+    document.getElementById("pin").focus();
+    document.getElementById("pf").onsubmit = async e => { e.preventDefault();
+      const btn = e.target.querySelector("button"), v = document.getElementById("pin").value.trim();
+      if (nuevo){
+        if (!/^[0-9]{4,8}$/.test(v)) return toast("El PIN tiene que ser de 4 a 8 números");
+        if (v !== document.getElementById("pin2").value.trim()) return toast("Los dos PIN no son iguales");
+      }
+      btn.disabled = true;
+      try {
+        if (nuevo) await Store.trabPonerPin(t.id, v);
+        const r = await Store.trabEntrarNombre(t.id, v);
+        if (!r){ btn.disabled=false; return toast("PIN incorrecto"); }
+        entrar(r);
+      } catch(err) { btn.disabled=false; toast(err?.message && /PIN/.test(err.message) ? err.message : "Sin conexión con el servidor"); }
+    };
+  };
+  nombres();
+}
+// El encargado borra el PIN de quien lo ha olvidado: al entrar, elegirá uno nuevo.
+async function pantallaPins(){
+  let lista = []; try { lista = await Store.trabLista(); } catch { return toast("Sin conexión con el servidor"); }
+  const caja = document.createElement("div"); caja.className = "modal";
+  caja.innerHTML = `<div class="mbox"><b>PIN olvidado</b><p class="sub">Borra el PIN de quien lo haya olvidado. La próxima vez que entre, elegirá uno nuevo.</p>
+    ${lista.filter(t=>t.id!==trab.id).map(t=>`<div class="hist"><span>${esc(t.nombre)}</span>${t.tiene_pin?`<button class="act no" data-bp="${t.id}">Borrar PIN</button>`:`<span class="t">Sin PIN todavía</span>`}</div>`).join("")}
+    <button class="ghost" id="pinsNo" style="margin-top:12px">Cerrar</button></div>`;
+  document.body.appendChild(caja);
+  caja.querySelector("#pinsNo").onclick = ()=>caja.remove();
+  caja.querySelectorAll("[data-bp]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
+    try { await Store.trabBorrarPin(trab, +b.dataset.bp); b.replaceWith(Object.assign(document.createElement("span"),{className:"t",textContent:"PIN borrado"})); }
+    catch { b.disabled=false; toast("No se ha podido borrar"); } });
 }
 async function cargaEstado(){ // el estado sale del último fichaje guardado, no del móvil
   try { const f = await Store.misFichajes(trab, new Date(Date.now()-40*3600e3).toISOString(), new Date(Date.now()+60e3).toISOString());
@@ -964,10 +1043,11 @@ async function pintar(){
   if (!enServicio){
     cuerpo.innerHTML = `<div class="offbox"><b>Fuera de servicio</b>No recibes avisos ni sonidos.<br>Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.
       <div class="offacts"><button class="ghost" data-p="fichajes">Ver mis fichajes</button>
-      ${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a>`:""}
+      ${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><button class="ghost" id="pinsOlv">PIN olvidado</button>`:""}
       <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div></div>`;
     cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
     document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
+    const po = document.getElementById("pinsOlv"); if (po) po.onclick = pantallaPins;
     return;
   }
   try { filas = (await Store.list()).filter(r=>r.estado!=="anulado"); bloqs = await Store.bloqueados(); } catch { toast("Sin conexión con el servidor"); return; }
