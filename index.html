@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#1E4A3D">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 /* Terraza: letra grande, botones enormes, alto contraste. Verde botella + azafrán. */
@@ -226,8 +226,8 @@ body.staff .wrap{max-width:1200px}
    ========================================================== */
 const CONFIG = {
   NOMBRE: "Esencia",
-  SUPABASE_URL: "",          // ej: https://xxxx.supabase.co   (vacío = modo prueba)
-  SUPABASE_KEY: "",          // anon public key
+  SUPABASE_URL: "https://phhsrswqusmphbbabhmt.supabase.co",          // ej: https://xxxx.supabase.co   (vacío = modo prueba)
+  SUPABASE_KEY: "sb_publishable_tAC4xxO1Lrxjo1NFSxMK4Q_S5VF1r1m",   // clave pública (publishable)
   // Con Supabase, cada trabajador entra con SU PIN (se dan de alta en supabase.sql).
   // Estos solo sirven en modo prueba:
   TRABAJADORES_PRUEBA: [ {id:1, nombre:"Jamal", pin:"1234", admin:true}, {id:2, nombre:"Camarero de prueba", pin:"0000", admin:false} ],
