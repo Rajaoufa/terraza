@@ -245,6 +245,7 @@ const CONFIG = {
   // Estos solo sirven en modo prueba:
   TRABAJADORES_PRUEBA: [ {id:1, nombre:"Jamal", pin:"1234", admin:true}, {id:2, nombre:"Camarero de prueba", pin:"0000", admin:false} ],
   MESAS: 20,                 // nº de mesas para generar los QR
+  VAPID_PUBLICA: "BEIE4Gc_uNxebH9mcZqLJp9ISJvwUkWlc6y98yzQ3ZBUYjgZI5AIsd9TQuVrzFmVd15rKO78uJ8g0Re9XCcklWo",   // avisos con el móvil bloqueado (clave pública)
   FONDO: "fondo.jpg",        // foto de fondo (junto a este archivo). Vacío = dibujo del puente
   LUGAR: "Barrio Buenos Aires · Martorell"
 };
@@ -748,6 +749,35 @@ async function pantallaEncendida(on){
 document.addEventListener("pointerdown", ()=>{ try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); audioCtx.resume(); }catch{} }, {once:true});
 document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState==="visible" && enServicio && qs.has("panel")) pantallaEncendida(true); });
 
+/* ---------- Avisos con el móvil bloqueado (notificaciones push) ---------- */
+const PUSH_OK = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && location.protocol === "https:";
+const IOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const b64u = s => { const p = "=".repeat((4 - s.length % 4) % 4); const r = atob((s + p).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from(r, c=>c.charCodeAt(0)); };
+async function activarAvisos(pedir){
+  if (!PUSH_OK || !sb || !trab || !CONFIG.VAPID_PUBLICA) return false;
+  try {
+    if (Notification.permission === "default" && pedir) await Notification.requestPermission();
+    if (Notification.permission !== "granted") return false;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64u(CONFIG.VAPID_PUBLICA)});
+    const j = sub.toJSON();
+    const {error} = await sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:j.endpoint, p_p256dh:j.keys.p256dh, p_auth:j.keys.auth});
+    return !error;
+  } catch { return false; }
+}
+function bloqueAvisos(){
+  if (!sb || !CONFIG.VAPID_PUBLICA) return "";
+  if (IOS && !EN_APP) return `<div class="inst noprint"><img src="icons/icon-192.png" alt="" width="48" height="48"><div><b>Avisos con el móvil bloqueado</b>
+    <p>En iPhone solo llegan si instalas el panel: toca <b>Compartir</b> y luego <b>“Añadir a pantalla de inicio”</b>, y ábrelo desde el icono.</p></div></div>`;
+  if (!PUSH_OK) return "";
+  if (Notification.permission === "granted") return "";
+  if (Notification.permission === "denied") return `<div class="inst noprint"><div><b>Los avisos están bloqueados en este móvil</b>
+    <p>Para recibirlos con el móvil bloqueado, permite las notificaciones de esta app en los ajustes del móvil.</p></div></div>`;
+  return `<div class="inst noprint"><img src="icons/icon-192.png" alt="" width="48" height="48"><div><b>Recibe los avisos con el móvil bloqueado</b>
+    <p>Te llegará una notificación cada vez que una mesa llame o pida, aunque tengas la pantalla apagada.</p>
+    <button class="act pay" id="actAvisos">Activar avisos</button></div></div>`;
+}
+
 let trab = ls.get("esencia_trab", null);   // trabajador que ha entrado en este móvil
 function pantallaPin(titulo, despues){
   $app.innerHTML = `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>${esc(titulo)}</small></div></div></header>
@@ -766,7 +796,7 @@ async function cargaEstado(){ // el estado sale del último fichaje guardado, no
   try { const f = await Store.misFichajes(trab, new Date(Date.now()-40*3600e3).toISOString(), new Date(Date.now()+60e3).toISOString());
         enServicio = f.length ? f[f.length-1].tipo==="entrada" : false; ls.set("esencia_servicio", enServicio); } catch {}
 }
-async function entrarPanel(){ await cargaEstado(); panel(); pintar(); pantallaEncendida(enServicio); }
+async function entrarPanel(){ await cargaEstado(); panel(); pintar(); pantallaEncendida(enServicio); activarAvisos(false); }
 
 function panel(){
   document.body.classList.add("staff");
@@ -780,7 +810,7 @@ function panel(){
     const tipo = enServicio ? "salida" : "entrada";
     try { const t = await Store.fichar(trab, tipo);
           enServicio = tipo==="entrada"; ls.set("esencia_servicio", enServicio); pantallaEncendida(enServicio);
-          if (enServicio){ vistos = null; sonar("pedido"); toast(`Entrada fichada a las ${hora(t)}. Te avisaremos con sonido.`); }
+          if (enServicio){ vistos = null; sonar("pedido"); toast(`Entrada fichada a las ${hora(t)}. Te avisaremos con sonido.`); activarAvisos(true); }
           else toast(`Salida fichada a las ${hora(t)}. Buen descanso.`);
           if (pestana==="fichajes" && enServicio) pestana="abiertas";
     } catch { await cargaEstado(); toast("No se ha podido fichar. Revisa la conexión y prueba otra vez."); }
@@ -818,7 +848,7 @@ async function pintar(){
   filas.filter(r=>r.cerrado).forEach(r=>{ const k=r.mesa+"|"+r.cerrado_at; (cerradas[k]=cerradas[k]||[]).push(r); });
   const listaCerr = Object.entries(cerradas).sort((a,b)=>b[0].split("|")[1].localeCompare(a[0].split("|")[1]));
 
-  let h = `<div class="ptabs">
+  let h = bloqueAvisos() + `<div class="ptabs">
     <button class="tab" data-p="abiertas" aria-selected="${pestana==="abiertas"}">Mesas abiertas (${mesasAb.length})</button>
     <button class="tab" data-p="cerradas" aria-selected="${pestana==="cerradas"}">Cobradas hoy (${listaCerr.length})</button>
     <button class="tab" data-p="bloqueados" aria-selected="${pestana==="bloqueados"}">Móviles bloqueados (${bloqs.length})</button>
@@ -840,6 +870,9 @@ async function pintar(){
   cuerpo.innerHTML = h;
 
   cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
+  const aa = document.getElementById("actAvisos");
+  if (aa) aa.onclick = async ()=>{ aa.disabled = true; const ok = await activarAvisos(true);
+    toast(ok ? "Avisos activados. Te llegarán aunque el móvil esté bloqueado." : "No se han podido activar los avisos."); pintar(); };
   cuerpo.querySelectorAll("[data-acc]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
     const id = isNaN(b.dataset.acc)?b.dataset.acc:Number(b.dataset.acc);
     try{ await Store.accept(id); pintar(); }catch{ b.disabled=false; toast("No se ha guardado. Prueba otra vez."); } });
