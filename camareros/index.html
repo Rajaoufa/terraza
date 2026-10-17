@@ -81,6 +81,12 @@ body.plain .bg{display:none}
     linear-gradient(#F6D08A 0,#F6D08A calc(var(--hero) - 40px),#2C4636 0);min-height:max(100vh,calc(var(--hero) - 28px + 63.9vw))}
   body.staff:not(.plain) main.wrap{width:39.8vw;max-width:none!important;min-width:520px;margin:calc(14.4vw - 28px) 0 24px max(16px,min(36.7vw,calc(100vw - 536px)));
     box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  /* cliente en pantalla grande: cuentas pendientes a la izquierda de la hoja y pagadas a la derecha */
+  @media (min-width:1200px){
+    body:not(.staff):not(.compact) main.wrap .lado{position:absolute;top:24px;width:min(400px,calc(50vw - 360px));margin:0;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+    body:not(.staff):not(.compact) main.wrap .lado.izq{right:calc(100% + 24px)}
+    body:not(.staff):not(.compact) main.wrap .lado.der{left:calc(100% + 24px)}
+  }
   /* banderas a la derecha, junto al botón de servicio */
   .top .idiomas{margin-left:auto}
 }
@@ -787,14 +793,14 @@ function cuentaPagada(p){
 }
 function bloquePagados(){
   const ps = pagados(); if (!ps.length) return "";
-  return `<div class="mine"><h3>Tus cuentas pagadas (última semana)</h3>${ps.map(p=>`<details class="pago"><summary><span>Mesa ${esc(p.mesa)} · ${esc(fechaHora(p.at))}</span><b>${eur(p.mios.reduce((a,r)=>a+Number(r.total||0),0))}</b></summary>${cuentaPagada(p)}</details>`).join("")}</div>`;
+  return `<div class="mine lado der"><h3>Tus cuentas pagadas (última semana)</h3>${ps.map(p=>`<details class="pago"><summary><span>Mesa ${esc(p.mesa)} · ${esc(fechaHora(p.at))}</span><b>${eur(p.mios.reduce((a,r)=>a+Number(r.total||0),0))}</b></summary>${cuentaPagada(p)}</details>`).join("")}</div>`;
 }
 function bloqueMios(){
   const mios = misFilas.filter(r=>r.tipo==="pedido"&&!r.cerrado);
   const vistos = new Set(), peds = [...filasMesa, ...mios].filter(r=>r.tipo==="pedido" && !vistos.has(r.id) && vistos.add(r.id));
   if (!peds.length && !mios.length) return "";
   const pendiente = mios.reduce((a,r)=>a+Number(r.total||0),0);
-  const estado = mios.length ? `<div class="mine"><h3>Tus cuentas pendientes</h3>${mios.map(r=>`
+  const estado = mios.length ? `<div class="mine lado izq"><h3>Tus cuentas pendientes</h3>${mios.map(r=>`
     <div class="row"><span>${(r.items||[]).map(i=>`${Number(i.q)||0}× ${esc(i.n)}`).join(", ")}</span>
     <span class="st ${r.estado==="nuevo"?"env":"rec"}">${r.estado==="nuevo"?"Enviado":"Recibido"}</span></div>`).join("")}
     <div class="row total"><span>Pendiente de pagar</span><span>${eur(pendiente)}</span></div></div>` : "";
