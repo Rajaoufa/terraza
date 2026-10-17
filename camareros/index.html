@@ -58,6 +58,9 @@ body.compact,body.staff{--hero:170px}
   background-image:linear-gradient(180deg,rgba(8,24,19,.62) 0,rgba(8,24,19,.15) 42%,rgba(8,24,19,.35) 100%),var(--foto),var(--foto-dibujo);
   background-size:cover,cover,cover;background-position:center,var(--foto-pos),center bottom;background-repeat:no-repeat}
 body.plain .bg{display:none}
+/* en el ordenador, a los lados de la hoja sigue el barrio Buenos Aires (barrio.svg) */
+@media (min-width:760px){body:not(.plain){background-image:linear-gradient(rgba(8,24,19,.18),rgba(8,24,19,.18)),url("barrio.svg");
+  background-size:100% auto;background-position:center calc(var(--hero) + 60px);background-repeat:repeat-y}}
 #app{position:relative;z-index:1}
 /* contenido en una hoja clara que sube sobre la foto: se lee bien al sol */
 main.wrap{background:var(--bg);border-radius:28px 28px 0 0;margin-top:-28px;position:relative;padding-top:8px;
@@ -240,6 +243,12 @@ body.staff .wrap{max-width:1200px}
 .legal{color:var(--muted);font-size:.85em;margin-top:24px}
 @media print{.jt{border-color:#999}.jt th{background:#eee}}
 .demo{background:var(--accent);color:var(--accent-ink);text-align:center;font-size:.85em;padding:6px 12px;font-weight:700}
+.pago{border-top:1px solid var(--line);padding:4px 0}
+.pago summary{display:flex;justify-content:space-between;gap:10px;padding:10px 0;cursor:pointer;font-weight:700}
+.pago summary span{font-weight:400}
+.pago .mine{margin-top:4px;border:0;padding:0 4px}
+.dia{font-family:var(--f-display);font-size:1.05em;margin:18px 0 8px}
+.dia::first-letter{text-transform:uppercase}
 .hist{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 
 /* QR imprimibles */
@@ -496,6 +505,15 @@ const Store = {
     if (sb){ const {error} = await sb.from(T).update(patch).eq("mesa",mesa).eq("cerrado",false); if (error) throw error; return; }
     demoSave(demoAll().map(r=>r.mesa===mesa&&!r.cerrado?{...r,...patch}:r));
   },
+  async cuentaCerrada(m, at){ // lo que se cobró de una mesa en un cierre
+    if (sb){ const {data,error} = await sb.from(T).select("*").eq("mesa",m).eq("cerrado_at",at).neq("estado","anulado").order("created_at"); if (error) throw error; return data; }
+    return demoAll().filter(r=>r.mesa===m && r.cerrado_at===at && r.estado!=="anulado");
+  },
+  async cobradas(){ // mesas cobradas en los últimos 7 días
+    const desde = new Date(Date.now()-7*864e5).toISOString();
+    if (sb){ const {data,error} = await sb.from(T).select("*").eq("cerrado",true).gte("cerrado_at",desde).neq("estado","anulado").order("cerrado_at",{ascending:false}); if (error) throw error; return data; }
+    return demoAll().filter(r=>r.cerrado && r.cerrado_at>=desde && r.estado!=="anulado");
+  },
   async deMesa(m){ // todo lo abierto de una mesa (todos los clientes)
     if (sb){ const {data,error} = await sb.from(T).select("*").eq("mesa",m).eq("cerrado",false).neq("estado","anulado").order("created_at"); if (error) throw error; return data; }
     return demoAll().filter(r=>r.mesa===m && !r.cerrado && r.estado!=="anulado");
@@ -606,6 +624,14 @@ async function refrescaMias(){
   if (!yo.ids.length) { misFilas = []; if (["inicio"].includes(vista)) cliente(); return; }
   try { misFilas = (await Store.byIds(yo.ids)).filter(r=>r.estado!=="anulado"); } catch { return; }
   if (yo.ids.length && !misFilas.length || misFilas.length && misFilas.every(r=>r.cerrado)) {        // la barra ha cobrado y cerrado la mesa
+    const mios = misFilas.filter(r=>r.tipo==="pedido");
+    if (mios.length){
+      const at = mios.map(r=>r.cerrado_at).sort().pop();
+      let mesaPeds = mios; try { mesaPeds = (await Store.cuentaCerrada(mesa, at)).filter(r=>r.tipo==="pedido"); } catch {}
+      ultimoPago = {at, mesa, mios, mesaPeds};
+      ls.set("esencia_pagados", [ultimoPago, ...pagados()].slice(0,30));
+      try { navigator.vibrate && navigator.vibrate([150,80,150]); } catch {}
+    }
     yo.ids = []; guardaYo(); misFilas = []; ls.set("esencia_mesa", null);
     if (["inicio","enviado","avisado"].includes(vista)) { vista = "cerrada"; }
   }
@@ -636,6 +662,18 @@ function tablaCuenta(peds, titulo){
     ${ls_.map(l=>`<div class="row"><span><b>${l.q}×</b> ${esc(l.n)}<small>${eur(l.p)} c/u</small></span><span>${eur(l.q*l.p)}</span></div>`).join("")}
     <div class="row total"><span>Total (${uds} ${uds===1?"producto":"productos"})</span><span>${eur(total)}</span></div>
     ${Object.keys(quien).length>1?`<div class="quien">${Object.entries(quien).map(([n,t])=>`<span>${esc(n)}: <b>${eur(t)}</b></span>`).join("")}</div>`:""}</div>`;
+}
+// cuentas pagadas en este móvil: se guardan una semana
+let ultimoPago = null;
+const pagados = () => ls.get("esencia_pagados", []).filter(p=>Date.now()-new Date(p.at) < 7*864e5);
+const fechaHora = iso => new Date(iso).toLocaleString("es-ES",{weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
+function cuentaPagada(p){
+  const sumMios = p.mios.reduce((a,r)=>a+Number(r.total||0),0), sumMesa = p.mesaPeds.reduce((a,r)=>a+Number(r.total||0),0);
+  return tablaCuenta(p.mios, "Lo que has pedido tú") + (Math.abs(sumMesa-sumMios)>.001 ? tablaCuenta(p.mesaPeds, `Toda la mesa ${esc(p.mesa)}`) : "");
+}
+function bloquePagados(){
+  const ps = pagados(); if (!ps.length) return "";
+  return `<div class="mine"><h3>Tus cuentas pagadas (última semana)</h3>${ps.map(p=>`<details class="pago"><summary><span>Mesa ${esc(p.mesa)} · ${esc(fechaHora(p.at))}</span><b>${eur(p.mios.reduce((a,r)=>a+Number(r.total||0),0))}</b></summary>${cuentaPagada(p)}</details>`).join("")}</div>`;
 }
 function bloqueMios(){
   const mios = misFilas.filter(r=>r.tipo==="pedido"&&!r.cerrado);
@@ -683,7 +721,7 @@ function cliente(){
         <button class="bb call" id="call" ${s==="espera"?"disabled":""}>${ICON.bell}<span><strong>Llamar al camarero</strong><em>${s==="espera"?"Ya le hemos avisado":"Vendrá a tu mesa"}</em></span></button>
         <button class="bb menu" id="carta">${ICON.menu}<span><strong>Ver la carta y pedir</strong><em>Bebidas y comidas</em></span></button>
       </div>${bloqueEstado()}${bloqueMios()}
-      <p class="nopay">No pagas aquí. Pagas al final, como siempre, con el camarero.</p>
+      <p class="nopay">No pagas aquí. Pagas al final, como siempre, con el camarero.</p>${bloquePagados()}
       <button class="back" id="cambiaNom">No soy ${esc(yo.nombre)}, cambiar nombre</button>
       ${bloqueInstalar()}`;
   }
@@ -721,10 +759,11 @@ function cliente(){
     const txt = {
       enviado:["¡Pedido enviado!", `Te lo llevamos a la mesa ${esc(mesa)}.`],
       avisado:["Camarero avisado", `Te avisamos aquí cuando venga hacia la mesa ${esc(mesa)}.`],
-      cerrada:["Cuenta cerrada", "Gracias por venir a "+esc(CONFIG.NOMBRE)+". ¡Hasta pronto!"]
+      cerrada: ultimoPago ? ["Pagado", `Mesa ${esc(ultimoPago.mesa)} · ${esc(fechaHora(ultimoPago.at))}. Gracias por venir a ${esc(CONFIG.NOMBRE)}. Lo tendrás aquí guardado una semana.`]
+                          : ["Cuenta cerrada", "Gracias por venir a "+esc(CONFIG.NOMBRE)+". ¡Hasta pronto!"]
     }[vista];
     h += `<div class="done"><div class="tick">${ICON.tick}</div><h2>${txt[0]}</h2><p class="sub">${txt[1]}</p>
-      ${vista==="avisado"?bloqueEstado():""}
+      ${vista==="avisado"?bloqueEstado():""}${vista==="cerrada"&&ultimoPago?`<div style="text-align:left">${cuentaPagada(ultimoPago)}</div>`:""}
       <button class="ghost" id="inicio">Volver al inicio</button></div>${bloqueInstalar()}`;
   }
   h += `</main>`;
@@ -938,13 +977,10 @@ async function pintar(){
     const ha = abiertas[a].some(r=>r.estado==="nuevo"), hb = abiertas[b].some(r=>r.estado==="nuevo");
     return ha!==hb ? (ha?-1:1) : a.localeCompare(b,"es",{numeric:true});
   });
-  const cerradas = {};
-  filas.filter(r=>r.cerrado).forEach(r=>{ const k=r.mesa+"|"+r.cerrado_at; (cerradas[k]=cerradas[k]||[]).push(r); });
-  const listaCerr = Object.entries(cerradas).sort((a,b)=>b[0].split("|")[1].localeCompare(a[0].split("|")[1]));
 
   let h = bloqueAvisos() + `<div class="ptabs">
     <button class="tab" data-p="abiertas" aria-selected="${pestana==="abiertas"}">Mesas abiertas (${mesasAb.length})</button>
-    <button class="tab" data-p="cerradas" aria-selected="${pestana==="cerradas"}">Cobradas hoy (${listaCerr.length})</button>
+    <button class="tab" data-p="cerradas" aria-selected="${pestana==="cerradas"}">Cobradas (7 días)</button>
     <button class="tab" data-p="bloqueados" aria-selected="${pestana==="bloqueados"}">Móviles bloqueados (${bloqs.length})</button>
     <button class="tab" data-p="fichajes">Mis fichajes</button></div>`;
 
@@ -956,12 +992,21 @@ async function pintar(){
         <button class="act no" data-desbloq="${esc(b.dispositivo)}">Desbloquear</button></div>`).join("")}</div>`
       : `<p class="empty">No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Bloquear este móvil” en su aviso.</p>`;
   } else {
-    h += listaCerr.length ? `<div class="grid">${listaCerr.map(([k,rs])=>{
-        const tot = rs.filter(r=>r.tipo==="pedido").reduce((a,r)=>a+Number(r.total||0),0);
-        return `<div class="hist"><b>Mesa ${esc(rs[0].mesa)}</b><span class="t">Cobrada a las ${hora(rs[0].cerrado_at)}</span><b style="font-variant-numeric:tabular-nums">${eur(tot)}</b></div>`;
-      }).join("")}</div>` : `<p class="empty">Aún no se ha cobrado ninguna mesa hoy.</p>`;
+    let cob = []; try { cob = await Store.cobradas(); } catch { toast("Sin conexión con el servidor"); }
+    const porCierre = {}; cob.forEach(r=>{ const k=r.mesa+"|"+r.cerrado_at; (porCierre[k]=porCierre[k]||[]).push(r); });
+    const lista = Object.entries(porCierre).sort((x,y)=>y[0].split("|")[1].localeCompare(x[0].split("|")[1]));
+    const dia = iso => new Date(iso).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});
+    let ultimo = "", totDia = {};
+    lista.forEach(([k,rs])=>{ const d=dia(rs[0].cerrado_at); totDia[d]=(totDia[d]||0)+rs.filter(r=>r.tipo==="pedido").reduce((a,r)=>a+Number(r.total||0),0); });
+    h += lista.length ? lista.map(([k,rs])=>{
+        const d = dia(rs[0].cerrado_at), peds = rs.filter(r=>r.tipo==="pedido"), tot = peds.reduce((a,r)=>a+Number(r.total||0),0);
+        const cab = d!==ultimo ? `<h3 class="dia">${esc(d)} · ${eur(totDia[d])}</h3>` : ""; ultimo = d;
+        return cab + `<details class="hist pago" data-k="${esc(k)}"><summary><span><b>Mesa ${esc(rs[0].mesa)}</b> · cobrada a las ${hora(rs[0].cerrado_at)}</span><b style="font-variant-numeric:tabular-nums">${eur(tot)}</b></summary>${peds.length?tablaCuenta(peds, "Lo cobrado"):"<p class='t'>Solo llamadas, sin pedidos.</p>"}</details>`;
+      }).join("") : `<p class="empty">No se ha cobrado ninguna mesa en los últimos 7 días.</p>`;
   }
+  const abiertos = new Set([...cuerpo.querySelectorAll("details[open][data-k]")].map(d=>d.dataset.k));
   cuerpo.innerHTML = h;
+  cuerpo.querySelectorAll("details[data-k]").forEach(d=>{ if (abiertos.has(d.dataset.k)) d.open = true; });
 
   cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
   const aa = document.getElementById("actAvisos");
