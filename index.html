@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Esencia</title>
 <meta name="theme-color" content="#1E4A3D">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Esencia">
+<script>/* el panel de camareros se instala como app aparte */
+{ const l=document.createElement("link"); l.rel="manifest"; l.href=(/[?&#]panel/.test(location.href)?"manifest-panel":"manifest")+".webmanifest"; document.head.appendChild(l); }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
@@ -147,6 +152,14 @@ textarea{min-height:90px}
 .done .tick{width:110px;height:110px;margin:0 auto 18px;border-radius:50%;background:var(--ok);display:grid;place-items:center}
 .done h2{font-family:var(--f-display);font-size:1.6em;margin:0 0 8px;text-wrap:balance}
 .ghost{margin-top:22px;border:2px solid var(--brand);background:transparent;border-radius:16px;padding:14px 22px;font-weight:700}
+.inst{display:flex;gap:14px;align-items:flex-start;margin-top:26px;background:var(--card);border:2px solid var(--brand);border-radius:18px;padding:16px}
+.inst img{border-radius:14px;flex:none}
+.inst b{font-family:var(--f-display);font-size:1.1em}
+.inst p{margin:4px 0 10px;color:var(--muted);font-size:.9em}
+.inst .act{padding:12px 18px}
+.scan{position:fixed;inset:0;z-index:30;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px}
+.scan video{width:min(90vw,420px);aspect-ratio:1;object-fit:cover;border-radius:18px;border:3px solid var(--accent)}
+.scan .ghost{color:#fff;border-color:#fff}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(110px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:20;max-width:90%;text-align:center}
 
 /* ============ APP CAMAREROS ============ */
@@ -488,7 +501,18 @@ const Store = {
 };
 
 /* ================= CLIENTE ================= */
-const mesa = (qs.get("mesa") || "").replace(/[^0-9A-Za-z-]/g,"").slice(0,6);
+// la app instalada abre sin mesa: recordamos la de esta visita unas horas
+const mesa = (()=>{
+  const limpia = v => String(v||"").replace(/[^0-9A-Za-z-]/g,"").slice(0,6);
+  let m = limpia(qs.get("mesa"));
+  if (!m && !qs.has("panel") && !qs.has("qr") && !qs.has("fichajes")){
+    const u = ls.get("esencia_mesa", null); if (u && Date.now()-u.t < 4*3600e3) m = limpia(u.m);
+  }
+  if (m) ls.set("esencia_mesa", {m, t:Date.now()});
+  return m;
+})();
+const EN_APP = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+let avisoInstalar = null;   // Android/Chrome: aviso de instalación guardado para el botón
 const KEY = "esencia_cli_"+mesa;
 let yo = ls.get(KEY, {nombre:"", ids:[]});  // nombre del cliente + ids de sus peticiones abiertas
 if (!yo.nombre) yo.nombre = ls.get("esencia_nombre", "");   // el móvil recuerda el nombre de otras visitas
@@ -516,7 +540,7 @@ async function refrescaMias(){
   if (!yo.ids.length) { misFilas = []; return; }
   try { misFilas = (await Store.byIds(yo.ids)).filter(r=>r.estado!=="anulado"); } catch { return; }
   if (yo.ids.length && !misFilas.length || misFilas.length && misFilas.every(r=>r.cerrado)) {        // la barra ha cobrado y cerrado la mesa
-    yo.ids = []; guardaYo(); misFilas = [];
+    yo.ids = []; guardaYo(); misFilas = []; ls.set("esencia_mesa", null);
     if (["inicio","enviado","avisado"].includes(vista)) { vista = "cerrada"; }
   }
   if (["inicio","enviado","avisado","cerrada"].includes(vista)) cliente();
@@ -547,13 +571,18 @@ function bloqueMios(){
 function cliente(){
   document.body.classList.toggle("compact", ["carta","resumen"].includes(vista));
   if (!mesa){
+    const escaner = "BarcodeDetector" in window && navigator.mediaDevices?.getUserMedia;
     $app.innerHTML = header() + `<main class="wrap pick">
-      <p class="hello">Bienvenido</p>
-      <p class="sub">Escanea el código QR de tu mesa. Si no puedes, escribe aquí el número de la mesa.</p>
+      <p class="hello">${yo.nombre?`Hola, ${esc(yo.nombre)}. `:""}¿En qué mesa estás?</p>
+      <p class="sub">Mira el número en el código QR de tu mesa y escríbelo aquí.</p>
       <form id="fm"><input id="nm" inputmode="numeric" placeholder="Nº de mesa" aria-label="Número de mesa" required>
-      <button class="cta c" style="margin-top:14px">Continuar</button></form></main>`;
+      <button class="cta c" style="margin-top:14px">Continuar</button></form>
+      ${escaner?`<button class="ghost" id="scan" style="width:100%">Escanear el QR de la mesa</button>`
+               :`<p class="sub" style="margin-top:18px">También puedes abrir la cámara del móvil y apuntar al QR de la mesa.</p>`}
+      ${bloqueInstalar()}</main>`;
     document.getElementById("fm").onsubmit = e => { e.preventDefault(); const v=document.getElementById("nm").value.trim(); if(v) location.search="?mesa="+encodeURIComponent(v); };
-    bindHeader(); return;
+    if (escaner) document.getElementById("scan").onclick = escanearQR;
+    bindHeader(); bindInstalar(); return;
   }
   let h = header() + `<main class="wrap">`, barra = "";
   if (bloqueado){
@@ -576,7 +605,9 @@ function cliente(){
         <button class="bb menu" id="carta">${ICON.menu}<span><strong>Ver la carta y pedir</strong><em>Bebidas y comidas</em></span></button>
       </div>${bloqueEstado()}${bloqueMios()}
       <p class="nopay">No pagas aquí. Pagas al final, como siempre, con el camarero.</p>
-      <button class="back" id="cambiaNom">No soy ${esc(yo.nombre)}, cambiar nombre</button>`;
+      <button class="back" id="cambiaNom">No soy ${esc(yo.nombre)}, cambiar nombre</button>
+      <button class="back" id="cambiaMesa">No estoy en la mesa ${esc(mesa)}, cambiar de mesa</button>
+      ${bloqueInstalar()}`;
   }
   if (vista==="carta"){
     h += `<button class="back" id="volver">${ICON.back} Volver</button>
@@ -608,11 +639,11 @@ function cliente(){
     }[vista];
     h += `<div class="done"><div class="tick">${ICON.tick}</div><h2>${txt[0]}</h2><p class="sub">${txt[1]}</p>
       ${vista==="avisado"?bloqueEstado():""}
-      <button class="ghost" id="inicio">Volver al inicio</button></div>`;
+      <button class="ghost" id="inicio">Volver al inicio</button></div>${bloqueInstalar()}`;
   }
   h += `</main>`;
   if (barra) h += `<div class="bar"><div class="in">${barra}</div></div>`;
-  $app.innerHTML = h; bindHeader(); bindCliente();
+  $app.innerHTML = h; bindHeader(); bindCliente(); bindInstalar();
 }
 function go(v){ vista=v; cliente(); scrollTo(0,0); }
 
@@ -621,6 +652,7 @@ function bindCliente(){
   const fn = document.getElementById("fn");
   if (fn) fn.onsubmit = e => { e.preventDefault(); const v=document.getElementById("nom").value.trim().slice(0,30); if(!v) return; yo.nombre=v; guardaYo(); go("inicio"); };
   on("cambiaNom", ()=>go("nombre"));
+  on("cambiaMesa", ()=>{ ls.set("esencia_mesa", null); location.href = location.pathname + "?app"; });
   on("carta", ()=>go("carta"));
   on("volver", ()=>go("inicio"));
   on("volverCarta", ()=>{ saveNota(); go("carta"); });
@@ -646,6 +678,52 @@ function bindCliente(){
   document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const id=b.dataset.a;cesta[id]=(cesta[id]||0)+1;cliente()});
   document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const id=b.dataset.m;cesta[id]--; if(cesta[id]<=0) delete cesta[id]; cliente()});
 }
+/* ---------- Instalar la app (clientes) ---------- */
+function bloqueInstalar(){
+  if (EN_APP || ls.get("esencia_noinstalar", false)) return "";
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const como = avisoInstalar ? `<button class="act pay" id="instalar">Instalar la app</button>`
+    : ios ? `<span>En Safari, toca <b>Compartir</b> <span aria-hidden="true">⬆︎</span> y luego <b>“Añadir a pantalla de inicio”</b>.</span>`
+          : `<span>En el menú del navegador <b>⋮</b>, toca <b>“Añadir a pantalla de inicio”</b> o <b>“Instalar app”</b>.</span>`;
+  return `<div class="inst"><img src="icons/icon-192.png" alt="" width="56" height="56">
+    <div><b>Ten Esencia en tu móvil</b><p>La próxima vez no hace falta escanear: abre la app y elige tu mesa.</p>${como}
+    <button class="back" id="noInstalar" style="padding:8px 0 0">Ahora no</button></div></div>`;
+}
+function bindInstalar(){
+  const b = document.getElementById("instalar");
+  if (b) b.onclick = async ()=>{ const ev = avisoInstalar; avisoInstalar = null; ev.prompt(); try{ await ev.userChoice; }catch{} cliente(); };
+  const n = document.getElementById("noInstalar");
+  if (n) n.onclick = ()=>{ ls.set("esencia_noinstalar", true); n.closest(".inst").remove(); };
+}
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); avisoInstalar = e;
+  if (!qs.has("panel") && !qs.has("qr") && !qs.has("fichajes") && ["inicio","enviado","avisado","cerrada"].includes(vista)) cliente(); });
+addEventListener("appinstalled", ()=>{ avisoInstalar = null; ls.set("esencia_noinstalar", true); document.querySelector(".inst")?.remove(); });
+
+async function escanearQR(){
+  let stream;
+  const caja = document.createElement("div"); caja.className = "scan";
+  caja.innerHTML = `<video playsinline muted></video><p>Apunta al código QR de tu mesa</p><button class="ghost" id="scanNo">Cancelar</button>`;
+  document.body.appendChild(caja);
+  const cerrar = ()=>{ stream && stream.getTracks().forEach(t=>t.stop()); caja.remove(); };
+  caja.querySelector("#scanNo").onclick = cerrar;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    const v = caja.querySelector("video"); v.srcObject = stream; await v.play();
+    const det = new BarcodeDetector({formats:["qr_code"]});
+    const mira = async ()=>{
+      if (!caja.isConnected) return;
+      try { const r = await det.detect(v);
+        for (const c of r){ let m = null;
+          try { m = new URL(c.rawValue, location.href).searchParams.get("mesa"); } catch {}
+          if (!m && /^[0-9A-Za-z-]{1,6}$/.test(c.rawValue)) m = c.rawValue;
+          if (m){ cerrar(); location.search = "?mesa=" + encodeURIComponent(m); return; } }
+      } catch {}
+      setTimeout(mira, 300);
+    };
+    mira();
+  } catch { cerrar(); toast("No se ha podido abrir la cámara. Escribe el número de la mesa."); }
+}
+
 function saveNota(){ const n=document.getElementById("nota"); if(n) ls.set("esencia_nota", n.value); }
 
 /* ================= APP CAMAREROS ================= */
@@ -937,6 +1015,7 @@ function qrs(){
 }
 
 /* ================= ARRANQUE ================= */
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 if (PREVIEW){
   const actual = qs.has("panel")?"panel":qs.has("qr")?"qr":"mesa5";
   const pv = document.createElement("div"); pv.className="prev";
