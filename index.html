@@ -17,10 +17,10 @@ if (/\/camareros\/?$/.test(location.pathname)||/[?&#]panel/.test(location.href))
 <style>
 /* Terraza: letra grande, botones enormes, alto contraste. Verde botella + azafrán. */
 /* FONDO: sube una foto llamada fondo.jpg junto a este index.html (o cambia CONFIG.FONDO).
-   Si no hay foto, se ve el dibujo del Pont del Diable de abajo. */
+   Si no hay foto, se ve el dibujo fondo-dibujo.svg (Pont del Diable y Buenos Aires). */
 :root{
   --foto:url("fondo.jpg"); --foto-pos:center 55%;
-  --foto-dibujo:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600' preserveAspectRatio='xMidYMax slice'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23F6D08A'/%3E%3Cstop offset='.55' stop-color='%23EFA265'/%3E%3Cstop offset='1' stop-color='%23D9744E'/%3E%3C/linearGradient%3E%3ClinearGradient id='w' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%232B5A4A'/%3E%3Cstop offset='1' stop-color='%23123128'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='800' height='600' fill='url(%23s)'/%3E%3Ccircle cx='600' cy='250' r='70' fill='%23FBE3A8' opacity='.75'/%3E%3Cpath d='M0 360 L60 330 L90 300 L110 318 L135 270 L160 300 L185 262 L210 292 L240 250 L262 286 L300 300 L360 320 L430 300 L500 318 L560 296 L640 322 L720 304 L800 330 V600 H0Z' fill='%23B9674D' opacity='.55'/%3E%3Cpath d='M0 420 Q120 380 240 400 T480 395 T800 410 V600 H0Z' fill='%237E5A43' opacity='.55'/%3E%3Cpath fill='%2316352C' fill-rule='evenodd' d='M0 470 L120 455 L260 410 L400 330 L540 410 L680 455 L800 470 V530 H0Z M285 530 Q292 420 400 360 Q508 420 515 530Z M150 530 Q155 482 185 468 Q215 482 220 530Z M585 530 Q590 490 615 478 Q640 490 645 530Z'/%3E%3Cpath fill='%2316352C' d='M384 338 V296 L400 282 L416 296 V338Z M60 466 V420 H112 V460Z M70 466 V438 Q86 424 102 438 V462Z'/%3E%3Crect y='528' width='800' height='72' fill='url(%23w)'/%3E%3Cpath d='M300 548 H500 M330 566 H470 M360 584 H440 M120 556 H230 M590 560 H690' stroke='%23F6D08A' stroke-width='3' stroke-linecap='round' opacity='.35'/%3E%3C/svg%3E");
+  --foto-dibujo:url("fondo-dibujo.svg");   /* Pont del Diable y el barrio Buenos Aires */
   --hero:clamp(250px,40vh,400px);
   --bg:#F3F5F1; --card:#FFFFFF; --ink:#16241F; --muted:#56655F; --line:#D8DFDA; --soft:#E8EEEA;
   --brand:#1E4A3D; --brand-ink:#FFFFFF; --link:#1E4A3D; --accent:#E3A12F; --accent-ink:#2A1C00;
@@ -52,9 +52,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:v
 body.compact,body.staff{--hero:170px}
 
 /* foto de Martorell detrás de la cabecera */
-.bg{position:absolute;top:0;left:0;right:0;height:calc(var(--hero) + 60px);z-index:0;background-color:#1E4A3D;
+.bg{position:absolute;top:0;left:0;right:0;height:calc(var(--hero) + 60px);z-index:0;background-color:#123128;
   background-image:linear-gradient(180deg,rgba(8,24,19,.62) 0,rgba(8,24,19,.15) 42%,rgba(8,24,19,.35) 100%),var(--foto),var(--foto-dibujo);
-  background-size:cover,cover,cover;background-position:center,var(--foto-pos),center bottom;background-repeat:no-repeat}
+  background-size:cover,cover,cover;background-position:center,var(--foto-pos),center calc(100% - 88px);background-repeat:no-repeat}
 body.plain .bg{display:none}
 #app{position:relative;z-index:1}
 /* contenido en una hoja clara que sube sobre la foto: se lee bien al sol */
