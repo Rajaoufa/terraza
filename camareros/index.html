@@ -73,6 +73,9 @@ body.plain .bg{display:none}
   body.compact,body.staff{--hero:max(170px,calc(28px + 10.6vw))}
   body.compact .bg,body.staff .bg{background-size:cover,cover,100% auto;background-position:center,var(--foto-pos),center calc(var(--hero) - 28px - 21.31vw)}
   /* camareros: la hoja es ancha (1200px), los bloques van en el hueco que queda a los lados */
+  /* camareros: la hoja solo mide lo que hay dentro (sin cuadro blanco vacío hasta abajo) */
+  body:not(.plain){min-height:100vh}
+  body.staff main.wrap{min-height:0;border-radius:28px;padding-bottom:20px;margin-bottom:24px}
   body.staff:not(.plain){background-size:max(0px,calc(50% - 624px)) auto,max(0px,calc(50% - 624px)) auto,auto}
 }
 #app{position:relative;z-index:1}
