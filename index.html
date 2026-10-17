@@ -1183,7 +1183,7 @@ async function pintar(){
     h += lista.length ? lista.map(([k,rs])=>{
         const d = dia(rs[0].cerrado_at), peds = rs.filter(r=>r.tipo==="pedido"), tot = peds.reduce((a,r)=>a+Number(r.total||0),0);
         const cab = d!==ultimo ? `<h3 class="dia">${esc(d)} · ${eur(totDia[d])}</h3>` : ""; ultimo = d;
-        return cab + `<details class="hist pago" data-k="${esc(k)}"><summary><span><b>Mesa ${esc(rs[0].mesa)}</b> · cobrada a las ${hora(rs[0].cerrado_at)}</span><b style="font-variant-numeric:tabular-nums">${eur(tot)}</b></summary>${peds.length?tablaCuenta(peds, "Lo cobrado"):"<p class='t'>Solo llamadas, sin pedidos.</p>"}</details>`;
+        return cab + `<details class="hist pago" data-k="${esc(k)}"><summary><span><b>Mesa ${esc(rs[0].mesa)}</b> · cobrada a las ${hora(rs[0].cerrado_at)}${(n=>n.length?`<br><small class="t">${n.map(esc).join(" · ")}</small>`:"")([...new Set(rs.map(r=>r.cliente).filter(Boolean))])}</span><b style="font-variant-numeric:tabular-nums">${eur(tot)}</b></summary>${peds.length?tablaCuenta(peds, "Lo cobrado"):"<p class='t'>Solo llamadas, sin pedidos.</p>"}</details>`;
       }).join("") : `<p class="empty">No se ha cobrado ninguna mesa en los últimos 7 días.</p>`;
   }
   // también de servicio: las herramientas del encargado y cambiar de trabajador, abajo del todo
