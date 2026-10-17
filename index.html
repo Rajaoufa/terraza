@@ -74,11 +74,11 @@ body.plain .bg{display:none}
   /* camareros: la hoja solo mide lo que hay dentro (sin cuadro blanco vacío hasta abajo) */
   body:not(.plain){min-height:100vh}
   body.staff main.wrap{min-height:0;border-radius:28px;padding-bottom:20px;margin-bottom:16px}
-  /* camareros: un solo barrio, justo debajo de la hoja */
-  body.staff:not(.plain){background:linear-gradient(#F6D08A 0,#F6D08A calc(var(--hero) - 40px),#2C4636 0)}
-  body.staff:not(.plain) #app{display:flex;flex-direction:column;min-height:100vh}
-  body.staff:not(.plain) #app > main.wrap{width:100%}
-  body.staff:not(.plain) #app::after{content:"";display:block;flex:1 0 auto;min-height:63.9vw;margin-top:-8px;background:url("barrio.svg") center bottom/cover no-repeat}
+  /* camareros: el barrio entero de fondo (bajo el puente) y el panel encima, en la zona que marcó Jamal (en lila) */
+  body.staff:not(.plain){background:url("barrio.svg") center calc(var(--hero) - 28px)/100% auto no-repeat,
+    linear-gradient(#F6D08A 0,#F6D08A calc(var(--hero) - 40px),#2C4636 0);min-height:max(100vh,calc(var(--hero) - 28px + 63.9vw))}
+  body.staff:not(.plain) main.wrap{width:39.8vw;max-width:none!important;min-width:520px;margin:calc(14.4vw - 28px) 0 24px max(16px,min(36.7vw,calc(100vw - 536px)));
+    box-shadow:0 12px 40px rgba(0,0,0,.35)}
   /* banderas a la derecha, junto al botón de servicio */
   .top .idiomas{margin-left:auto}
 }
