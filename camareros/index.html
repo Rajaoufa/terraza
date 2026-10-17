@@ -78,7 +78,7 @@ body.plain .bg{display:none}
   body.staff main.wrap{min-height:0;border-radius:28px;padding-bottom:20px;margin-bottom:24px}
   /* camareros: un solo barrio, justo debajo de la hoja */
   body.staff:not(.plain){background:linear-gradient(#F6D08A 0,#F6D08A calc(var(--hero) - 40px),#2C4636 0)}
-  body.staff:not(.plain) #app::after{content:"";display:block;width:min(900px,calc(100% - 32px));aspect-ratio:1800/1063;margin:0 auto 24px;background:url("barrio.svg") center/contain no-repeat}
+  body.staff:not(.plain) #app::after{content:"";display:block;width:min(900px,calc(100% - 32px));aspect-ratio:1800/1150;margin:0 auto 24px;background:url("barrio.svg") center/contain no-repeat}
 }
 #app{position:relative;z-index:1}
 /* banderas para cambiar de idioma */
@@ -1380,11 +1380,11 @@ function descargaQR(n){
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000); }, "image/png");
 }
 
-/* ================= IDIOMAS: español / chino (banderas arriba) ================= */
-// La app se escribe en español; si se elige chino, se traduce lo que sale en pantalla.
+/* ================= IDIOMAS: español / catalán / chino (banderas arriba) ================= */
+// La app se escribe en español; si se elige catalán o chino, se traduce lo que sale en pantalla.
 // Los pedidos se guardan siempre en español, así la barra los entiende aunque el cliente use chino.
-const LANG = ls.get("esencia_lang", "es") === "zh" ? "zh" : "es";
-const LOC = LANG === "zh" ? "zh-CN" : "es-ES";
+const LANG = ["zh","ca"].includes(ls.get("esencia_lang", "es")) ? ls.get("esencia_lang", "es") : "es";
+const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
   // carta: secciones y grupos
   "Refrescos":"汽水","Cervezas":"啤酒","Vinos":"葡萄酒","Cafés":"咖啡","Copas":"酒","Comida":"食物",
@@ -1513,16 +1513,136 @@ const ZH_RE = [
   [/^(\d+×) (.+)$/, m=>`${m[1]} ${tr(m[2])}`],
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
+const CA = {
+  "Refrescos":"Refrescos","Cervezas":"Cerveses","Vinos":"Vins","Cafés":"Cafès","Copas":"Copes","Comida":"Menjar",
+  "Refrescos y agua":"Refrescos i aigua","Cafetería":"Cafeteria","Carajillos":"Rebentats","Chupitos":"Xopets","Tubos":"Tubs","Combinados":"Combinats","Bocadillos":"Entrepans","Para picar":"Per picar",
+  "Caña de barril":"Canya de barril","Pequeña de barril":"Petita de barril","Copa de barril":"Copa de barril","Clara de barril":"Clara de barril",
+  "Quinto":"Quinto","Quinto sin alcohol":"Quinto sense alcohol","Lata de cerveza":"Llauna de cervesa","Mediana":"Mitjana","Mediana tostada":"Mitjana torrada",
+  "Mediana sin alcohol":"Mitjana sense alcohol","Limón sin alcohol":"Llimona sense alcohol",
+  "Coca-Cola de botella":"Coca-Cola d'ampolla","Fanta de naranja":"Fanta de taronja","Fanta de limón":"Fanta de llimona",
+  "Trina de naranja":"Trina de taronja","Trina de limón":"Trina de llimona","Schweppes de naranja":"Schweppes de taronja","Schweppes de limón":"Schweppes de llimona",
+  "Tónica":"Tònica","Agua mineral":"Aigua mineral","Agua con gas":"Aigua amb gas","1,5 litros":"1,5 litres",
+  "Copa de vino":"Copa de vi","Copa de vino blanco":"Copa de vi blanc","Copa de rosado":"Copa de rosat","Copa de tinto":"Copa de negre",
+  "Café solo":"Cafè sol","Cortado":"Tallat","Café con leche":"Cafè amb llet","Vaso de leche":"Got de llet","Infusión":"Infusió",
+  "Carajillo de coñac":"Rebentat de conyac","Carajillo de anís":"Rebentat d'anís","Carajillo de Marie Brizard":"Rebentat de Marie Brizard","Carajillo de Magno":"Rebentat de Magno",
+  "Carajillo de Torres 5":"Rebentat de Torres 5","Carajillo de whisky":"Rebentat de whisky","Carajillo de ron":"Rebentat de rom","Carajillo de Baileys":"Rebentat de Baileys",
+  "Chupito de orujo":"Xopet d'orujo","Chupito de Marie Brizard":"Xopet de Marie Brizard","Chupito de coñac":"Xopet de conyac","Chupito de whisky":"Xopet de whisky",
+  "Chupito de ron":"Xopet de rom","Chupito de Baileys":"Xopet de Baileys",
+  "Copa de anís pequeña":"Copa d'anís petita","Copa de anís grande":"Copa d'anís gran","Copa de whisky":"Copa de whisky",
+  "Tubo de Martini":"Tub de Martini","Tubo de Marie Brizard":"Tub de Marie Brizard","Tubo de orujo":"Tub d'orujo","Tubo de whisky":"Tub de whisky","Tubo de Baileys":"Tub de Baileys",
+  "Combinado de ginebra":"Combinat de ginebra","Combinado de ron":"Combinat de rom","Combinado de whisky":"Combinat de whisky","Suplemento de Red Bull":"Suplement de Red Bull","Para el combinado":"Per al combinat",
+  "Bocadillo de fuet":"Entrepà de fuet","Bocadillo de chorizo":"Entrepà de xoriço","Bocadillo de atún":"Entrepà de tonyina",
+  "Bocadillo de jamón serrano":"Entrepà de pernil serrà","Bocadillo de queso manchego":"Entrepà de formatge manxec","Bocadillo vegetal":"Entrepà vegetal",
+  "Bolsa de patatas fritas":"Bossa de patates fregides","Cortezas":"Cotnes",
+  "Terraza":"Terrassa","Mesa":"Taula","Cambiar tamaño de letra":"Canviar la mida de la lletra","¿En qué mesa estás?":"A quina taula ets?",
+  "Mira el número en el código QR de tu mesa y escríbelo aquí.":"Mira el número del codi QR de la teva taula i escriu-lo aquí.","Nº de mesa":"Núm. de taula","Número de mesa":"Número de taula",
+  "Continuar":"Continuar","Escanear el QR de la mesa":"Escanejar el QR de la taula","También puedes abrir la cámara del móvil y apuntar al QR de la mesa.":"També pots obrir la càmera del mòbil i apuntar al QR de la taula.",
+  "Este móvil no puede pedir desde la app":"Aquest mòbil no pot demanar des de l'app","Si es un error, habla con el camarero y lo arreglamos al momento.":"Si és un error, parla amb el cambrer i ho arreglem de seguida.",
+  "¡Hola! ¿Cómo te llamas?":"Hola! Com et dius?","Solo para que el camarero sepa a quién llevarle cada cosa. No hace falta registrarse.":"Només perquè el cambrer sàpiga a qui portar cada cosa. No cal registrar-se.",
+  "Tu nombre":"El teu nom","Toca un botón grande.":"Toca un botó gran.","Llamar al camarero":"Cridar el cambrer","Ya le hemos avisado":"Ja l'hem avisat","Vendrá a tu mesa":"Vindrà a la teva taula",
+  "Ver la carta y pedir":"Veure la carta i demanar","Bebidas y comidas":"Begudes i menjar","No pagas aquí. Pagas al final, como siempre, con el camarero.":"Aquí no pagues. Pagues al final, com sempre, amb el cambrer.",
+  "Camarero avisado. Esperando a que lo vea…":"Cambrer avisat. Esperant que ho vegi…","El camarero va hacia tu mesa.":"El cambrer va cap a la teva taula.",
+  "Todas las secciones":"Totes les seccions","Volver al panel":"Tornar al panell","Volver":"Tornar",
+  "Toca 📷 en un producto o una sección para hacerle una foto o elegirla de la galería.":"Toca 📷 en un producte o una secció per fer-li una foto o triar-la de la galeria.",
+  "Lo que más se pide aquí":"El que més es demana aquí","¿Qué te apetece?":"Què et ve de gust?","Elige lo que quieras":"Tria el que vulguis","Poner foto":"Posar foto",
+  "Seguir pidiendo":"Continuar demanant","Total de este pedido":"Total d'aquesta comanda","¿Algo que debamos saber? (opcional)":"Alguna cosa que hàgim de saber? (opcional)",
+  "Ej: sin hielo, sin gluten, la caña muy fría…":"Ex: sense gel, sense gluten, la canya molt freda…","No pagas ahora. Pagas al final con el camarero.":"Ara no pagues. Pagues al final amb el cambrer.",
+  "Enviar pedido":"Enviar la comanda","Enviando…":"Enviant…","¡Pedido enviado!":"Comanda enviada!","Camarero avisado":"Cambrer avisat","Pagado":"Pagat","Cuenta cerrada":"Compte tancat",
+  "Volver al inicio":"Tornar a l'inici","Tus pedidos":"Les teves comandes","Enviado":"Enviat","Recibido":"Rebut","Lo que has pedido tú":"El que has demanat tu","Sin nombre":"Sense nom",
+  "Tus cuentas pagadas (última semana)":"Els teus comptes pagats (última setmana)","Apunta al código QR de tu mesa":"Apunta al codi QR de la teva taula","Cancelar":"Cancel·lar",
+  "No se ha podido avisar. Revisa la conexión y prueba otra vez.":"No s'ha pogut avisar. Revisa la connexió i torna-ho a provar.","No se ha enviado. Revisa la conexión y prueba otra vez.":"No s'ha enviat. Revisa la connexió i torna-ho a provar.",
+  "No se ha podido abrir la cámara. Escribe el número de la mesa.":"No s'ha pogut obrir la càmera. Escriu el número de la taula.","Subiendo foto…":"Pujant la foto…","Foto guardada":"Foto desada","No se ha podido guardar la foto":"No s'ha pogut desar la foto",
+  "ahora":"ara",
+  "Camareros":"Cambrers","Tu PIN personal":"El teu PIN personal","Cada trabajador tiene el suyo. Sirve para fichar la entrada y la salida.":"Cada treballador té el seu. Serveix per fitxar l'entrada i la sortida.",
+  "PIN personal":"PIN personal","Entrar":"Entrar","PIN incorrecto":"PIN incorrecte","Sin conexión con el servidor":"Sense connexió amb el servidor","Sin conexión con el servidor.":"Sense connexió amb el servidor.",
+  "¿Quién eres?":"Qui ets?","Toca tu nombre.":"Toca el teu nom.","Es tu primera vez. Elige un PIN de 4 a 8 números y apréndetelo: será solo tuyo.":"És la primera vegada. Tria un PIN de 4 a 8 números i aprèn-te'l: serà només teu.",
+  "Pon tu PIN.":"Posa el teu PIN.","Elige tu PIN":"Tria el teu PIN","Tu PIN":"El teu PIN","Repite el PIN":"Repeteix el PIN","Guardar mi PIN y entrar":"Desar el meu PIN i entrar",
+  "El PIN tiene que ser de 4 a 8 números":"El PIN ha de tenir de 4 a 8 números","Los dos PIN no son iguales":"Els dos PIN no són iguals","Ese PIN ya lo usa otra persona. Elige otro.":"Aquest PIN ja el fa servir una altra persona. Tria'n un altre.",
+  "Este nombre ya tiene PIN":"Aquest nom ja té PIN",
+  "PIN olvidado":"PIN oblidat","Borra el PIN de quien lo haya olvidado. La próxima vez que toque su nombre, elegirá uno nuevo.":"Esborra el PIN de qui l'hagi oblidat. La pròxima vegada que toqui el seu nom, en triarà un de nou.",
+  "Borrar PIN":"Esborrar PIN","Sin PIN todavía":"Encara sense PIN","Cerrar":"Tancar","PIN borrado":"PIN esborrat","No se ha podido borrar":"No s'ha pogut esborrar",
+  "MODO PRUEBA · Solo funciona en este navegador. Pon los datos de Supabase para usarlo de verdad.":"MODE PROVA · Només funciona en aquest navegador.",
+  "MODO PRUEBA · Los fichajes de prueba solo se guardan en este navegador.":"MODE PROVA · Els fitxatges de prova només es desen en aquest navegador.",
+  "En servicio":"De servei","Fuera de servicio":"Fora de servei","No recibes avisos ni sonidos.":"No reps avisos ni sons.",
+  "Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.":"Prem “Fora de servei” a dalt per fitxar l'entrada i començar.","Ver mis fichajes":"Veure els meus fitxatges",
+  "Registro de jornada":"Registre de jornada","QR de las mesas":"QR de les taules","Fotos de la carta":"Fotos de la carta","Cambiar de trabajador":"Canviar de treballador",
+  "No se ha podido fichar. Revisa la conexión y prueba otra vez.":"No s'ha pogut fitxar. Revisa la connexió i torna-ho a provar.",
+  "Cobradas (7 días)":"Cobrades (7 dies)","Mis fichajes":"Els meus fitxatges","No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.":"No hi ha taules amb comandes. Quan un client escanegi el QR i demani, apareixerà aquí.",
+  "Desbloquear":"Desbloquejar","No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Bloquear este móvil” en su aviso.":"No hi ha cap mòbil bloquejat. Si algú demana o crida de broma, toca “Bloquejar aquest mòbil” al seu avís.",
+  "Lo cobrado":"El cobrat","Solo llamadas, sin pedidos.":"Només crides, sense comandes.","No se ha cobrado ninguna mesa en los últimos 7 días.":"No s'ha cobrat cap taula els últims 7 dies.",
+  "Avisos activados. Te llegarán aunque el móvil esté bloqueado.":"Avisos activats. T'arribaran encara que el mòbil estigui bloquejat.","No se han podido activar los avisos.":"No s'han pogut activar els avisos.",
+  "No se ha guardado. Prueba otra vez.":"No s'ha desat. Torna-ho a provar.","Móvil bloqueado. Ya no podrá pedir ni llamar desde la app.":"Mòbil bloquejat. Ja no podrà demanar ni cridar des de l'app.",
+  "No se ha podido bloquear. Prueba otra vez.":"No s'ha pogut bloquejar. Torna-ho a provar.","Móvil desbloqueado":"Mòbil desbloquejat","No se ha podido desbloquear. Prueba otra vez.":"No s'ha pogut desbloquejar. Torna-ho a provar.",
+  "No se ha podido cerrar. Prueba otra vez.":"No s'ha pogut tancar. Torna-ho a provar.","Sí, bloquear":"Sí, bloquejar","No":"No","Es una broma: bloquear este móvil":"És una broma: bloquejar aquest mòbil",
+  "Un cliente":"Un client","Voy para allá":"Hi vaig","Pedido nuevo":"Comanda nova","Pedido nuevo ·":"Comanda nova","Consumo de la mesa":"Consum de la taula","Sí, cerrar mesa":"Sí, tancar la taula",
+  "Cobrar y cerrar mesa":"Cobrar i tancar la taula","este cliente":"aquest client",
+  "Recibe los avisos con el móvil bloqueado":"Rep els avisos amb el mòbil bloquejat","Te llegará una notificación cada vez que una mesa llame o pida, aunque tengas la pantalla apagada.":"T'arribarà una notificació cada vegada que una taula cridi o demani, encara que tinguis la pantalla apagada.",
+  "Activar avisos":"Activar avisos","Avisos con el móvil bloqueado":"Avisos amb el mòbil bloquejat","Los avisos están bloqueados en este móvil":"Els avisos estan bloquejats en aquest mòbil",
+  "Para recibirlos con el móvil bloqueado, permite las notificaciones de esta app en los ajustes del móvil.":"Per rebre'ls amb el mòbil bloquejat, permet les notificacions d'aquesta app als ajustos del mòbil.",
+  "En iPhone solo llegan si instalas el panel: toca":"A l'iPhone només arriben si instal·les el panell: toca","Compartir":"Compartir","y luego":"i després","“Añadir a pantalla de inicio”":"“Afegir a la pantalla d'inici”",
+  ", y ábrelo desde el icono.":", i obre'l des de la icona.",
+  "Sin fichajes en este periodo.":"Sense fitxatges en aquest període.","Día":"Dia","Entrada":"Entrada","Salida":"Sortida","Horas":"Hores","Observaciones":"Observacions","Falta":"Falta","En curso":"En curs","Total":"Total",
+  "Mes":"Mes","Cargando…":"Carregant…","Solo el encargado puede ver el registro de todos.":"Només l'encarregat pot veure el registre de tothom.","Tus propios fichajes están en el panel, en “Mis fichajes”.":"Els teus fitxatges són al panell, a “Els meus fitxatges”.",
+  "Ir al panel":"Anar al panell","Trabajador":"Treballador","Todos":"Tots","Descargar (Excel)":"Descarregar (Excel)","Imprimir o PDF":"Imprimir o PDF","Añadir una corrección (olvido de fichar)":"Afegir una correcció (oblit de fitxar)",
+  "Los fichajes no se pueden cambiar ni borrar. Si alguien olvidó fichar, añade aquí el fichaje que falta con el motivo: quedará marcado como corrección y con tu nombre.":"Els fitxatges no es poden canviar ni esborrar. Si algú va oblidar fitxar, afegeix aquí el fitxatge que falta amb el motiu: quedarà marcat com a correcció i amb el teu nom.",
+  "Tipo":"Tipus","Día y hora":"Dia i hora","Motivo":"Motiu","Ej: olvidó fichar la salida":"Ex: va oblidar fitxar la sortida","Guardar corrección":"Desar la correcció","Corrección guardada":"Correcció desada",
+  "No se ha guardado la corrección. Prueba otra vez.":"No s'ha desat la correcció. Torna-ho a provar.","Nadie ha fichado este mes.":"Ningú no ha fitxat aquest mes.",
+  "Registro diario de jornada con la hora de inicio y fin de cada trabajador (art. 34.9 del Estatuto de los Trabajadores). Se conserva 4 años y debe estar a disposición de los trabajadores, sus representantes y la Inspección de Trabajo.":"Registre diari de jornada amb l'hora d'inici i de final de cada treballador (art. 34.9 de l'Estatut dels Treballadors). Es conserva 4 anys i ha d'estar a disposició dels treballadors, els seus representants i la Inspecció de Treball.",
+  "Solo el encargado puede sacar los QR.":"Només l'encarregat pot treure els QR.","Si un QR se estropea, descarga o imprime el de esa mesa. Para hacerlos todos de nuevo, “Imprimir todos”.":"Si un QR es fa malbé, descarrega o imprimeix el d'aquella taula. Per fer-los tots de nou, “Imprimir-los tots”.",
+  "Imprimir todos":"Imprimir-los tots","Descargar":"Descarregar","Imprimir":"Imprimir","Escanea con la cámara del móvil":"Escaneja amb la càmera del mòbil","Llama al camarero o pide desde aquí":"Crida el cambrer o demana des d'aquí",
+  "No se ha podido crear el QR. Revisa la conexión.":"No s'ha pogut crear el QR. Revisa la connexió.","Solo el encargado puede poner fotos.":"Només l'encarregat pot posar fotos."
+};
+const CA_RE = [
+  [/^Hola, (.+)\. ¿Qué necesitas\?$/, m=>`Hola, ${m[1]}. Què necessites?`],
+  [/^Hola, (.+)\. ¿En qué mesa estás\?$/, m=>`Hola, ${m[1]}. A quina taula ets?`],
+  [/^No soy (.+), cambiar nombre$/, m=>`No sóc ${m[1]}, canviar el nom`],
+  [/^No soy (.+)$/, m=>`No sóc ${m[1]}`],
+  [/^Lo de siempre, (.+)$/, m=>`El de sempre, ${m[1]}`],
+  [/^Mesas abiertas \((\d+)\)$/, m=>`Taules obertes (${m[1]})`],
+  [/^Móviles bloqueados \((\d+)\)$/, m=>`Mòbils bloquejats (${m[1]})`],
+  [/^Ver mi pedido \((\d+)\)$/, m=>`Veure la meva comanda (${m[1]})`],
+  [/^Tu pedido, (.+)$/, m=>`La teva comanda, ${m[1]}`],
+  [/^Te lo llevamos a la mesa (.+)\.$/, m=>`Te la portem a la taula ${m[1]}.`],
+  [/^Te avisamos aquí cuando venga hacia la mesa (.+)\.$/, m=>`T'avisem aquí quan vingui cap a la taula ${m[1]}.`],
+  [/^Mesa (.+?) · (.+)\. Gracias por venir a (.+)\. Lo tendrás aquí guardado una semana\.$/, m=>`Taula ${m[1]} · ${m[2]}. Gràcies per venir a ${m[3]}. Ho tindràs desat aquí una setmana.`],
+  [/^Gracias por venir a (.+)\. ¡Hasta pronto!$/, m=>`Gràcies per venir a ${m[1]}. Fins aviat!`],
+  [/^Toda la mesa (.+)$/, m=>`Tota la taula ${m[1]}`],
+  [/^La cuenta de la mesa (.+)$/, m=>`El compte de la taula ${m[1]}`],
+  [/^Total \((\d+) productos?\)$/, m=>`Total (${m[1]} ${m[1]==="1"?"producte":"productes"})`],
+  [/^Total \((\d+) prod\.\)$/, m=>`Total (${m[1]} prod.)`],
+  [/^(.+) c\/u$/, m=>`${m[1]} c/u`],
+  [/^hace (\d+) min$/, m=>`fa ${m[1]} min`],
+  [/^Entrada fichada a las (.+)\. Te avisaremos con sonido\.$/, m=>`Entrada fitxada a les ${m[1]}. T'avisarem amb so.`],
+  [/^Salida fichada a las (.+)\. Buen descanso\.$/, m=>`Sortida fitxada a les ${m[1]}. Bon descans.`],
+  [/^Mesa (.+) cobrada y cerrada$/, m=>`Taula ${m[1]} cobrada i tancada`],
+  [/^(.+) llama al camarero$/, m=>`${tr(m[1])} crida el cambrer`],
+  [/^Abierta (.+)$/, m=>`Oberta ${m[1]}`],
+  [/^¿Bloquear el móvil de (.+)\? Se anulará este aviso y no podrá pedir ni llamar más desde la app\.$/, m=>`Bloquejar el mòbil de ${tr(m[1])}? S'anul·larà aquest avís i no podrà demanar ni cridar més des de l'app.`],
+  [/^¿Ya está cobrada la mesa (.+?)( \(.+\))?\?$/, m=>`Ja està cobrada la taula ${m[1]}${m[2]||""}?`],
+  [/^bloqueado ?(.*)$/, m=>`bloquejat ${tr(m[1])}`],
+  [/^cobrada a las (.+)$/, m=>`cobrada a les ${m[1]}`],
+  [/^Mis fichajes, (.+)$/, m=>`Els meus fitxatges, ${m[1]}`],
+  [/^Jornadas de (.+)$/, m=>`Jornades de ${m[1]}`],
+  [/^Corregido(?: por (.+?))?: (.*)$/, m=>`Corregit${m[1]?` per ${m[1]}`:""}: ${m[2]}`],
+  [/^Añadir (.+)$/, m=>`Afegir ${tr(m[1])}`],
+  [/^Quitar uno de (.+)$/, m=>`Treure'n un de ${tr(m[1])}`],
+  [/^· (.+)$/, m=>{ const r = tr(m[1]); return r!==m[1] ? `· ${r}` : null; }],
+  [/^Mesa (\S+)$/, m=>`Taula ${m[1]}`],
+  [/^(\d+) × (.+)$/, m=>`${m[1]} × ${tr(m[2])}`],
+  [/^(\d+×) (.+)$/, m=>`${m[1]} ${tr(m[2])}`],
+  [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = CA[m[2]]; return t ? `${m[1]} ${t}` : null; }]
+];
+const DIC = {zh:[ZH, ZH_RE], ca:[CA, CA_RE]}[LANG];
 function tr(s){
-  if (LANG !== "zh" || !s) return s;
-  if (ZH[s]) return ZH[s];
-  for (const [re, f] of ZH_RE){ const m = s.match(re); if (m){ const r = f(m); if (r) return r; } }
+  if (!DIC || !s) return s;
+  if (DIC[0][s]) return DIC[0][s];
+  for (const [re, f] of DIC[1]){ const m = s.match(re); if (m){ const r = f(m); if (r) return r; } }
   if (s.includes(" · ")){ const p = s.split(" · "), t = p.map(tr); if (t.some((x,k)=>x!==p[k])) return t.join(" · "); }
   if (/^\d+× .+, \d+× /.test(s)) return s.split(", ").map(tr).join("，");
   return s;
 }
 function traduce(root){
-  if (LANG !== "zh" || !root) return;
+  if (!DIC || !root) return;
   if (root.nodeType === 3){ const v = root.nodeValue, t = v.trim(); if (!t) return;
     const r = tr(t); if (r !== t) root.nodeValue = v.replace(t, r); return; }
   if (root.nodeType !== 1 || root.closest?.("script,style,textarea")) return;
@@ -1534,19 +1654,20 @@ function traduce(root){
 }
 const BANDERA = {
   es:`<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#C60B1E"/><rect y="5" width="30" height="10" fill="#FFC400"/></svg>`,
+  ca:`<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#FCDD09"/><g fill="#DA121A"><rect y="2.2" width="30" height="2.2"/><rect y="6.7" width="30" height="2.2"/><rect y="11.1" width="30" height="2.2"/><rect y="15.6" width="30" height="2.2"/></g></svg>`,
   zh:`<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#DE2910"/><g fill="#FFDE00"><path d="M5 2.2l1.2 3.5h3.7l-3 2.2 1.1 3.5L5 9.2l-3 2.2 1.1-3.5-3-2.2h3.7z"/><circle cx="10" cy="2" r=".9"/><circle cx="12" cy="4" r=".9"/><circle cx="12" cy="7" r=".9"/><circle cx="10" cy="9" r=".9"/></g></svg>`
 };
 function ponBanderas(){
   document.querySelectorAll("header.top .logo").forEach(logo=>{
     if (logo.parentElement.querySelector(".idiomas")) return;
     const d = document.createElement("div"); d.className = "idiomas noprint";
-    d.innerHTML = [["es","Español"],["zh","中文"]].map(([k,t])=>`<button data-lang="${k}" aria-pressed="${k===LANG}" aria-label="${t}" title="${t}">${BANDERA[k]}</button>`).join("");
+    d.innerHTML = [["es","Español"],["ca","Català"],["zh","中文"]].map(([k,t])=>`<button data-lang="${k}" aria-pressed="${k===LANG}" aria-label="${t}" title="${t}">${BANDERA[k]}</button>`).join("");
     d.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ if (b.dataset.lang===LANG) return; ls.set("esencia_lang", b.dataset.lang); location.reload(); });
     logo.after(d);
   });
 }
-if (LANG === "zh") document.documentElement.lang = "zh-CN";
-new MutationObserver(ms=>{ ponBanderas(); if (LANG==="zh") ms.forEach(m=>{
+if (LANG !== "es") document.documentElement.lang = LANG === "zh" ? "zh-CN" : "ca";
+new MutationObserver(ms=>{ ponBanderas(); if (DIC) ms.forEach(m=>{
   if (m.type==="characterData") traduce(m.target); else m.addedNodes.forEach(traduce); }); })
   .observe(document.body, {childList:true, subtree:true, characterData:true});
 /* ================= ARRANQUE ================= */
