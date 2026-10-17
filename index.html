@@ -67,6 +67,11 @@ body.plain .bg{display:none}
   body:not(.plain){background:url("barrio.svg") left 12px top calc(var(--hero) + 4px) / calc(50% - 344px) auto no-repeat,
     url("barrio.svg") right 12px top calc(var(--hero) + 4px) / calc(50% - 344px) auto no-repeat,
     linear-gradient(#F6D08A 0,#F6D08A calc(var(--hero) - 40px),#2C4636 0)}
+  /* cabecera baja (camareros, carta): el dibujo ocupa todo el ancho y la cabecera crece lo justo para que el puente quepa entero */
+  body.compact,body.staff{--hero:max(170px,calc(28px + 10.6vw))}
+  body.compact .bg,body.staff .bg{background-size:cover,cover,100% auto;background-position:center,var(--foto-pos),center calc(var(--hero) - 28px - 21.31vw)}
+  /* camareros: la hoja es ancha (1200px), los bloques van en el hueco que queda a los lados */
+  body.staff:not(.plain){background-size:max(0px,calc(50% - 624px)) auto,max(0px,calc(50% - 624px)) auto,auto}
 }
 #app{position:relative;z-index:1}
 /* contenido en una hoja clara que sube sobre la foto: se lee bien al sol */
