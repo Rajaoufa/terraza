@@ -249,6 +249,9 @@ body.staff .wrap{max-width:1200px}
 .qrc .q{display:flex;justify-content:center;margin:12px 0}
 .qrc .ms{font-weight:700;font-size:1.2em}
 .qrc .hint{font-size:.8em;color:#56655F}
+.qrc .qa{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.qrc .qa button{min-height:44px;padding:8px 12px;font-size:.85em}
+@media print{body.solo .qrc:not(.imp){display:none}body.solo .qrs{display:block}body.solo .qrc{max-width:320px;margin:0 auto}}
 @media print{.noprint,.bg{display:none!important}body{background:#fff}.wrap{padding:0}main.wrap{box-shadow:none;margin:0;border-radius:0;min-height:0}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -408,7 +411,7 @@ const CARTA = [
 const $app = document.getElementById("app");
 const qs = new URLSearchParams(location.search);
 // también vale #panel, #qr o #mesa5 al final del enlace
-if (/\/camareros\/?$/.test(location.pathname)) qs.set("panel","");   // app de camareros instalada aparte
+if (/\/camareros\/?$/.test(location.pathname) && !qs.has("qr") && !qs.has("fichajes")) qs.set("panel","");   // app de camareros instalada aparte
 { const h = location.hash.slice(1); if (h==="panel"||h==="qr"||h==="fichajes") qs.set(h,""); else if (/^mesa[0-9A-Za-z-]+$/.test(h)) qs.set("mesa", h.slice(4)); }
 const PREVIEW = !!window.ESENCIA_PREVIEW;
 if (PREVIEW) { try{ localStorage.setItem("esencia_trab", JSON.stringify({id:1,nombre:"Jamal",pin:"1234",admin:true})); }catch{} if (!qs.has("panel")&&!qs.has("qr")&&!qs.get("mesa")) qs.set("mesa","5"); }
@@ -915,7 +918,7 @@ async function pintar(){
   if (!enServicio){
     cuerpo.innerHTML = `<div class="offbox"><b>Fuera de servicio</b>No recibes avisos ni sonidos.<br>Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.
       <div class="offacts"><button class="ghost" data-p="fichajes">Ver mis fichajes</button>
-      ${trab.admin?`<a class="ghost" href="?fichajes">Registro de jornada</a>`:""}
+      ${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a>`:""}
       <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div></div>`;
     cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
     document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
@@ -1071,7 +1074,7 @@ async function informe(){
   }
   $app.innerHTML = (DEMO?`<div class="demo noprint">MODO PRUEBA · Los fichajes de prueba solo se guardan en este navegador.</div>`:"") +
     `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Registro de jornada</small></div>
-     <a class="svc off noprint" href="?panel" style="text-decoration:none">Volver al panel</a></div></header>
+     <a class="svc off noprint" href="${location.pathname}?panel" style="text-decoration:none">Volver al panel</a></div></header>
     <main class="wrap"><div class="fbar noprint">
       <label>Mes<input type="month" id="iMes" value="${infMes}"></label>
       <label>Trabajador<select id="iTrab"><option value="">Todos</option></select></label>
@@ -1129,15 +1132,48 @@ function descargaCsv(){
 }
 
 /* ================= QR PARA IMPRIMIR ================= */
+// Solo el encargado. Están dentro de la app de camareros por si un QR se estropea:
+// se puede descargar o imprimir el de una mesa, o todos.
+const QR_HINT = ["Escanea con la cámara del móvil", "Llama al camarero o pide desde aquí"];
 function qrs(){
-  document.body.classList.add("plain");
-  const base = location.origin + location.pathname;
-  $app.innerHTML = `<main class="wrap"><div class="noprint">
-    <p class="hello">Códigos QR de las mesas</p>
-    <p class="sub">Imprime esta página (Ctrl+P) y pega cada QR en su mesa. Enlace base: <b>${esc(base)}</b></p></div>
-    <div class="qrs">${Array.from({length:CONFIG.MESAS},(_,i)=>`<div class="qrc"><div class="nm">${esc(CONFIG.NOMBRE)}</div>
-      <div class="q" id="q${i+1}"></div><div class="ms">Mesa ${i+1}</div><div class="hint">Escanea con la cámara del móvil<br>Llama al camarero o pide desde aquí</div></div>`).join("")}</div></main>`;
+  document.body.classList.add("staff");
+  if (!trab) return pantallaPin("QR de las mesas", qrs);
+  if (!trab.admin){
+    $app.innerHTML = `<main class="wrap"><p class="hello">Solo el encargado puede sacar los QR.</p><a class="ghost" href="${location.pathname}?panel" style="display:inline-block;color:var(--ink)">Ir al panel</a></main>`;
+    return;
+  }
+  const base = new URL("./", document.baseURI).href;   // la página de clientes, también desde /camareros/
+  $app.innerHTML = `<header class="top noprint"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>QR de las mesas</small></div>
+     <a class="svc off" href="${location.pathname}?panel" style="text-decoration:none">Volver al panel</a></div></header>
+    <main class="wrap"><div class="noprint">
+    <p class="sub">Si un QR se estropea, descarga o imprime el de esa mesa. Para hacerlos todos de nuevo, “Imprimir todos”.</p>
+    <button class="act pay" id="qrTodos">Imprimir todos</button></div>
+    <div class="qrs">${Array.from({length:CONFIG.MESAS},(_,i)=>`<div class="qrc" id="qc${i+1}"><div class="nm">${esc(CONFIG.NOMBRE)}</div>
+      <div class="q" id="q${i+1}"></div><div class="ms">Mesa ${i+1}</div><div class="hint">${QR_HINT.join("<br>")}</div>
+      <div class="qa noprint"><button class="act pay" data-qd="${i+1}">Descargar</button><button class="act no" data-qp="${i+1}">Imprimir</button></div></div>`).join("")}</div></main>`;
   for (let i=1;i<=CONFIG.MESAS;i++) if (window.QRCode) new QRCode(document.getElementById("q"+i), {text: base+"?mesa="+i, width:170, height:170, correctLevel: QRCode.CorrectLevel.M});
+  document.getElementById("qrTodos").onclick = ()=>print();
+  document.querySelectorAll("[data-qp]").forEach(b=>b.onclick=()=>{
+    const c = document.getElementById("qc"+b.dataset.qp);
+    document.body.classList.add("solo"); c.classList.add("imp");
+    addEventListener("afterprint", ()=>{ document.body.classList.remove("solo"); c.classList.remove("imp"); }, {once:true});
+    print();
+  });
+  document.querySelectorAll("[data-qd]").forEach(b=>b.onclick=()=>descargaQR(+b.dataset.qd));
+}
+function descargaQR(n){
+  const src = document.querySelector(`#q${n} canvas`) || document.querySelector(`#q${n} img`);
+  if (!src) return toast("No se ha podido crear el QR. Revisa la conexión.");
+  const W=600, H=820, c=document.createElement("canvas"), g=c.getContext("2d"); c.width=W; c.height=H;
+  g.fillStyle="#fff"; g.fillRect(0,0,W,H);
+  g.strokeStyle="#1E4A3D"; g.lineWidth=8; g.beginPath(); g.roundRect(14,14,W-28,H-28,40); g.stroke();
+  g.textAlign="center"; g.fillStyle="#1E4A3D"; g.font="800 52px "+getComputedStyle(document.body).fontFamily;
+  g.fillText(CONFIG.NOMBRE, W/2, 105);
+  g.imageSmoothingEnabled=false; g.drawImage(src, 100, 150, 400, 400);
+  g.fillStyle="#16241F"; g.font="700 54px sans-serif"; g.fillText("Mesa "+n, W/2, 640);
+  g.fillStyle="#56655F"; g.font="28px sans-serif"; QR_HINT.forEach((t,k)=>g.fillText(t, W/2, 705+k*40));
+  c.toBlob(bl=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(bl); a.download=`QR-mesa-${n}.png`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000); }, "image/png");
 }
 
 /* ================= ARRANQUE ================= */
