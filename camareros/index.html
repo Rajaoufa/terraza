@@ -87,6 +87,9 @@ body.plain .bg{display:none}
     body:not(.staff):not(.compact) main.wrap .lado.izq{right:calc(100% + 24px)}
     body:not(.staff):not(.compact) main.wrap .lado.der{left:calc(100% + 24px)}
   }
+  /* con más de 2 mesas abiertas el panel se ensancha para que quepan todas */
+  body.staff.muchas:not(.plain) main.wrap{width:min(1800px,calc(100vw - 48px));margin:-28px auto 24px}
+  body.staff.muchas .grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
   /* banderas a la derecha, junto al botón de servicio */
   .top .idiomas{margin-left:auto}
 }
@@ -255,7 +258,10 @@ body.staff .wrap{max-width:1200px}
 .cons{padding:4px 16px 8px;border-top:1px solid var(--line)}
 .cons .row{padding:7px 0;font-size:.95em}
 .cons small{display:block;color:var(--muted);font-size:.8em}
-.cons .cap{font-size:.75em;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:10px}
+.cons .cap{font-size:.75em;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.cons summary{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0 4px;cursor:pointer;list-style:none}
+.cons summary::-webkit-details-marker{display:none}
+.cons summary .cap::before{content:"▸ ";display:inline-block}.cons[open] summary .cap::before{content:"▾ "}
 .foot{padding:10px 16px 16px;display:grid;gap:8px}
 .ask{background:var(--soft);border-radius:12px;padding:12px;display:grid;gap:8px}
 .ask .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -1144,6 +1150,7 @@ function panel(){
 
 async function pintar(){
   const cuerpo = document.getElementById("cuerpo"); if (!cuerpo) return;
+  document.body.classList.remove("muchas");
   if (pestana==="fichajes") return pintaMisFichajes(cuerpo);
   if (!enServicio){
     cuerpo.innerHTML = `<div class="offbox"><b>Fuera de servicio</b>No recibes avisos ni sonidos.<br>Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.
@@ -1177,6 +1184,7 @@ async function pintar(){
     <button class="tab" data-p="fichajes">Mis fichajes</button></div>`;
 
   if (pestana==="abiertas"){
+    document.body.classList.toggle("muchas", mesasAb.length > 2);
     h += mesasAb.length ? `<div class="grid">${mesasAb.map(m=>tarjetaMesa(m, abiertas[m])).join("")}</div>`
                         : `<p class="empty">No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.</p>`;
   } else if (pestana==="bloqueados"){
@@ -1252,11 +1260,11 @@ function tarjetaMesa(m, rs){
          <ul>${(r.items||[]).map(i=>`<li><b>${Number(i.q)||0}×</b> ${esc(i.n)}</li>`).join("")}</ul>
          ${r.nota?`<div class="nota">${esc(r.nota)}</div>`:""}
          <button class="act ok" data-acc="${esc(r.id)}">Recibido</button>${botonBloq(r)}</div>`).join("")}
-    ${Object.keys(cons).length?`<div class="cons"><div class="cap">Consumo de la mesa</div>
+    ${Object.keys(cons).length?`<details class="cons" data-k="cons-${esc(m)}"><summary><span class="cap">Consumo de la mesa</span><b>${eur(total)}</b></summary>
       ${Object.entries(cons).map(([n,c])=>`<div class="row"><span><b>${c.q}×</b> ${esc(n)}<small>${eur(c.p)} c/u</small></span><span>${eur(c.q*c.p)}</span></div>`).join("")}
       <div class="row total"><span>Total (${Object.values(cons).reduce((a,c)=>a+c.q,0)} prod.)</span><span>${eur(total)}</span></div>
       ${(()=>{ const q={}; peds.forEach(r=>{ const k=r.cliente||"Sin nombre"; q[k]=(q[k]||0)+Number(r.total||0); });
-        return Object.keys(q).length>1?`<div class="quien">${Object.entries(q).map(([n,t])=>`<span>${esc(n)}: <b>${eur(t)}</b></span>`).join("")}</div>`:""; })()}</div>`:""}
+        return Object.keys(q).length>1?`<div class="quien">${Object.entries(q).map(([n,t])=>`<span>${esc(n)}: <b>${eur(t)}</b></span>`).join("")}</div>`:""; })()}</details>`:""}
     <div class="foot">${cobrando===m
       ? `<div class="ask"><b>¿Ya está cobrada la mesa ${esc(m)}${total?` (${eur(total)})`:""}?</b>
          <div class="two"><button class="act pay" data-cerrar="${esc(m)}">Sí, cerrar mesa</button><button class="act no" data-nocobrar>No</button></div></div>`
