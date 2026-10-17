@@ -126,7 +126,9 @@ body.compact .top .lugar,body.staff .top .lugar{display:none}
 /* carta */
 .back{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:16px 0;font-weight:700;color:var(--link)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.tile{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.tile{position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.sw{position:relative}.sw .secc{width:100%}
+.subir{position:absolute;top:8px;left:8px;z-index:2;width:44px;height:44px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.55);color:#fff;font-size:1.1em;display:grid;place-items:center;padding:0}
 .tile.has{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand) inset}
 .tile .pic{position:relative;border:0;background:var(--soft);aspect-ratio:4/3;display:grid;place-items:center;font-size:3.2em;padding:0}
 .tile .pic img{width:100%;height:100%;object-fit:cover}
@@ -435,7 +437,7 @@ const CARTA = [
 const $app = document.getElementById("app");
 const qs = new URLSearchParams(location.search);
 // también vale #panel, #qr o #mesa5 al final del enlace
-if (/\/camareros\/?$/.test(location.pathname) && !qs.has("qr") && !qs.has("fichajes")) qs.set("panel","");   // app de camareros instalada aparte
+if (/\/camareros\/?$/.test(location.pathname) && !qs.has("qr") && !qs.has("fichajes") && !qs.has("fotos")) qs.set("panel","");   // app de camareros instalada aparte
 { const h = location.hash.slice(1); if (h==="panel"||h==="qr"||h==="fichajes") qs.set(h,""); else if (/^mesa[0-9A-Za-z-]+$/.test(h)) qs.set("mesa", h.slice(4)); }
 const PREVIEW = !!window.ESENCIA_PREVIEW;
 if (PREVIEW) { try{ localStorage.setItem("esencia_trab", JSON.stringify({id:1,nombre:"Admin",pin:"1234",admin:true})); }catch{} if (!qs.has("panel")&&!qs.has("qr")&&!qs.get("mesa")) qs.set("mesa","5"); }
@@ -456,7 +458,39 @@ const dibujo = i => i.f ? `<img src="${esc(i.f)}" alt="">` : `<span aria-hidden=
 const SIN_FOTO = new Set(JSON.parse(sessionStorage.getItem("esencia_sinfoto")||"[]"));
 function sinFoto(img){ SIN_FOTO.add(img.getAttribute("src")); try{sessionStorage.setItem("esencia_sinfoto",JSON.stringify([...SIN_FOTO]))}catch{} img.remove(); }
 const foto = src => SIN_FOTO.has(src) ? "" : `<img class="foto" src="${esc(src)}" alt="" loading="lazy" onerror="sinFoto(this)">`;
-const conFoto = i => dibujo({...i, f:null}) + foto(i.f || `img/${i.id}.jpg`);
+// fotos que sube el encargado desde la carta (tabla esencia_fotos); se guardan también en este móvil
+let FOTOS = ls.get("esencia_fotos", {});   // {producto: {t: fecha, d: dataURL}}
+const fotoSubida = k => FOTOS[k]?.d ? `<img class="foto" src="${FOTOS[k].d}" alt="">` : "";
+const conFoto = i => dibujo({...i, f:null}) + (fotoSubida(i.id) || foto(i.f || `img/${i.id}.jpg`));
+async function cargaFotos(){
+  try {
+    const lista = await Store.fotosLista();               // [{producto, updated_at}]
+    const vivas = new Set(lista.map(f=>f.producto));
+    const faltan = lista.filter(f=>FOTOS[f.producto]?.t !== f.updated_at).map(f=>f.producto);
+    let cambio = Object.keys(FOTOS).some(k=>!vivas.has(k));
+    Object.keys(FOTOS).forEach(k=>{ if (!vivas.has(k)) delete FOTOS[k]; });
+    if (faltan.length){ (await Store.fotosDatos(faltan)).forEach(f=>{ FOTOS[f.producto] = {t:f.updated_at, d:f.data}; }); cambio = true; }
+    if (cambio){ ls.set("esencia_fotos", FOTOS); if (vista==="carta") cliente(); }
+  } catch {}
+}
+const soyAdmin = () => !!(ls.get("esencia_trab", null) || {}).admin;
+const botonFoto = k => soyAdmin() ? `<button class="subir" data-foto="${esc(k)}" aria-label="Poner foto">📷</button>` : "";
+// reduce la foto a 480 px y la guarda como JPG
+function leeFoto(file){
+  return new Promise((ok, mal) => { const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, 480/Math.max(img.width, img.height)), c = document.createElement("canvas");
+      c.width = Math.round(img.width*k); c.height = Math.round(img.height*k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", .72)); };
+    img.onerror = () => { URL.revokeObjectURL(url); mal(new Error("foto")); }; img.src = url; });
+}
+function subirFoto(k){
+  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*";
+  inp.onchange = async () => { const f = inp.files[0]; if (!f) return;
+    try { toast("Subiendo foto…"); const d = await leeFoto(f); const t = await Store.ponerFoto(ls.get("esencia_trab", null), k, d);
+          FOTOS[k] = {t, d}; ls.set("esencia_fotos", FOTOS); cliente(); toast("Foto guardada"); }
+    catch { toast("No se ha podido guardar la foto"); } };
+  inp.click();
+}
 const SECCIONES = [
   {k:"Refrescos", e:"🥤", grupos:["Refrescos y agua"]},
   {k:"Cervezas",  e:"🍺", grupos:["Cervezas"]},
@@ -585,6 +619,18 @@ const Store = {
     if (sb){ const {error} = await sb.rpc("esencia_borrar_pin",{p_pin:admin.pin, p_id:id}); if (error) throw error; return; }
     const pins = ls.get("esencia_demo_pins", {}); pins[id] = ""; ls.set("esencia_demo_pins", pins);
   },
+  async fotosLista(){
+    if (sb){ const {data,error} = await sb.from("esencia_fotos").select("producto,updated_at"); if (error) throw error; return data; }
+    const d = ls.get("esencia_demo_fotos", {}); return Object.entries(d).map(([producto,f])=>({producto, updated_at:f.t}));
+  },
+  async fotosDatos(ids){
+    if (sb){ const {data,error} = await sb.from("esencia_fotos").select("producto,data,updated_at").in("producto",ids); if (error) throw error; return data; }
+    const d = ls.get("esencia_demo_fotos", {}); return ids.filter(k=>d[k]).map(k=>({producto:k, data:d[k].d, updated_at:d[k].t}));
+  },
+  async ponerFoto(admin, producto, data){
+    if (sb){ const {data:t,error} = await sb.rpc("esencia_poner_foto",{p_pin:admin.pin, p_producto:producto, p_data:data}); if (error) throw error; return t; }
+    const d = ls.get("esencia_demo_fotos", {}), t = new Date().toISOString(); d[producto] = {t, d:data}; ls.set("esencia_demo_fotos", d); return t;
+  },
   async fichar(trab, tipo){
     if (sb){ const {data,error} = await sb.rpc("esencia_fichar",{p_pin:trab.pin, p_tipo:tipo, p_dispositivo:DISPOSITIVO}); if (error) throw error; return data; }
     const f = demoFich(); const ult = f.filter(x=>x.trabajador_id===trab.id).at(-1);
@@ -621,12 +667,13 @@ const Store = {
 const mesa = (()=>{
   const limpia = v => String(v||"").replace(/[^0-9A-Za-z-]/g,"").slice(0,6);
   let m = limpia(qs.get("mesa"));
-  if (!m && !qs.has("panel") && !qs.has("qr") && !qs.has("fichajes")){
+  if (!m && !qs.has("panel") && !qs.has("qr") && !qs.has("fichajes") && !qs.has("fotos")){
     const u = ls.get("esencia_mesa", null); if (u && Date.now()-u.t < 4*3600e3) m = limpia(u.m);
   }
   if (m) ls.set("esencia_mesa", {m, t:Date.now()});
   return m;
 })();
+const MODO_FOTOS = qs.has("fotos");   // el encargado pone fotos a la carta (sin mesa, sin pedir)
 const EN_APP = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 let avisoInstalar = null;   // Android/Chrome: aviso de instalación guardado para el botón
 const KEY = "esencia_cli_"+mesa;
@@ -721,7 +768,7 @@ function bloqueMios(){
 
 function cliente(){
   document.body.classList.toggle("compact", ["carta","resumen"].includes(vista));
-  if (!mesa){
+  if (!mesa && !MODO_FOTOS){
     const escaner = "BarcodeDetector" in window && navigator.mediaDevices?.getUserMedia;
     $app.innerHTML = header() + `<main class="wrap pick">
       <p class="hello">${yo.nombre?`Hola, ${esc(yo.nombre)}. `:""}¿En qué mesa estás?</p>
@@ -760,9 +807,10 @@ function cliente(){
       ${bloqueInstalar()}`;
   }
   if (vista==="carta"){
-    h += `<button class="back" id="volver">${ICON.back} ${catSel?"Todas las secciones":"Volver"}</button>`;
+    h += `<button class="back" id="volver">${ICON.back} ${catSel?"Todas las secciones":MODO_FOTOS?"Volver al panel":"Volver"}</button>`
+      + (MODO_FOTOS ? `<p class="sub">Toca 📷 en un producto o una sección para hacerle una foto o elegirla de la galería.</p>` : "");
     const tarjeta = i => { const q = cesta[i.id]||0;
-      return `<div class="tile ${q?"has":""}"><button class="pic" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</button>
+      return `<div class="tile ${q?"has":""}">${botonFoto(i.id)}<button class="pic" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</button>
         <div class="tx">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<div class="n">${esc(i.n)}</div>${i.d?`<div class="d">${esc(i.d)}</div>`:""}<div class="p">${eur(i.p)}</div></div>
         <div class="step">${q?`<button class="m" data-m="${i.id}" aria-label="Quitar uno de ${esc(label(i))}">−</button><output>${q}</output>`:"<span></span>"}
         <button class="a" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">+</button></div></div>`; };
@@ -771,13 +819,13 @@ function cliente(){
       const top = mios.length ? [] : porConsumo(ALL_ITEMS.filter(i=>(MAS_PEDIDOS||{})[label(i)]));
       const tres = [...new Set([...mios, ...top, ...["ce1","ca2","re1"].map(findItem)])].slice(0,3);
       h += `<section class="cat"><h2>${mios.length?`Lo de siempre, ${esc(yo.nombre)}`:"Lo que más se pide aquí"}</h2><div class="tiles tres">${tres.map(tarjeta).join("")}</div></section>
-        <section class="cat"><h2>¿Qué te apetece?</h2><div class="secciones">${SECCIONES.map(s=>`<button class="secc" data-cat="${esc(s.k)}"><span aria-hidden="true">${s.e}</span>${foto(fotoSecc(s))}<b>${esc(s.k)}</b></button>`).join("")}</div></section>`;
+        <section class="cat"><h2>¿Qué te apetece?</h2><div class="secciones">${SECCIONES.map(s=>`<div class="sw">${botonFoto("cat-"+s.k)}<button class="secc" data-cat="${esc(s.k)}"><span aria-hidden="true">${s.e}</span>${fotoSubida("cat-"+s.k)||foto(fotoSecc(s))}<b>${esc(s.k)}</b></button></div>`).join("")}</div></section>`;
     } else {
       const sec = SECCIONES.find(s=>s.k===catSel);
       h += `<p class="hello" style="margin-top:0">${sec.e} ${esc(sec.k)}</p>` + sec.grupos.map(n=>GRUPOS.find(g=>g.g===n)).filter(Boolean)
         .map(g=>`<section class="cat">${sec.grupos.length>1?`<h2>${esc(g.g)}</h2>`:""}<div class="tiles">${porConsumo(g.items).map(tarjeta).join("")}</div></section>`).join("");
     }
-    barra = `<button class="cta" id="verPedido" ${totalUds()?"":"disabled"}><span>${totalUds()?`Ver mi pedido (${totalUds()})`:"Elige lo que quieras"}</span><span>${totalUds()?eur(totalEur()):""}</span></button>`;
+    if (!MODO_FOTOS) barra = `<button class="cta" id="verPedido" ${totalUds()?"":"disabled"}><span>${totalUds()?`Ver mi pedido (${totalUds()})`:"Elige lo que quieras"}</span><span>${totalUds()?eur(totalEur()):""}</span></button>`;
   }
   if (vista==="resumen"){
     h += `<button class="back" id="volverCarta">${ICON.back} Seguir pidiendo</button>
@@ -812,8 +860,8 @@ function bindCliente(){
   if (fn) fn.onsubmit = e => { e.preventDefault(); const v=document.getElementById("nom").value.trim().slice(0,30); if(!v) return; yo.nombre=v; guardaYo(); go("inicio"); };
   on("cambiaNom", ()=>go("nombre"));
   on("cambiaMesa", ()=>{ ls.set("esencia_mesa", null); location.href = location.pathname + "?app"; });
-  on("carta", ()=>{ catSel = null; go("carta"); if (!MAS_PEDIDOS) Store.masPedidos().then(c=>{ MAS_PEDIDOS=c; if (vista==="carta") cliente(); }).catch(()=>{}); });
-  on("volver", ()=>{ if (catSel){ catSel=null; cliente(); scrollTo(0,0); } else go("inicio"); });
+  on("carta", ()=>{ catSel = null; go("carta"); cargaFotos(); if (!MAS_PEDIDOS) Store.masPedidos().then(c=>{ MAS_PEDIDOS=c; if (vista==="carta") cliente(); }).catch(()=>{}); });
+  on("volver", ()=>{ if (catSel){ catSel=null; cliente(); scrollTo(0,0); } else if (MODO_FOTOS) location.href = location.pathname + "?panel"; else go("inicio"); });
   on("volverCarta", ()=>{ saveNota(); go("carta"); });
   on("verPedido", ()=>go("resumen"));
   on("inicio", ()=>go("inicio"));
@@ -836,6 +884,7 @@ function bindCliente(){
   });
   document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{catSel=b.dataset.cat;cliente();scrollTo(0,0)});
   document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const id=b.dataset.a;cesta[id]=(cesta[id]||0)+1;cliente()});
+  document.querySelectorAll("[data-foto]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); subirFoto(b.dataset.foto); });
   document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const id=b.dataset.m;cesta[id]--; if(cesta[id]<=0) delete cesta[id]; cliente()});
 }
 /* ---------- Instalar la app (clientes) ---------- */
@@ -1045,7 +1094,7 @@ async function pintar(){
   if (!enServicio){
     cuerpo.innerHTML = `<div class="offbox"><b>Fuera de servicio</b>No recibes avisos ni sonidos.<br>Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.
       <div class="offacts"><button class="ghost" data-p="fichajes">Ver mis fichajes</button>
-      ${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><button class="ghost" id="pinsOlv">PIN olvidado</button>`:""}
+      ${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><a class="ghost" href="${location.pathname}?fotos">Fotos de la carta</a><button class="ghost" id="pinsOlv">PIN olvidado</button>`:""}
       <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div></div>`;
     cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
     document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
@@ -1295,6 +1344,12 @@ function qrs(){
   });
   document.querySelectorAll("[data-qd]").forEach(b=>b.onclick=()=>descargaQR(+b.dataset.qd));
 }
+// Fotos de la carta: el encargado abre la carta desde el panel y pone fotos con 📷
+function fotosCarta(){
+  if (!trab) return pantallaPin("Fotos de la carta", fotosCarta);
+  if (!trab.admin){ $app.innerHTML = `<main class="wrap"><p class="hello">Solo el encargado puede poner fotos.</p><a class="ghost" href="${location.pathname}?panel" style="display:inline-block;color:var(--ink)">Ir al panel</a></main>`; return; }
+  vista = "carta"; catSel = null; cliente(); cargaFotos();
+}
 function descargaQR(n){
   const src = document.querySelector(`#q${n} canvas`) || document.querySelector(`#q${n} img`);
   if (!src) return toast("No se ha podido crear el QR. Revisa la conexión.");
@@ -1322,6 +1377,7 @@ if (PREVIEW){
 if (qs.has("panel")) { if (trab) entrarPanel(); else panel(); Store.subscribe(()=>{ if (trab && pestana!=="fichajes") pintar(); }, 10000); }
 else if (qs.has("fichajes")) informe();
 else if (qs.has("qr")) qrs();
+else if (MODO_FOTOS) fotosCarta();
 else { cliente(); if (mesa){ refrescaMias(); Store.subscribe(()=>refrescaMias(), 8000); } }
 </script>
 </body>
