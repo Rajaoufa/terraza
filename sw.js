@@ -17,7 +17,7 @@ self.addEventListener("fetch", e => {
 // Avisos con el móvil bloqueado: llegan aunque la app esté cerrada
 self.addEventListener("push", e => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch { d = { titulo: e.data && e.data.text() }; }
-  e.waitUntil(self.registration.showNotification(d.titulo || "BAR LA ESSENCIA", {
+  e.waitUntil(self.registration.showNotification(d.titulo || "BAR ESSENCIA", {
     body: d.cuerpo || "", tag: d.tag || "esencia", renotify: true, requireInteraction: true,
     icon: "icons/icon-192.png", badge: "icons/icon-192.png", vibrate: [200, 100, 200, 100, 200], data: { url: "./camareros/" }
   }));

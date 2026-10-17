@@ -5,11 +5,11 @@
 <!-- Copia de ../index.html para instalar el panel de camareros como app aparte. No editar: se genera desde index.html -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>BAR LA ESSENCIA</title>
+<title>BAR ESSENCIA</title>
 <meta name="theme-color" content="#1E4A3D">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="LA ESSENCIA">
+<meta name="apple-mobile-web-app-title" content="BAR ESSENCIA">
 <script>/* solo el panel de camareros se instala como app; los clientes entran por el QR */
 if (/\/camareros\/?$/.test(location.pathname)||/[?&#]panel/.test(location.href)) { const l=document.createElement("link"); l.rel="manifest"; l.href="manifest-panel.webmanifest"; document.head.appendChild(l); }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -262,7 +262,7 @@ body.staff .wrap{max-width:1200px}
    CONFIGURACIÓN — cambia solo esto
    ========================================================== */
 const CONFIG = {
-  NOMBRE: "BAR LA ESSENCIA",
+  NOMBRE: "BAR ESSENCIA",
   SUPABASE_URL: "https://phhsrswqusmphbbabhmt.supabase.co",          // ej: https://xxxx.supabase.co   (vacío = modo prueba)
   SUPABASE_KEY: "sb_publishable_tAC4xxO1Lrxjo1NFSxMK4Q_S5VF1r1m",   // clave pública (publishable)
   // Con Supabase, cada trabajador entra con SU PIN (se dan de alta en supabase.sql).
@@ -771,7 +771,7 @@ function bloqueInstalar(){
     : ios ? `<span>En Safari, toca <b>Compartir</b> <span aria-hidden="true">⬆︎</span> y luego <b>“Añadir a pantalla de inicio”</b>.</span>`
           : `<span>En el menú del navegador <b>⋮</b>, toca <b>“Añadir a pantalla de inicio”</b> o <b>“Instalar app”</b>.</span>`;
   return `<div class="inst"><img src="icons/icon-192.png" alt="" width="56" height="56">
-    <div><b>Ten BAR LA ESSENCIA en tu móvil</b><p>La próxima vez no hace falta escanear: abre la app y elige tu mesa.</p>${como}
+    <div><b>Ten BAR ESSENCIA en tu móvil</b><p>La próxima vez no hace falta escanear: abre la app y elige tu mesa.</p>${como}
     <button class="back" id="noInstalar" style="padding:8px 0 0">Ahora no</button></div></div>`;
 }
 function bindInstalar(){
