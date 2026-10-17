@@ -74,9 +74,16 @@ body.plain .bg{display:none}
   /* camareros: la hoja solo mide lo que hay dentro (sin cuadro blanco vacío hasta abajo) */
   body:not(.plain){min-height:100vh}
   body.staff main.wrap{min-height:0;border-radius:28px;padding-bottom:20px;margin-bottom:24px}
-  body.staff:not(.plain){background-size:max(0px,calc(50% - 624px)) auto,max(0px,calc(50% - 624px)) auto,auto}
+  /* camareros: un solo barrio, justo debajo de la hoja */
+  body.staff:not(.plain){background:linear-gradient(#F6D08A 0,#F6D08A calc(var(--hero) - 40px),#2C4636 0)}
+  body.staff:not(.plain) #app::after{content:"";display:block;width:min(900px,calc(100% - 32px));aspect-ratio:1800/1063;margin:0 auto 24px;background:url("barrio.svg") center/contain no-repeat}
 }
 #app{position:relative;z-index:1}
+/* banderas para cambiar de idioma */
+.idiomas{display:flex;gap:8px}
+.idiomas button{width:38px;height:26px;padding:0;border:2px solid rgba(255,255,255,.5);border-radius:6px;overflow:hidden;background:none;cursor:pointer;opacity:.75;box-shadow:0 1px 6px rgba(0,0,0,.3)}
+.idiomas button svg{display:block;width:100%;height:100%}
+.idiomas button[aria-pressed="true"]{border-color:#fff;opacity:1}
 /* contenido en una hoja clara que sube sobre la foto: se lee bien al sol */
 main.wrap{background:var(--bg);border-radius:28px 28px 0 0;margin-top:-28px;position:relative;padding-top:8px;
   min-height:calc(100vh - var(--hero) + 28px);box-shadow:0 -10px 30px rgba(0,0,0,.18)}
@@ -753,7 +760,7 @@ function tablaCuenta(peds, titulo){
 // cuentas pagadas en este móvil: se guardan una semana
 let ultimoPago = null;
 const pagados = () => ls.get("esencia_pagados", []).filter(p=>Date.now()-new Date(p.at) < 7*864e5);
-const fechaHora = iso => new Date(iso).toLocaleString("es-ES",{weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
+const fechaHora = iso => new Date(iso).toLocaleString(LOC,{weekday:"long",day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"});
 function cuentaPagada(p){
   const sumMios = p.mios.reduce((a,r)=>a+Number(r.total||0),0), sumMesa = p.mesaPeds.reduce((a,r)=>a+Number(r.total||0),0);
   return tablaCuenta(p.mios, "Lo que has pedido tú") + (Math.abs(sumMesa-sumMios)>.001 ? tablaCuenta(p.mesaPeds, `Toda la mesa ${esc(p.mesa)}`) : "");
@@ -1139,7 +1146,7 @@ async function pintar(){
     let cob = []; try { cob = await Store.cobradas(); } catch { toast("Sin conexión con el servidor"); }
     const porCierre = {}; cob.forEach(r=>{ const k=r.mesa+"|"+r.cerrado_at; (porCierre[k]=porCierre[k]||[]).push(r); });
     const lista = Object.entries(porCierre).sort((x,y)=>y[0].split("|")[1].localeCompare(x[0].split("|")[1]));
-    const dia = iso => new Date(iso).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});
+    const dia = iso => new Date(iso).toLocaleDateString(LOC,{weekday:"long",day:"numeric",month:"long"});
     let ultimo = "", totDia = {};
     lista.forEach(([k,rs])=>{ const d=dia(rs[0].cerrado_at); totDia[d]=(totDia[d]||0)+rs.filter(r=>r.tipo==="pedido").reduce((a,r)=>a+Number(r.total||0),0); });
     h += lista.length ? lista.map(([k,rs])=>{
@@ -1214,7 +1221,7 @@ function tarjetaMesa(m, rs){
 /* ================= REGISTRO DE JORNADA (fichajes) ================= */
 const TZ = "Europe/Madrid";
 const fHora = iso => new Date(iso).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit",timeZone:TZ});
-const fDia = iso => new Date(iso).toLocaleDateString("es-ES",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric",timeZone:TZ});
+const fDia = iso => new Date(iso).toLocaleDateString(LOC,{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric",timeZone:TZ});
 const dur = ms => { const m = Math.round(ms/60000); return `${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")} min`; };
 const mesActual = () => new Date().toLocaleDateString("sv-SE",{timeZone:TZ}).slice(0,7);
 const rangoMes = ym => { const [y,m] = ym.split("-").map(Number); return [new Date(y,m-1,1).toISOString(), new Date(y,m,1).toISOString()]; };
@@ -1305,7 +1312,7 @@ async function pintaInforme(){
   const box = document.getElementById("iTabla"); box.textContent = "Cargando…";
   try { const [d,h] = rangoMes(infMes); infFilas = await Store.informe(trab, d, h); }
   catch { box.textContent = "Sin conexión con el servidor."; return; }
-  const mesTxt = new Date(rangoMes(infMes)[0]).toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+  const mesTxt = new Date(rangoMes(infMes)[0]).toLocaleDateString(LOC,{month:"long",year:"numeric"});
   const g = infPorTrab();
   box.innerHTML = `<p class="hello" style="margin-top:6px">Jornadas de ${esc(mesTxt)}</p>` +
     (g.length ? g.map(w=>`<h3 class="wk">${esc(w.nombre)}</h3>${tablaJornada(w.rs)}`).join("") : `<p class="empty">Nadie ha fichado este mes.</p>`);
@@ -1313,7 +1320,7 @@ async function pintaInforme(){
 function descargaCsv(){
   const q = v => `"${String(v??"").replace(/"/g,'""')}"`;
   const lineas = [["Trabajador","Día","Entrada","Salida","Horas","Observaciones"].map(q).join(";")];
-  infPorTrab().forEach(w=>jornadas(w.rs).forEach(j=>lineas.push([w.nombre, fDia((j.e||j.s).momento), j.e?fHora(j.e.momento):"FALTA",
+  infPorTrab().forEach(w=>jornadas(w.rs).forEach(j=>lineas.push([w.nombre, new Date((j.e||j.s).momento).toLocaleDateString("es-ES",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric",timeZone:TZ}), j.e?fHora(j.e.momento):"FALTA",
     j.s?fHora(j.s.momento):(j.curso?"En curso":"FALTA"), j.ms?(j.ms/3600e3).toFixed(2).replace(".",","):"", [obsDe(j.e),obsDe(j.s)].filter(Boolean).join(" · ")].map(q).join(";"))));
   const blob = new Blob(["﻿"+lineas.join("\r\n")], {type:"text/csv;charset=utf-8"});
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `registro-jornada-${infMes}.csv`; a.click();
@@ -1365,12 +1372,181 @@ function descargaQR(n){
   g.textAlign="center"; g.fillStyle="#1E4A3D"; g.font="800 52px "+getComputedStyle(document.body).fontFamily;
   g.fillText(CONFIG.NOMBRE, W/2, 105);
   g.imageSmoothingEnabled=false; g.drawImage(src, 100, 150, 400, 400);
-  g.fillStyle="#16241F"; g.font="700 54px sans-serif"; g.fillText("Mesa "+n, W/2, 640);
-  g.fillStyle="#56655F"; g.font="28px sans-serif"; QR_HINT.forEach((t,k)=>g.fillText(t, W/2, 705+k*40));
+  g.fillStyle="#16241F"; g.font="700 54px sans-serif"; g.fillText(tr("Mesa "+n), W/2, 640);
+  g.fillStyle="#56655F"; g.font="28px sans-serif"; QR_HINT.forEach((t,k)=>g.fillText(tr(t), W/2, 705+k*40));
   c.toBlob(bl=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(bl); a.download=`QR-mesa-${n}.png`;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000); }, "image/png");
 }
 
+/* ================= IDIOMAS: español / chino (banderas arriba) ================= */
+// La app se escribe en español; si se elige chino, se traduce lo que sale en pantalla.
+// Los pedidos se guardan siempre en español, así la barra los entiende aunque el cliente use chino.
+const LANG = ls.get("esencia_lang", "es") === "zh" ? "zh" : "es";
+const LOC = LANG === "zh" ? "zh-CN" : "es-ES";
+const ZH = {
+  // carta: secciones y grupos
+  "Refrescos":"汽水","Cervezas":"啤酒","Vinos":"葡萄酒","Cafés":"咖啡","Copas":"酒","Comida":"食物",
+  "Refrescos y agua":"汽水和水","Cafetería":"咖啡","Carajillos":"加酒咖啡","Chupitos":"小杯烈酒","Tubos":"高杯酒","Combinados":"调酒","Bocadillos":"三明治","Para picar":"小吃",
+  // carta: productos
+  "Caña de barril":"扎啤（小杯）","Pequeña de barril":"扎啤（小）","Copa de barril":"扎啤（高脚杯）","Clara de barril":"扎啤兑柠檬汽水",
+  "Quinto":"小瓶啤酒","Quinto sin alcohol":"无醇小瓶啤酒","Lata de cerveza":"罐装啤酒","Mediana":"中瓶啤酒","Mediana tostada":"中瓶黑啤",
+  "Mediana sin alcohol":"无醇中瓶啤酒","Limón sin alcohol":"无醇柠檬啤酒",
+  "Coca-Cola":"可口可乐","Coca-Cola Zero":"零度可口可乐","Coca-Cola de botella":"瓶装可口可乐","Fanta de naranja":"橙味芬达","Fanta de limón":"柠檬味芬达",
+  "Trina de naranja":"Trina 橙味汽水","Trina de limón":"Trina 柠檬汽水","Seven Up":"七喜","Aquarius":"Aquarius 运动饮料",
+  "Schweppes de naranja":"怡泉橙味汽水","Schweppes de limón":"怡泉柠檬汽水","Tónica":"汤力水","Bitter Kas":"Bitter Kas 苦味汽水",
+  "Cacaolat":"Cacaolat 巧克力奶","Red Bull":"红牛","Agua mineral":"矿泉水","Agua con gas":"气泡水","1,5 litros":"1.5 升",
+  "Copa de vino":"一杯葡萄酒","Copa de vino blanco":"一杯白葡萄酒","Copa de rosado":"一杯桃红葡萄酒","Copa de tinto":"一杯红葡萄酒",
+  "Café solo":"黑咖啡","Cortado":"少奶咖啡（Cortado）","Café con leche":"牛奶咖啡","Vaso de leche":"一杯牛奶","Infusión":"花草茶","Cola Cao":"Cola Cao 热可可",
+  "Carajillo de coñac":"白兰地咖啡","Carajillo de anís":"茴香酒咖啡","Carajillo de Marie Brizard":"Marie Brizard 茴香酒咖啡","Carajillo de Magno":"Magno 白兰地咖啡",
+  "Carajillo de Torres 5":"Torres 5 白兰地咖啡","Carajillo de whisky":"威士忌咖啡","Carajillo de ron":"朗姆酒咖啡","Carajillo de Baileys":"百利甜咖啡","Barreja":"Barreja 混合酒",
+  "Chupito de orujo":"一小杯果渣酒","Chupito de Marie Brizard":"一小杯 Marie Brizard 茴香酒","Chupito de coñac":"一小杯白兰地","Chupito de whisky":"一小杯威士忌",
+  "Chupito de ron":"一小杯朗姆酒","Chupito de Baileys":"一小杯百利甜",
+  "Copa de anís pequeña":"茴香酒（小杯）","Copa de anís grande":"茴香酒（大杯）","Copa de Baileys":"一杯百利甜","Copa de whisky":"一杯威士忌",
+  "Tubo de Martini":"马天尼（高杯）","Tubo de Marie Brizard":"Marie Brizard 茴香酒（高杯）","Tubo de orujo":"果渣酒（高杯）","Tubo de whisky":"威士忌（高杯）","Tubo de Baileys":"百利甜（高杯）",
+  "Combinado de ginebra":"金酒调酒","Combinado de ron":"朗姆酒调酒","Combinado de whisky":"威士忌调酒","Suplemento de Red Bull":"加红牛","Para el combinado":"加在调酒里",
+  "Biquini":"火腿奶酪烤三明治","Bocadillo de fuet":"腊肠三明治","Bocadillo de chorizo":"西班牙辣香肠三明治","Bocadillo de atún":"金枪鱼三明治",
+  "Bocadillo de jamón serrano":"西班牙火腿三明治","Bocadillo de queso manchego":"曼切戈奶酪三明治","Bocadillo vegetal":"蔬菜三明治",
+  "Bolsa de patatas fritas":"薯片","Cortezas":"炸猪皮",
+  // cliente
+  "Terraza":"露台","Mesa":"桌号","Cambiar tamaño de letra":"调整字体大小","¿En qué mesa estás?":"你在哪张桌？",
+  "Mira el número en el código QR de tu mesa y escríbelo aquí.":"看一下桌上二维码的号码，填在这里。","Nº de mesa":"桌号","Número de mesa":"桌号",
+  "Continuar":"继续","Escanear el QR de la mesa":"扫描桌上的二维码","También puedes abrir la cámara del móvil y apuntar al QR de la mesa.":"也可以打开手机相机对准桌上的二维码。",
+  "Este móvil no puede pedir desde la app":"这部手机不能在应用里点单","Si es un error, habla con el camarero y lo arreglamos al momento.":"如果弄错了，请告诉服务员，我们马上解决。",
+  "¡Hola! ¿Cómo te llamas?":"你好！你叫什么名字？","Solo para que el camarero sepa a quién llevarle cada cosa. No hace falta registrarse.":"只是为了让服务员知道把东西送给谁。不需要注册。",
+  "Tu nombre":"你的名字","Toca un botón grande.":"点一个大按钮。","Llamar al camarero":"呼叫服务员","Ya le hemos avisado":"已经通知服务员了","Vendrá a tu mesa":"服务员会到你桌前",
+  "Ver la carta y pedir":"看菜单并点单","Bebidas y comidas":"饮料和食物","No pagas aquí. Pagas al final, como siempre, con el camarero.":"这里不用付款。最后像平常一样找服务员付款。",
+  "Camarero avisado. Esperando a que lo vea…":"已通知服务员，等待服务员查看…","El camarero va hacia tu mesa.":"服务员正在去你的桌子。",
+  "Todas las secciones":"所有分类","Volver al panel":"返回面板","Volver":"返回",
+  "Toca 📷 en un producto o una sección para hacerle una foto o elegirla de la galería.":"点产品或分类上的 📷 拍照或从相册选择。",
+  "Lo que más se pide aquí":"这里点得最多的","¿Qué te apetece?":"想来点什么？","Elige lo que quieras":"选你想要的","Poner foto":"添加照片",
+  "Seguir pidiendo":"继续点单","Total de este pedido":"本次订单合计","¿Algo que debamos saber? (opcional)":"有什么需要我们知道的吗？（可选）",
+  "Ej: sin hielo, sin gluten, la caña muy fría…":"例如：不加冰、无麸质、啤酒要很冰…","No pagas ahora. Pagas al final con el camarero.":"现在不用付款。最后找服务员付款。",
+  "Enviar pedido":"发送订单","Enviando…":"发送中…","¡Pedido enviado!":"订单已发送！","Camarero avisado":"已通知服务员","Pagado":"已付款","Cuenta cerrada":"账单已结",
+  "Volver al inicio":"回到首页","Tus pedidos":"你的订单","Enviado":"已发送","Recibido":"已收到","Lo que has pedido tú":"你点的","Sin nombre":"无名",
+  "Tus cuentas pagadas (última semana)":"你已付的账单（最近一周）","Apunta al código QR de tu mesa":"对准你桌上的二维码","Cancelar":"取消",
+  "No se ha podido avisar. Revisa la conexión y prueba otra vez.":"没能通知服务员。请检查网络后再试。","No se ha enviado. Revisa la conexión y prueba otra vez.":"订单没有发出。请检查网络后再试。",
+  "No se ha podido abrir la cámara. Escribe el número de la mesa.":"无法打开相机。请输入桌号。","Subiendo foto…":"正在上传照片…","Foto guardada":"照片已保存","No se ha podido guardar la foto":"照片没能保存",
+  "ahora":"刚刚",
+  // camareros: entrada
+  "Camareros":"服务员","Tu PIN personal":"你的个人密码","Cada trabajador tiene el suyo. Sirve para fichar la entrada y la salida.":"每个员工都有自己的密码，用来打卡上下班。",
+  "PIN personal":"个人密码","Entrar":"进入","PIN incorrecto":"密码错误","Sin conexión con el servidor":"无法连接服务器","Sin conexión con el servidor.":"无法连接服务器。",
+  "¿Quién eres?":"你是谁？","Toca tu nombre.":"点你的名字。","Es tu primera vez. Elige un PIN de 4 a 8 números y apréndetelo: será solo tuyo.":"这是你第一次登录。请设置 4 到 8 位数字密码并记住，只属于你。",
+  "Pon tu PIN.":"输入你的密码。","Elige tu PIN":"设置你的密码","Tu PIN":"你的密码","Repite el PIN":"再输入一次密码","Guardar mi PIN y entrar":"保存密码并进入",
+  "El PIN tiene que ser de 4 a 8 números":"密码必须是 4 到 8 位数字","Los dos PIN no son iguales":"两次密码不一样","Ese PIN ya lo usa otra persona. Elige otro.":"这个密码别人已经在用，请换一个。",
+  "Este nombre ya tiene PIN":"这个名字已经有密码了",
+  "PIN olvidado":"忘记密码","Borra el PIN de quien lo haya olvidado. La próxima vez que toque su nombre, elegirá uno nuevo.":"删除忘记密码的人的密码。下次点自己名字时会设置新密码。",
+  "Borrar PIN":"删除密码","Sin PIN todavía":"还没有密码","Cerrar":"关闭","PIN borrado":"密码已删除","No se ha podido borrar":"没能删除",
+  // camareros: panel
+  "MODO PRUEBA · Solo funciona en este navegador. Pon los datos de Supabase para usarlo de verdad.":"测试模式 · 只在这个浏览器里有效。",
+  "MODO PRUEBA · Los fichajes de prueba solo se guardan en este navegador.":"测试模式 · 测试打卡只保存在这个浏览器里。",
+  "En servicio":"上班中","Fuera de servicio":"下班","No recibes avisos ni sonidos.":"你不会收到通知和提示音。",
+  "Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.":"点上方的“下班”按钮打卡上班并开始。","Ver mis fichajes":"查看我的打卡",
+  "Registro de jornada":"工时记录","QR de las mesas":"桌子二维码","Fotos de la carta":"菜单照片","Cambiar de trabajador":"切换员工",
+  "No se ha podido fichar. Revisa la conexión y prueba otra vez.":"没能打卡。请检查网络后再试。",
+  "Cobradas (7 días)":"已结账（7 天）","Mis fichajes":"我的打卡","No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.":"没有桌子点单。客人扫码点单后会显示在这里。",
+  "Desbloquear":"解除屏蔽","No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Bloquear este móvil” en su aviso.":"没有被屏蔽的手机。如果有人恶作剧点单或呼叫，在通知里点“屏蔽这部手机”。",
+  "Lo cobrado":"已收款","Solo llamadas, sin pedidos.":"只有呼叫，没有点单。","No se ha cobrado ninguna mesa en los últimos 7 días.":"最近 7 天没有结账的桌子。",
+  "Avisos activados. Te llegarán aunque el móvil esté bloqueado.":"通知已开启。手机锁屏也能收到。","No se han podido activar los avisos.":"没能开启通知。",
+  "No se ha guardado. Prueba otra vez.":"没有保存，请再试。","Móvil bloqueado. Ya no podrá pedir ni llamar desde la app.":"手机已屏蔽。它不能再在应用里点单或呼叫。",
+  "No se ha podido bloquear. Prueba otra vez.":"没能屏蔽，请再试。","Móvil desbloqueado":"手机已解除屏蔽","No se ha podido desbloquear. Prueba otra vez.":"没能解除屏蔽，请再试。",
+  "No se ha podido cerrar. Prueba otra vez.":"没能关闭，请再试。","Sí, bloquear":"是，屏蔽","No":"否","Es una broma: bloquear este móvil":"恶作剧：屏蔽这部手机",
+  "Un cliente":"一位客人","Voy para allá":"我马上过去","Pedido nuevo":"新订单","Pedido nuevo ·":"新订单","Consumo de la mesa":"本桌消费","Sí, cerrar mesa":"是，关闭这桌",
+  "Cobrar y cerrar mesa":"结账并关闭这桌","este cliente":"这位客人",
+  "Recibe los avisos con el móvil bloqueado":"手机锁屏也能收到通知","Te llegará una notificación cada vez que una mesa llame o pida, aunque tengas la pantalla apagada.":"每次有桌子呼叫或点单都会通知你，即使屏幕关着。",
+  "Activar avisos":"开启通知","Avisos con el móvil bloqueado":"锁屏通知","Los avisos están bloqueados en este móvil":"这部手机屏蔽了通知",
+  "Para recibirlos con el móvil bloqueado, permite las notificaciones de esta app en los ajustes del móvil.":"想在锁屏时收到，请在手机设置里允许这个应用的通知。",
+  "En iPhone solo llegan si instalas el panel: toca":"在 iPhone 上要先安装面板才能收到：点","Compartir":"分享","y luego":"然后点","“Añadir a pantalla de inicio”":"“添加到主屏幕”",
+  ", y ábrelo desde el icono.":"，再从图标打开。",
+  // fichajes
+  "Sin fichajes en este periodo.":"这段时间没有打卡。","Día":"日期","Entrada":"上班","Salida":"下班","Horas":"小时","Observaciones":"备注","Falta":"缺少","En curso":"进行中","Total":"合计",
+  "Mes":"月份","Cargando…":"加载中…","Solo el encargado puede ver el registro de todos.":"只有负责人能看所有人的记录。","Tus propios fichajes están en el panel, en “Mis fichajes”.":"你自己的打卡在面板的“我的打卡”里。",
+  "Ir al panel":"去面板","Trabajador":"员工","Todos":"全部","Descargar (Excel)":"下载（Excel）","Imprimir o PDF":"打印或 PDF","Añadir una corrección (olvido de fichar)":"添加更正（忘记打卡）",
+  "Los fichajes no se pueden cambiar ni borrar. Si alguien olvidó fichar, añade aquí el fichaje que falta con el motivo: quedará marcado como corrección y con tu nombre.":"打卡记录不能修改或删除。如果有人忘记打卡，在这里补上缺少的打卡并写明原因：会标记为更正并带上你的名字。",
+  "Tipo":"类型","Día y hora":"日期和时间","Motivo":"原因","Ej: olvidó fichar la salida":"例如：忘记打卡下班","Guardar corrección":"保存更正","Corrección guardada":"更正已保存",
+  "No se ha guardado la corrección. Prueba otra vez.":"更正没有保存，请再试。","Nadie ha fichado este mes.":"这个月没人打卡。",
+  "Registro diario de jornada con la hora de inicio y fin de cada trabajador (art. 34.9 del Estatuto de los Trabajadores). Se conserva 4 años y debe estar a disposición de los trabajadores, sus representantes y la Inspección de Trabajo.":"每日工时记录，包含每位员工的上下班时间（《劳动者法》第 34.9 条）。保存 4 年，员工、员工代表和劳动监察部门可随时查看。",
+  // QR y fotos
+  "Solo el encargado puede sacar los QR.":"只有负责人能生成二维码。","Si un QR se estropea, descarga o imprime el de esa mesa. Para hacerlos todos de nuevo, “Imprimir todos”.":"如果二维码坏了，下载或打印那张桌子的。要全部重做，点“全部打印”。",
+  "Imprimir todos":"全部打印","Descargar":"下载","Imprimir":"打印","Escanea con la cámara del móvil":"用手机相机扫码","Llama al camarero o pide desde aquí":"在这里呼叫服务员或点单",
+  "No se ha podido crear el QR. Revisa la conexión.":"没能生成二维码。请检查网络。","Solo el encargado puede poner fotos.":"只有负责人能添加照片。"
+};
+const ZH_RE = [
+  [/^Hola, (.+)\. ¿Qué necesitas\?$/, m=>`你好，${m[1]}。需要什么？`],
+  [/^Hola, (.+)\. ¿En qué mesa estás\?$/, m=>`你好，${m[1]}。你在哪张桌？`],
+  [/^Hola, (.+)$/, m=>`你好，${m[1]}`],
+  [/^No soy (.+), cambiar nombre$/, m=>`我不是 ${m[1]}，换名字`],
+  [/^No soy (.+)$/, m=>`我不是 ${m[1]}`],
+  [/^Lo de siempre, (.+)$/, m=>`${m[1]}，老样子`],
+  [/^Mesas abiertas \((\d+)\)$/, m=>`开着的桌子（${m[1]}）`],
+  [/^Móviles bloqueados \((\d+)\)$/, m=>`被屏蔽的手机（${m[1]}）`],
+  [/^Ver mi pedido \((\d+)\)$/, m=>`查看我的订单（${m[1]}）`],
+  [/^Tu pedido, (.+)$/, m=>`${m[1]} 的订单`],
+  [/^Te lo llevamos a la mesa (.+)\.$/, m=>`我们会送到 ${m[1]} 号桌。`],
+  [/^Te avisamos aquí cuando venga hacia la mesa (.+)\.$/, m=>`服务员去 ${m[1]} 号桌时会在这里通知你。`],
+  [/^Mesa (.+?) · (.+)\. Gracias por venir a (.+)\. Lo tendrás aquí guardado una semana\.$/, m=>`${m[1]} 号桌 · ${m[2]}。感谢光临 ${m[3]}。账单会在这里保存一周。`],
+  [/^Gracias por venir a (.+)\. ¡Hasta pronto!$/, m=>`感谢光临 ${m[1]}。欢迎再来！`],
+  [/^Toda la mesa (.+)$/, m=>`整桌 ${m[1]}`],
+  [/^La cuenta de la mesa (.+)$/, m=>`${m[1]} 号桌的账单`],
+  [/^Total \((\d+) (?:productos?|prod\.)\)$/, m=>`合计（${m[1]} 件）`],
+  [/^(.+) c\/u$/, m=>`${m[1]} /个`],
+  [/^hace (\d+) min$/, m=>`${m[1]} 分钟前`],
+  [/^Entrada fichada a las (.+)\. Te avisaremos con sonido\.$/, m=>`${m[1]} 已打卡上班。有新消息会响铃。`],
+  [/^Salida fichada a las (.+)\. Buen descanso\.$/, m=>`${m[1]} 已打卡下班。好好休息。`],
+  [/^Mesa (.+) cobrada y cerrada$/, m=>`${m[1]} 号桌已结账并关闭`],
+  [/^(.+) llama al camarero$/, m=>`${tr(m[1])} 呼叫服务员`],
+  [/^Abierta (.+)$/, m=>`${m[1]} 开台`],
+  [/^¿Bloquear el móvil de (.+)\? Se anulará este aviso y no podrá pedir ni llamar más desde la app\.$/, m=>`屏蔽 ${tr(m[1])} 的手机？这条通知会被取消，之后不能再在应用里点单或呼叫。`],
+  [/^¿Ya está cobrada la mesa (.+?)( \(.+\))?\?$/, m=>`${m[1]} 号桌已经结账了吗${m[2]||""}？`],
+  [/^bloqueado ?(.*)$/, m=>`已屏蔽 ${tr(m[1])}`],
+  [/^cobrada a las (.+)$/, m=>`${m[1]} 结账`],
+  [/^Mis fichajes, (.+)$/, m=>`${m[1]} 的打卡`],
+  [/^Jornadas de (.+)$/, m=>`${m[1]} 的工时`],
+  [/^Corregido(?: por (.+?))?: (.*)$/, m=>`已更正${m[1]?`（${m[1]}）`:""}：${m[2]}`],
+  [/^(\d+) h (\d+) min$/, m=>`${m[1]} 小时 ${m[2]} 分`],
+  [/^Añadir (.+)$/, m=>`添加 ${tr(m[1])}`],
+  [/^Quitar uno de (.+)$/, m=>`减少一个 ${tr(m[1])}`],
+  [/^· (.+)$/, m=>{ const r = tr(m[1]); return r!==m[1] ? `· ${r}` : null; }],
+  [/^Mesa (\S+)$/, m=>`${m[1]} 号桌`],
+  [/^(\d+) × (.+)$/, m=>`${m[1]} × ${tr(m[2])}`],
+  [/^(\d+×) (.+)$/, m=>`${m[1]} ${tr(m[2])}`],
+  [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
+];
+function tr(s){
+  if (LANG !== "zh" || !s) return s;
+  if (ZH[s]) return ZH[s];
+  for (const [re, f] of ZH_RE){ const m = s.match(re); if (m){ const r = f(m); if (r) return r; } }
+  if (s.includes(" · ")){ const p = s.split(" · "), t = p.map(tr); if (t.some((x,k)=>x!==p[k])) return t.join(" · "); }
+  if (/^\d+× .+, \d+× /.test(s)) return s.split(", ").map(tr).join("，");
+  return s;
+}
+function traduce(root){
+  if (LANG !== "zh" || !root) return;
+  if (root.nodeType === 3){ const v = root.nodeValue, t = v.trim(); if (!t) return;
+    const r = tr(t); if (r !== t) root.nodeValue = v.replace(t, r); return; }
+  if (root.nodeType !== 1 || root.closest?.("script,style,textarea")) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n; const ns = [];
+  while ((n = w.nextNode())) ns.push(n);
+  ns.forEach(x=>{ if (!x.parentElement?.closest("script,style,textarea")) traduce(x); });
+  [root, ...root.querySelectorAll("[placeholder],[aria-label],[title]")].forEach(el=>["placeholder","aria-label","title"].forEach(a=>{
+    const v = el.getAttribute?.(a); if (v){ const r = tr(v); if (r !== v) el.setAttribute(a, r); } }));
+}
+const BANDERA = {
+  es:`<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#C60B1E"/><rect y="5" width="30" height="10" fill="#FFC400"/></svg>`,
+  zh:`<svg viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#DE2910"/><g fill="#FFDE00"><path d="M5 2.2l1.2 3.5h3.7l-3 2.2 1.1 3.5L5 9.2l-3 2.2 1.1-3.5-3-2.2h3.7z"/><circle cx="10" cy="2" r=".9"/><circle cx="12" cy="4" r=".9"/><circle cx="12" cy="7" r=".9"/><circle cx="10" cy="9" r=".9"/></g></svg>`
+};
+function ponBanderas(){
+  document.querySelectorAll("header.top .logo").forEach(logo=>{
+    if (logo.parentElement.querySelector(".idiomas")) return;
+    const d = document.createElement("div"); d.className = "idiomas noprint";
+    d.innerHTML = [["es","Español"],["zh","中文"]].map(([k,t])=>`<button data-lang="${k}" aria-pressed="${k===LANG}" aria-label="${t}" title="${t}">${BANDERA[k]}</button>`).join("");
+    d.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ if (b.dataset.lang===LANG) return; ls.set("esencia_lang", b.dataset.lang); location.reload(); });
+    logo.after(d);
+  });
+}
+if (LANG === "zh") document.documentElement.lang = "zh-CN";
+new MutationObserver(ms=>{ ponBanderas(); if (LANG==="zh") ms.forEach(m=>{
+  if (m.type==="characterData") traduce(m.target); else m.addedNodes.forEach(traduce); }); })
+  .observe(document.body, {childList:true, subtree:true, characterData:true});
 /* ================= ARRANQUE ================= */
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 if (PREVIEW){
