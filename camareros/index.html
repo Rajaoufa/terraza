@@ -567,12 +567,14 @@ const Store = {
   // entrada por nombre: lista de nombres, primera vez elegir PIN, luego nombre + PIN
   async trabLista(){
     if (sb){ const {data,error} = await sb.rpc("esencia_lista_trabajadores"); if (error) throw error; return data; }
-    const pins = ls.get("esencia_demo_pins", {});
-    return CONFIG.TRABAJADORES_PRUEBA.map(t=>({id:t.id, nombre:t.nombre, tiene_pin:!!(pins[t.id]??t.pin)}));
+    const pins = ls.get("esencia_demo_pins", {}), libres = ls.get("esencia_demo_libres", {});
+    return CONFIG.TRABAJADORES_PRUEBA.map(t=>({id:t.id, nombre:t.nombre, tiene_pin:!!(pins[t.id]??t.pin), libre:(libres[t.id]||0)>Date.now()}));
   },
   async trabPonerPin(id, pin){
     if (sb){ const {error} = await sb.rpc("esencia_poner_pin",{p_id:id, p_pin:pin}); if (error) throw error; return; }
-    const pins = ls.get("esencia_demo_pins", {}); pins[id] = pin; ls.set("esencia_demo_pins", pins);
+    const libres = ls.get("esencia_demo_libres", {});
+    if (!((libres[id]||0)>Date.now())) throw new Error("Pide al encargado que active tu nombre para elegir tu PIN");
+    const pins = ls.get("esencia_demo_pins", {}); pins[id] = pin; ls.set("esencia_demo_pins", pins); delete libres[id]; ls.set("esencia_demo_libres", libres);
   },
   async trabEntrarNombre(id, pin){
     if (sb){ const {data,error} = await sb.rpc("esencia_entrar_nombre",{p_id:id, p_pin:pin}); if (error) throw error; return data&&data[0] ? {...data[0], pin} : null; }
@@ -582,6 +584,7 @@ const Store = {
   async trabBorrarPin(admin, id){
     if (sb){ const {error} = await sb.rpc("esencia_borrar_pin",{p_pin:admin.pin, p_id:id}); if (error) throw error; return; }
     const pins = ls.get("esencia_demo_pins", {}); pins[id] = ""; ls.set("esencia_demo_pins", pins);
+    const libres = ls.get("esencia_demo_libres", {}); libres[id] = Date.now()+30*60e3; ls.set("esencia_demo_libres", libres);
   },
   async fichar(trab, tipo){
     if (sb){ const {data,error} = await sb.rpc("esencia_fichar",{p_pin:trab.pin, p_tipo:tipo, p_dispositivo:DISPOSITIVO}); if (error) throw error; return data; }
@@ -972,6 +975,14 @@ async function pantallaPin(titulo, despues){
   };
   const pin = t => {
     const nuevo = !t.tiene_pin;
+    if (nuevo && !t.libre){   // nadie puede quedarse con el nombre de otro: el encargado lo activa antes
+      $app.innerHTML = cab + `<main class="wrap pick" style="max-width:420px">
+        <button class="back" id="otro">${ICON.back} Volver</button>
+        <p class="hello" style="margin-top:0">Hola, ${esc(t.nombre)}</p>
+        <p class="sub">Tu nombre aún no está activado. Pide al encargado que entre como Admin y toque <b>“Activar nombres y PIN”</b>. Después tendrás 30 minutos para elegir tu PIN.</p></main>`;
+      document.getElementById("otro").onclick = nombres;
+      return;
+    }
     $app.innerHTML = cab + `<main class="wrap pick" style="max-width:420px">
       <button class="back" id="otro">${ICON.back} No soy ${esc(t.nombre)}</button>
       <p class="hello" style="margin-top:0">Hola, ${esc(t.nombre)}</p>
@@ -998,17 +1009,18 @@ async function pantallaPin(titulo, despues){
   };
   nombres();
 }
-// El encargado borra el PIN de quien lo ha olvidado: al entrar, elegirá uno nuevo.
+// El encargado activa los nombres nuevos o borra el PIN olvidado: esa persona tiene 30 min para elegir PIN.
 async function pantallaPins(){
   let lista = []; try { lista = await Store.trabLista(); } catch { return toast("Sin conexión con el servidor"); }
   const caja = document.createElement("div"); caja.className = "modal";
-  caja.innerHTML = `<div class="mbox"><b>PIN olvidado</b><p class="sub">Borra el PIN de quien lo haya olvidado. La próxima vez que entre, elegirá uno nuevo.</p>
-    ${lista.filter(t=>t.id!==trab.id).map(t=>`<div class="hist"><span>${esc(t.nombre)}</span>${t.tiene_pin?`<button class="act no" data-bp="${t.id}">Borrar PIN</button>`:`<span class="t">Sin PIN todavía</span>`}</div>`).join("")}
+  caja.innerHTML = `<div class="mbox"><b>Activar nombres y PIN</b><p class="sub">Activa a quien vaya a entrar por primera vez, o borra el PIN de quien lo haya olvidado. Esa persona tendrá 30 minutos para elegir su PIN en su móvil.</p>
+    ${lista.filter(t=>t.id!==trab.id).map(t=>`<div class="hist"><span>${esc(t.nombre)}</span>${t.tiene_pin?`<button class="act no" data-bp="${t.id}">Borrar PIN</button>`
+      : t.libre?`<span class="t">Activado: puede elegir su PIN</span>`:`<button class="act pay" data-bp="${t.id}">Activar</button>`}</div>`).join("")}
     <button class="ghost" id="pinsNo" style="margin-top:12px">Cerrar</button></div>`;
   document.body.appendChild(caja);
   caja.querySelector("#pinsNo").onclick = ()=>caja.remove();
   caja.querySelectorAll("[data-bp]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
-    try { await Store.trabBorrarPin(trab, +b.dataset.bp); b.replaceWith(Object.assign(document.createElement("span"),{className:"t",textContent:"PIN borrado"})); }
+    try { await Store.trabBorrarPin(trab, +b.dataset.bp); b.replaceWith(Object.assign(document.createElement("span"),{className:"t",textContent:"Activado: puede elegir su PIN"})); }
     catch { b.disabled=false; toast("No se ha podido borrar"); } });
 }
 async function cargaEstado(){ // el estado sale del último fichaje guardado, no del móvil
@@ -1043,7 +1055,7 @@ async function pintar(){
   if (!enServicio){
     cuerpo.innerHTML = `<div class="offbox"><b>Fuera de servicio</b>No recibes avisos ni sonidos.<br>Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.
       <div class="offacts"><button class="ghost" data-p="fichajes">Ver mis fichajes</button>
-      ${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><button class="ghost" id="pinsOlv">PIN olvidado</button>`:""}
+      ${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><button class="ghost" id="pinsOlv">Activar nombres y PIN</button>`:""}
       <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div></div>`;
     cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
     document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
