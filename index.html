@@ -73,10 +73,14 @@ body.plain .bg{display:none}
   /* camareros: la hoja es ancha (1200px), los bloques van en el hueco que queda a los lados */
   /* camareros: la hoja solo mide lo que hay dentro (sin cuadro blanco vacío hasta abajo) */
   body:not(.plain){min-height:100vh}
-  body.staff main.wrap{min-height:0;border-radius:28px;padding-bottom:20px;margin-bottom:24px}
+  body.staff main.wrap{min-height:0;border-radius:28px;padding-bottom:20px;margin-bottom:16px}
   /* camareros: un solo barrio, justo debajo de la hoja */
   body.staff:not(.plain){background:linear-gradient(#F6D08A 0,#F6D08A calc(var(--hero) - 40px),#2C4636 0)}
-  body.staff:not(.plain) #app::after{content:"";display:block;width:min(900px,calc(100% - 32px));aspect-ratio:1800/1150;margin:0 auto 24px;background:url("barrio.svg") center/contain no-repeat}
+  body.staff:not(.plain) #app{display:flex;flex-direction:column;min-height:100vh}
+  body.staff:not(.plain) #app > main.wrap{width:100%}
+  body.staff:not(.plain) #app::after{content:"";display:block;flex:1 0 auto;min-height:63.9vw;margin-top:-8px;background:url("barrio.svg") center bottom/cover no-repeat}
+  /* banderas a la derecha, junto al botón de servicio */
+  .top .idiomas{margin-left:auto}
 }
 #app{position:relative;z-index:1}
 /* banderas para cambiar de idioma */
@@ -1413,7 +1417,8 @@ function descargaQR(n){
 /* ================= IDIOMAS: español / catalán / chino (banderas arriba) ================= */
 // La app se escribe en español; si se elige catalán o chino, se traduce lo que sale en pantalla.
 // Los pedidos se guardan siempre en español, así la barra los entiende aunque el cliente use chino.
-const LANG = ["zh","ca"].includes(ls.get("esencia_lang", "es")) ? ls.get("esencia_lang", "es") : "es";
+// si nadie ha tocado una bandera en este móvil, se usa el idioma del propio móvil
+const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
   "Añade o quita nombres. Si alguien olvida su PIN, bórralo: la próxima vez que toque su nombre elegirá uno nuevo.":"添加或删除名字。如果有人忘记密码，删除它：下次点自己名字时会设置新密码。",
