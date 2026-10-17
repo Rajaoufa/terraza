@@ -1,5 +1,5 @@
 // Esencia: guarda la app para que abra rápido. Siempre intenta la versión nueva primero.
-const CACHE = "esencia-v3";
+const CACHE = "esencia-v4";
 const BASE = ["./", "./camareros/", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(BASE)).catch(()=>{})); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
@@ -17,7 +17,7 @@ self.addEventListener("fetch", e => {
 // Avisos con el móvil bloqueado: llegan aunque la app esté cerrada
 self.addEventListener("push", e => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch { d = { titulo: e.data && e.data.text() }; }
-  e.waitUntil(self.registration.showNotification(d.titulo || "Esencia", {
+  e.waitUntil(self.registration.showNotification(d.titulo || "BAR LA ESSENCIA", {
     body: d.cuerpo || "", tag: d.tag || "esencia", renotify: true, requireInteraction: true,
     icon: "icons/icon-192.png", badge: "icons/icon-192.png", vibrate: [200, 100, 200, 100, 200], data: { url: "./camareros/" }
   }));

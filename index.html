@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Esencia</title>
+<title>BAR LA ESSENCIA</title>
 <meta name="theme-color" content="#1E4A3D">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Esencia">
+<meta name="apple-mobile-web-app-title" content="LA ESSENCIA">
 <script>/* solo el panel de camareros se instala como app; los clientes entran por el QR */
 if (/\/camareros\/?$/.test(location.pathname)||/[?&#]panel/.test(location.href)) { const l=document.createElement("link"); l.rel="manifest"; l.href="manifest-panel.webmanifest"; document.head.appendChild(l); }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -74,7 +74,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px soli
   font-weight:700;font-size:.85em;text-shadow:none;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .lugar svg{width:18px;height:18px;flex:none;color:var(--accent)}
 body.compact .top .lugar,body.staff .top .lugar{display:none}
-.logo{font-family:var(--f-display);font-weight:800;font-size:1.9em;letter-spacing:-.01em;line-height:1}
+.logo{font-family:var(--f-display);font-weight:800;font-size:clamp(1.35em,7vw,1.9em);letter-spacing:-.01em;line-height:1}
 .logo small{display:block;font-family:var(--f-body);font-weight:400;font-size:.45em;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-top:6px}
 .hr{display:flex;gap:10px;align-items:center}
 .mesa{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:8px 14px;text-align:center;font-weight:700;line-height:1.1;text-shadow:none;box-shadow:0 4px 14px rgba(0,0,0,.25)}
@@ -111,10 +111,6 @@ body.compact .top .lugar,body.staff .top .lugar{display:none}
 
 /* carta */
 .back{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:16px 0;font-weight:700;color:var(--link)}
-.tabs{display:flex;gap:8px;overflow-x:auto;position:sticky;top:0;background:var(--bg);padding:10px 2px;z-index:5;scrollbar-width:none;scroll-snap-type:x proximity}
-.tabs::-webkit-scrollbar{display:none}
-.tabs .tab{flex:0 0 auto;padding:12px 18px;scroll-snap-align:center}
-.swipe{color:var(--muted);font-size:.8em;text-align:center;margin:0}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
 .tile.has{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand) inset}
@@ -127,6 +123,14 @@ body.compact .top .lugar,body.staff .top .lugar{display:none}
 .tile .d{color:var(--muted);font-size:.8em}
 .tile .p{font-variant-numeric:tabular-nums;font-weight:700;color:var(--link);margin-top:2px}
 .tile .step{justify-content:space-between;padding:6px 10px 10px}
+.pic .foto,.secc .foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tiles.tres{grid-template-columns:repeat(3,1fr);gap:10px}
+.tiles.tres .pic{aspect-ratio:1;font-size:2.8em}
+.tiles.tres .tx{padding:8px 8px 2px}.tiles.tres .n{font-size:.9em}.tiles.tres .d,.tiles.tres .mk{display:none}
+.tiles.tres .step{padding:4px 6px 8px}
+.secciones{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.secc{position:relative;border:0;border-radius:18px;overflow:hidden;aspect-ratio:1;background:var(--soft);display:grid;place-items:center;font-size:3.6em;padding:0;color:inherit}
+.secc b{position:absolute;left:0;right:0;bottom:0;padding:22px 12px 10px;font-size:.3em;text-align:left;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.72));font-family:var(--f-display)}
 .cuenta small{display:block;color:var(--muted);font-size:.8em}
 .quien{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 0 10px;color:var(--muted);font-size:.9em}
 .tab{flex:1;min-height:52px;border:2px solid var(--brand);background:transparent;border-radius:999px;padding:12px;font-weight:700}
@@ -256,7 +260,7 @@ body.staff .wrap{max-width:1200px}
    CONFIGURACIÓN — cambia solo esto
    ========================================================== */
 const CONFIG = {
-  NOMBRE: "Esencia",
+  NOMBRE: "BAR LA ESSENCIA",
   SUPABASE_URL: "https://phhsrswqusmphbbabhmt.supabase.co",          // ej: https://xxxx.supabase.co   (vacío = modo prueba)
   SUPABASE_KEY: "sb_publishable_tAC4xxO1Lrxjo1NFSxMK4Q_S5VF1r1m",   // clave pública (publishable)
   // Con Supabase, cada trabajador entra con SU PIN (se dan de alta en supabase.sql).
@@ -418,6 +422,21 @@ const EMOJI_GRUPO = {"Cervezas":"🍺","Refrescos y agua":"🥤","Vinos":"🍷",
 const EMOJI_ITEM = [[/agua/i,"💧"],[/red bull/i,"⚡"],[/cola cao|cacaolat/i,"🍫"],[/leche/i,"🥛"],[/infusi/i,"🍵"],[/cortezas/i,"🥓"],[/biquini/i,"🧀"],[/clara|limón sin/i,"🍋"],[/naranja/i,"🍊"],[/limón/i,"🍋"],[/suplemento/i,"⚡"]];
 const GRUPO_DE = {}; CARTA.forEach(c=>c.grupos.forEach(g=>g.items.forEach(i=>{ GRUPO_DE[i.id] = g.g; })));
 const dibujo = i => i.f ? `<img src="${esc(i.f)}" alt="">` : `<span aria-hidden="true">${(EMOJI_ITEM.find(([r])=>r.test(i.n))||[])[1] || EMOJI_GRUPO[GRUPO_DE[i.id]] || "🍽️"}</span>`;
+// fotos reales: img/<id del producto>.jpg (ej. img/ce1.jpg) e img/cat-cervezas.jpg para cada sección.
+// Si la foto no existe se ve el dibujo.
+const SIN_FOTO = new Set(JSON.parse(sessionStorage.getItem("esencia_sinfoto")||"[]"));
+function sinFoto(img){ SIN_FOTO.add(img.getAttribute("src")); try{sessionStorage.setItem("esencia_sinfoto",JSON.stringify([...SIN_FOTO]))}catch{} img.remove(); }
+const foto = src => SIN_FOTO.has(src) ? "" : `<img class="foto" src="${esc(src)}" alt="" loading="lazy" onerror="sinFoto(this)">`;
+const conFoto = i => dibujo({...i, f:null}) + foto(i.f || `img/${i.id}.jpg`);
+const SECCIONES = [
+  {k:"Refrescos", e:"🥤", grupos:["Refrescos y agua"]},
+  {k:"Cervezas",  e:"🍺", grupos:["Cervezas"]},
+  {k:"Vinos",     e:"🍷", grupos:["Vinos"]},
+  {k:"Cafés",     e:"☕", grupos:["Cafetería","Carajillos"]},
+  {k:"Copas",     e:"🥃", grupos:["Chupitos","Copas","Tubos","Combinados"]},
+  {k:"Comida",    e:"🥪", grupos:["Bocadillos","Para picar"]}];
+const GRUPOS = CARTA.flatMap(c=>c.grupos);
+const fotoSecc = s => `img/cat-${s.k.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}.jpg`;
 let MAS_PEDIDOS = null;   // {nombre: unidades} de todos los clientes
 const MIO = () => ls.get("esencia_historial", {});   // {id: unidades} de este móvil
 const puntos = i => (MIO()[i.id]||0)*1000 + ((MAS_PEDIDOS||{})[label(i)]||0);
@@ -560,8 +579,7 @@ let bloqueado = false;
 let misFilas = [];
 let cesta = {};
 let vista = yo.nombre ? "inicio" : "nombre";
-const CAT_TOP = "⭐ Lo más pedido";
-let catSel = CAT_TOP;
+let catSel = null;   // null = portada de la carta; si no, nombre de la sección
 let filasMesa = [];
 const guardaYo = () => { ls.set(KEY, yo); if (yo.nombre) ls.set("esencia_nombre", yo.nombre); };
 const totalUds = () => Object.values(cesta).reduce((a,b)=>a+b,0);
@@ -665,24 +683,22 @@ function cliente(){
       ${bloqueInstalar()}`;
   }
   if (vista==="carta"){
-    const cats = [CAT_TOP, ...CARTA.map(c=>c.cat)];
-    h += `<button class="back" id="volver">${ICON.back} Volver</button>
-      <div class="tabs" role="tablist">${cats.map(c=>`<button class="tab" role="tab" data-cat="${esc(c)}" aria-selected="${c===catSel}">${esc(c)}</button>`).join("")}</div>
-      <p class="swipe">Desliza a los lados para ver más</p>`;
+    h += `<button class="back" id="volver">${ICON.back} ${catSel?"Todas las secciones":"Volver"}</button>`;
     const tarjeta = i => { const q = cesta[i.id]||0;
-      return `<div class="tile ${q?"has":""}"><button class="pic" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${dibujo(i)}${q?`<b class="qb">${q}</b>`:""}</button>
+      return `<div class="tile ${q?"has":""}"><button class="pic" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</button>
         <div class="tx">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<div class="n">${esc(i.n)}</div>${i.d?`<div class="d">${esc(i.d)}</div>`:""}<div class="p">${eur(i.p)}</div></div>
         <div class="step">${q?`<button class="m" data-m="${i.id}" aria-label="Quitar uno de ${esc(label(i))}">−</button><output>${q}</output>`:"<span></span>"}
         <button class="a" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">+</button></div></div>`; };
-    if (catSel===CAT_TOP){
-      const mios = ALL_ITEMS.filter(i=>MIO()[i.id]).sort((a,b)=>MIO()[b.id]-MIO()[a.id]).slice(0,6);
-      const top = porConsumo(ALL_ITEMS.filter(i=>!mios.includes(i) && (MAS_PEDIDOS||{})[label(i)])).slice(0, 12);
-      const base = top.length ? [] : ["ce1","ce8","re1","ca2","ca3","vi1"].map(findItem).filter(i=>!mios.includes(i));
-      h += (mios.length?`<section class="cat"><h2>Lo que sueles pedir</h2><div class="tiles">${mios.map(tarjeta).join("")}</div></section>`:"")
-         + `<section class="cat"><h2>Lo que más se pide aquí</h2><div class="tiles">${[...top,...base].map(tarjeta).join("")}</div></section>`;
+    if (!catSel){
+      const mios = ALL_ITEMS.filter(i=>MIO()[i.id]).sort((a,b)=>MIO()[b.id]-MIO()[a.id]);
+      const top = mios.length ? [] : porConsumo(ALL_ITEMS.filter(i=>(MAS_PEDIDOS||{})[label(i)]));
+      const tres = [...new Set([...mios, ...top, ...["ce1","ca2","re1"].map(findItem)])].slice(0,3);
+      h += `<section class="cat"><h2>${mios.length?`Lo de siempre, ${esc(yo.nombre)}`:"Lo que más se pide aquí"}</h2><div class="tiles tres">${tres.map(tarjeta).join("")}</div></section>
+        <section class="cat"><h2>¿Qué te apetece?</h2><div class="secciones">${SECCIONES.map(s=>`<button class="secc" data-cat="${esc(s.k)}"><span aria-hidden="true">${s.e}</span>${foto(fotoSecc(s))}<b>${esc(s.k)}</b></button>`).join("")}</div></section>`;
     } else {
-      const c = CARTA.find(c=>c.cat===catSel);
-      h += c.grupos.map(g=>`<section class="cat"><h2>${esc(g.g)}</h2><div class="tiles">${porConsumo(g.items).map(tarjeta).join("")}</div></section>`).join("");
+      const sec = SECCIONES.find(s=>s.k===catSel);
+      h += `<p class="hello" style="margin-top:0">${sec.e} ${esc(sec.k)}</p>` + sec.grupos.map(n=>GRUPOS.find(g=>g.g===n)).filter(Boolean)
+        .map(g=>`<section class="cat">${sec.grupos.length>1?`<h2>${esc(g.g)}</h2>`:""}<div class="tiles">${porConsumo(g.items).map(tarjeta).join("")}</div></section>`).join("");
     }
     barra = `<button class="cta" id="verPedido" ${totalUds()?"":"disabled"}><span>${totalUds()?`Ver mi pedido (${totalUds()})`:"Elige lo que quieras"}</span><span>${totalUds()?eur(totalEur()):""}</span></button>`;
   }
@@ -718,8 +734,8 @@ function bindCliente(){
   if (fn) fn.onsubmit = e => { e.preventDefault(); const v=document.getElementById("nom").value.trim().slice(0,30); if(!v) return; yo.nombre=v; guardaYo(); go("inicio"); };
   on("cambiaNom", ()=>go("nombre"));
   on("cambiaMesa", ()=>{ ls.set("esencia_mesa", null); location.href = location.pathname + "?app"; });
-  on("carta", ()=>{ catSel = CAT_TOP; go("carta"); if (!MAS_PEDIDOS) Store.masPedidos().then(c=>{ MAS_PEDIDOS=c; if (vista==="carta") cliente(); }).catch(()=>{}); });
-  on("volver", ()=>go("inicio"));
+  on("carta", ()=>{ catSel = null; go("carta"); if (!MAS_PEDIDOS) Store.masPedidos().then(c=>{ MAS_PEDIDOS=c; if (vista==="carta") cliente(); }).catch(()=>{}); });
+  on("volver", ()=>{ if (catSel){ catSel=null; cliente(); scrollTo(0,0); } else go("inicio"); });
   on("volverCarta", ()=>{ saveNota(); go("carta"); });
   on("verPedido", ()=>go("resumen"));
   on("inicio", ()=>go("inicio"));
@@ -741,7 +757,6 @@ function bindCliente(){
             btn.disabled=false; btn.textContent="Enviar pedido"; toast("No se ha enviado. Revisa la conexión y prueba otra vez."); }
   });
   document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{catSel=b.dataset.cat;cliente();scrollTo(0,0)});
-  document.querySelector('[aria-selected="true"][data-cat]')?.scrollIntoView({inline:"center",block:"nearest"});
   document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const id=b.dataset.a;cesta[id]=(cesta[id]||0)+1;cliente()});
   document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const id=b.dataset.m;cesta[id]--; if(cesta[id]<=0) delete cesta[id]; cliente()});
 }
@@ -754,7 +769,7 @@ function bloqueInstalar(){
     : ios ? `<span>En Safari, toca <b>Compartir</b> <span aria-hidden="true">⬆︎</span> y luego <b>“Añadir a pantalla de inicio”</b>.</span>`
           : `<span>En el menú del navegador <b>⋮</b>, toca <b>“Añadir a pantalla de inicio”</b> o <b>“Instalar app”</b>.</span>`;
   return `<div class="inst"><img src="icons/icon-192.png" alt="" width="56" height="56">
-    <div><b>Ten Esencia en tu móvil</b><p>La próxima vez no hace falta escanear: abre la app y elige tu mesa.</p>${como}
+    <div><b>Ten BAR LA ESSENCIA en tu móvil</b><p>La próxima vez no hace falta escanear: abre la app y elige tu mesa.</p>${como}
     <button class="back" id="noInstalar" style="padding:8px 0 0">Ahora no</button></div></div>`;
 }
 function bindInstalar(){
@@ -795,8 +810,8 @@ async function escanearQR(){
 { let x0=null, y0=null;
   addEventListener("touchstart", e=>{ if (vista!=="carta"||qs.has("panel")) return; x0=e.touches[0].clientX; y0=e.touches[0].clientY; }, {passive:true});
   addEventListener("touchend", e=>{ if (x0===null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
-    if (Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.5 || e.target.closest(".tabs")) return;
-    const cats=[CAT_TOP, ...CARTA.map(c=>c.cat)], k=cats.indexOf(catSel), n=k+(dx<0?1:-1);
+    if (!catSel || Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.5) return;
+    const cats=SECCIONES.map(s=>s.k), k=cats.indexOf(catSel), n=k+(dx<0?1:-1);
     if (n>=0 && n<cats.length){ catSel=cats[n]; cliente(); scrollTo(0,0); } }, {passive:true});
 }
 function saveNota(){ const n=document.getElementById("nota"); if(n) ls.set("esencia_nota", n.value); }

@@ -1,0 +1,4 @@
+Fotos reales de la carta (cuadradas o 4:3, JPG).
+Producto: img/<id>.jpg  (el id está en la carta de index.html, ej. ce1 = Caña de barril, ca2 = Cortado)
+Secciones: img/cat-refrescos.jpg, cat-cervezas.jpg, cat-vinos.jpg, cat-cafes.jpg, cat-copas.jpg, cat-comida.jpg
+Si falta una foto, la app enseña el dibujo.
