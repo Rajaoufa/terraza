@@ -791,9 +791,11 @@ function bloqueMios(){
   const mios = misFilas.filter(r=>r.tipo==="pedido"&&!r.cerrado);
   const vistos = new Set(), peds = [...filasMesa, ...mios].filter(r=>r.tipo==="pedido" && !vistos.has(r.id) && vistos.add(r.id));
   if (!peds.length && !mios.length) return "";
-  const estado = mios.length ? `<div class="mine"><h3>Tus pedidos</h3>${mios.map(r=>`
+  const pendiente = mios.reduce((a,r)=>a+Number(r.total||0),0);
+  const estado = mios.length ? `<div class="mine"><h3>Tus cuentas pendientes</h3>${mios.map(r=>`
     <div class="row"><span>${(r.items||[]).map(i=>`${Number(i.q)||0}× ${esc(i.n)}`).join(", ")}</span>
-    <span class="st ${r.estado==="nuevo"?"env":"rec"}">${r.estado==="nuevo"?"Enviado":"Recibido"}</span></div>`).join("")}</div>` : "";
+    <span class="st ${r.estado==="nuevo"?"env":"rec"}">${r.estado==="nuevo"?"Enviado":"Recibido"}</span></div>`).join("")}
+    <div class="row total"><span>Pendiente de pagar</span><span>${eur(pendiente)}</span></div></div>` : "";
   return estado + tablaCuenta(peds, `La cuenta de la mesa ${esc(mesa)}`);
 }
 
@@ -1421,6 +1423,8 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Pendiente de pagar":"待付款",
+  "Tus cuentas pendientes":"你未付的账单",
   "Añade o quita nombres. Si alguien olvida su PIN, bórralo: la próxima vez que toque su nombre elegirá uno nuevo.":"添加或删除名字。如果有人忘记密码，删除它：下次点自己名字时会设置新密码。",
   "Tú":"你",
   "Quitar":"删除",
@@ -1560,6 +1564,8 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Pendiente de pagar":"Pendent de pagar",
+  "Tus cuentas pendientes":"Els teus comptes pendents",
   "Añade o quita nombres. Si alguien olvida su PIN, bórralo: la próxima vez que toque su nombre elegirá uno nuevo.":"Afegeix o treu noms. Si algú oblida el seu PIN, esborra'l: la pròxima vegada que toqui el seu nom en triarà un de nou.",
   "Tú":"Tu",
   "Quitar":"Treure",
