@@ -8,8 +8,8 @@
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Esencia">
-<script>/* el panel de camareros se instala como app aparte */
-{ const l=document.createElement("link"); l.rel="manifest"; l.href=(/[?&#]panel/.test(location.href)?"manifest-panel":"manifest")+".webmanifest"; document.head.appendChild(l); }</script>
+<script>/* solo el panel de camareros se instala como app; los clientes entran por el QR */
+if (/\/camareros\/?$/.test(location.pathname)||/[?&#]panel/.test(location.href)) { const l=document.createElement("link"); l.rel="manifest"; l.href="manifest-panel.webmanifest"; document.head.appendChild(l); }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
@@ -402,6 +402,7 @@ const CARTA = [
 const $app = document.getElementById("app");
 const qs = new URLSearchParams(location.search);
 // también vale #panel, #qr o #mesa5 al final del enlace
+if (/\/camareros\/?$/.test(location.pathname)) qs.set("panel","");   // app de camareros instalada aparte
 { const h = location.hash.slice(1); if (h==="panel"||h==="qr"||h==="fichajes") qs.set(h,""); else if (/^mesa[0-9A-Za-z-]+$/.test(h)) qs.set("mesa", h.slice(4)); }
 const PREVIEW = !!window.ESENCIA_PREVIEW;
 if (PREVIEW) { try{ localStorage.setItem("esencia_trab", JSON.stringify({id:1,nombre:"Jamal",pin:"1234",admin:true})); }catch{} if (!qs.has("panel")&&!qs.has("qr")&&!qs.get("mesa")) qs.set("mesa","5"); }
@@ -661,7 +662,6 @@ function cliente(){
       </div>${bloqueEstado()}${bloqueMios()}
       <p class="nopay">No pagas aquí. Pagas al final, como siempre, con el camarero.</p>
       <button class="back" id="cambiaNom">No soy ${esc(yo.nombre)}, cambiar nombre</button>
-      <button class="back" id="cambiaMesa">No estoy en la mesa ${esc(mesa)}, cambiar de mesa</button>
       ${bloqueInstalar()}`;
   }
   if (vista==="carta"){
@@ -746,8 +746,9 @@ function bindCliente(){
   document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const id=b.dataset.m;cesta[id]--; if(cesta[id]<=0) delete cesta[id]; cliente()});
 }
 /* ---------- Instalar la app (clientes) ---------- */
+const OFRECER_INSTALAR = false;   // Jamal prefiere que los clientes entren siempre por el QR
 function bloqueInstalar(){
-  if (EN_APP || ls.get("esencia_noinstalar", false)) return "";
+  if (!OFRECER_INSTALAR || EN_APP || ls.get("esencia_noinstalar", false)) return "";
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const como = avisoInstalar ? `<button class="act pay" id="instalar">Instalar la app</button>`
     : ios ? `<span>En Safari, toca <b>Compartir</b> <span aria-hidden="true">⬆︎</span> y luego <b>“Añadir a pantalla de inicio”</b>.</span>`
