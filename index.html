@@ -251,6 +251,7 @@ body.staff .wrap{max-width:1200px}
 .offbox{text-align:center;padding:60px 0;color:var(--muted)}
 .offbox b{display:block;font-family:var(--f-display);font-size:1.6em;color:var(--ink);margin-bottom:8px}
 .offacts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.offacts.herr{margin-top:28px;padding-top:18px;border-top:1px solid rgba(0,0,0,.08)}
 .offacts .ghost{margin:0;color:var(--ink);text-decoration:none;display:inline-block}
 /* registro de jornada */
 .jt{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;font-variant-numeric:tabular-nums;margin-bottom:18px}
@@ -1155,11 +1156,16 @@ async function pintar(){
         return cab + `<details class="hist pago" data-k="${esc(k)}"><summary><span><b>Mesa ${esc(rs[0].mesa)}</b> · cobrada a las ${hora(rs[0].cerrado_at)}</span><b style="font-variant-numeric:tabular-nums">${eur(tot)}</b></summary>${peds.length?tablaCuenta(peds, "Lo cobrado"):"<p class='t'>Solo llamadas, sin pedidos.</p>"}</details>`;
       }).join("") : `<p class="empty">No se ha cobrado ninguna mesa en los últimos 7 días.</p>`;
   }
+  // también de servicio: las herramientas del encargado y cambiar de trabajador, abajo del todo
+  h += `<div class="offacts herr">${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><a class="ghost" href="${location.pathname}?fotos">Fotos de la carta</a><button class="ghost" id="pinsOlv">PIN olvidado</button>`:""}
+    <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div>`;
   const abiertos = new Set([...cuerpo.querySelectorAll("details[open][data-k]")].map(d=>d.dataset.k));
   cuerpo.innerHTML = h;
   cuerpo.querySelectorAll("details[data-k]").forEach(d=>{ if (abiertos.has(d.dataset.k)) d.open = true; });
 
   cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
+  document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
+  { const po = document.getElementById("pinsOlv"); if (po) po.onclick = pantallaPins; }
   const aa = document.getElementById("actAvisos");
   if (aa) aa.onclick = async ()=>{ aa.disabled = true; const ok = await activarAvisos(true);
     toast(ok ? "Avisos activados. Te llegarán aunque el móvil esté bloqueado." : "No se han podido activar los avisos."); pintar(); };
