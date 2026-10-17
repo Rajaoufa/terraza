@@ -253,6 +253,8 @@ body.staff .wrap{max-width:1200px}
 .offbox{text-align:center;padding:60px 0;color:var(--muted)}
 .offbox b{display:block;font-family:var(--f-display);font-size:1.6em;color:var(--ink);margin-bottom:8px}
 .offacts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.mbox .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.mbox .alta{display:flex;gap:8px;margin-top:14px}.mbox .alta input{flex:1;min-width:0}
 .offacts.herr{margin-top:28px;padding-top:18px;border-top:1px solid rgba(0,0,0,.08)}
 .offacts .ghost{margin:0;color:var(--ink);text-decoration:none;display:inline-block}
 /* registro de jornada */
@@ -543,6 +545,7 @@ const T = "esencia_pedidos", TB = "esencia_bloqueos";
 const DISPOSITIVO = (()=>{ let d = ls.get("esencia_dispositivo",""); if (!d){ d = (crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)); ls.set("esencia_dispositivo", d); } return d; })();
 const demoAll = () => ls.get("esencia_demo", []);
 const demoFich = () => ls.get("esencia_demo_fich", []);
+const demoTrab = () => ls.get("esencia_demo_trab", null) || CONFIG.TRABAJADORES_PRUEBA;   // camareros en modo prueba (el encargado puede añadir y quitar)
 const demoSave = a => { ls.set("esencia_demo", a); bc && bc.postMessage("x"); };
 const Store = {
   async add(rec){
@@ -614,13 +617,13 @@ const Store = {
          la hora la pone el servidor y nadie puede editar ni borrar un fichaje --- */
   async trabEntrar(pin){
     if (sb){ const {data,error} = await sb.rpc("esencia_entrar",{p_pin:pin}); if (error) throw error; return data&&data[0] ? {...data[0], pin} : null; }
-    const t = CONFIG.TRABAJADORES_PRUEBA.find(t=>t.pin===pin); return t ? {...t} : null;
+    const t = demoTrab().find(t=>t.pin===pin); return t ? {...t} : null;
   },
   // entrada por nombre: lista de nombres, primera vez elegir PIN, luego nombre + PIN
   async trabLista(){
     if (sb){ const {data,error} = await sb.rpc("esencia_lista_trabajadores"); if (error) throw error; return data; }
     const pins = ls.get("esencia_demo_pins", {});
-    return CONFIG.TRABAJADORES_PRUEBA.map(t=>({id:t.id, nombre:t.nombre, tiene_pin:!!(pins[t.id]??t.pin)}));
+    return demoTrab().map(t=>({id:t.id, nombre:t.nombre, tiene_pin:!!(pins[t.id]??t.pin)}));
   },
   async trabPonerPin(id, pin){
     if (sb){ const {error} = await sb.rpc("esencia_poner_pin",{p_id:id, p_pin:pin}); if (error) throw error; return; }
@@ -628,12 +631,22 @@ const Store = {
   },
   async trabEntrarNombre(id, pin){
     if (sb){ const {data,error} = await sb.rpc("esencia_entrar_nombre",{p_id:id, p_pin:pin}); if (error) throw error; return data&&data[0] ? {...data[0], pin} : null; }
-    const pins = ls.get("esencia_demo_pins", {}), t = CONFIG.TRABAJADORES_PRUEBA.find(t=>t.id===id);
+    const pins = ls.get("esencia_demo_pins", {}), t = demoTrab().find(t=>t.id===id);
     return t && (pins[id]??t.pin) === pin ? {...t, pin} : null;
   },
   async trabBorrarPin(admin, id){
     if (sb){ const {error} = await sb.rpc("esencia_borrar_pin",{p_pin:admin.pin, p_id:id}); if (error) throw error; return; }
     const pins = ls.get("esencia_demo_pins", {}); pins[id] = ""; ls.set("esencia_demo_pins", pins);
+  },
+  // el encargado añade camareros o los quita de la lista (no se borra su historial de fichajes)
+  async trabAlta(admin, nombre){
+    if (sb){ const {error} = await sb.rpc("esencia_trab_alta",{p_pin:admin.pin, p_nombre:nombre}); if (error) throw error; return; }
+    const l = demoTrab(); if (l.some(t=>t.nombre.toLowerCase()===nombre.toLowerCase())) throw new Error("Ese nombre ya está");
+    ls.set("esencia_demo_trab", [...l, {id:Date.now(), nombre, pin:"", admin:false}]);
+  },
+  async trabBaja(admin, id){
+    if (sb){ const {error} = await sb.rpc("esencia_trab_baja",{p_pin:admin.pin, p_id:id}); if (error) throw error; return; }
+    ls.set("esencia_demo_trab", demoTrab().filter(t=>t.id!==id || t.id===admin.id));
   },
   async fotosLista(){
     if (sb){ const {data,error} = await sb.from("esencia_fotos").select("producto,updated_at"); if (error) throw error; return data; }
@@ -664,11 +677,11 @@ const Store = {
   },
   async trabajadores(admin){
     if (sb){ const {data,error} = await sb.rpc("esencia_trabajadores",{p_pin:admin.pin}); if (error) throw error; return data; }
-    return CONFIG.TRABAJADORES_PRUEBA.map(({id,nombre})=>({id,nombre}));
+    return demoTrab().map(({id,nombre})=>({id,nombre}));
   },
   async corregir(admin, trabajador_id, tipo, momento, motivo){
     if (sb){ const {error} = await sb.rpc("esencia_corregir",{p_pin:admin.pin, p_trabajador:trabajador_id, p_tipo:tipo, p_momento:momento, p_motivo:motivo}); if (error) throw error; return; }
-    const t = CONFIG.TRABAJADORES_PRUEBA.find(t=>t.id===trabajador_id);
+    const t = demoTrab().find(t=>t.id===trabajador_id);
     ls.set("esencia_demo_fich", [...demoFich(), {id:Date.now(), trabajador_id, nombre:t?.nombre, tipo, momento, correccion:true, motivo, corregido_por:admin.nombre}].sort((a,b)=>a.momento.localeCompare(b.momento)));
   },
   subscribe(cb, cada=15000){
@@ -1065,18 +1078,31 @@ async function pantallaPin(titulo, despues){
   };
   nombres();
 }
-// El encargado borra el PIN de quien lo ha olvidado: al entrar, elegirá uno nuevo.
+// El encargado gestiona los camareros: añadir, quitar de la lista y borrar el PIN de quien lo ha olvidado.
 async function pantallaPins(){
   let lista = []; try { lista = await Store.trabLista(); } catch { return toast("Sin conexión con el servidor"); }
+  document.querySelector(".modal")?.remove();
   const caja = document.createElement("div"); caja.className = "modal";
-  caja.innerHTML = `<div class="mbox"><b>PIN olvidado</b><p class="sub">Borra el PIN de quien lo haya olvidado. La próxima vez que toque su nombre, elegirá uno nuevo.</p>
-    ${lista.filter(t=>t.id!==trab.id).map(t=>`<div class="hist"><span>${esc(t.nombre)}</span>${t.tiene_pin?`<button class="act no" data-bp="${t.id}">Borrar PIN</button>`:`<span class="t">Sin PIN todavía</span>`}</div>`).join("")}
+  caja.innerHTML = `<div class="mbox"><b>Camareros</b><p class="sub">Añade o quita nombres. Si alguien olvida su PIN, bórralo: la próxima vez que toque su nombre elegirá uno nuevo.</p>
+    ${lista.map(t=>`<div class="hist"><span>${esc(t.nombre)}</span><span class="acts">${t.id===trab.id?`<span class="t">Tú</span>`
+      :`${t.tiene_pin?`<button class="act no" data-bp="${t.id}">Borrar PIN</button>`:`<span class="t">Sin PIN todavía</span>`}<button class="act no" data-baja="${t.id}">Quitar</button>`}</span></div>`).join("")}
+    <form id="altaF" class="alta"><input id="altaN" maxlength="30" placeholder="Nombre del camarero" aria-label="Nombre del camarero" required><button class="act pay">Añadir</button></form>
     <button class="ghost" id="pinsNo" style="margin-top:12px">Cerrar</button></div>`;
   document.body.appendChild(caja);
   caja.querySelector("#pinsNo").onclick = ()=>caja.remove();
   caja.querySelectorAll("[data-bp]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
     try { await Store.trabBorrarPin(trab, +b.dataset.bp); b.replaceWith(Object.assign(document.createElement("span"),{className:"t",textContent:"PIN borrado"})); }
     catch { b.disabled=false; toast("No se ha podido borrar"); } });
+  caja.querySelectorAll("[data-baja]").forEach(b=>b.onclick=async()=>{
+    const fila = b.closest(".hist"), nom = fila.firstElementChild.textContent;
+    if (b.dataset.seguro !== "1"){ b.dataset.seguro = "1"; b.textContent = "¿Seguro? Quitar"; return; }
+    b.disabled = true;
+    try { await Store.trabBaja(trab, +b.dataset.baja); fila.remove(); toast(`${nom} quitado de la lista`); }
+    catch { b.disabled=false; toast("No se ha podido quitar"); } });
+  caja.querySelector("#altaF").onsubmit = async e => { e.preventDefault();
+    const n = caja.querySelector("#altaN").value.trim().replace(/\s+/g," ").slice(0,30); if (!n) return;
+    try { await Store.trabAlta(trab, n); toast(`${n} añadido. La primera vez que toque su nombre elegirá su PIN.`); pantallaPins(); }
+    catch(err) { toast(/ya está/i.test(err?.message||"") ? "Ese nombre ya está en la lista" : "No se ha podido añadir"); } };
 }
 async function cargaEstado(){ // el estado sale del último fichaje guardado, no del móvil
   try { const f = await Store.misFichajes(trab, new Date(Date.now()-40*3600e3).toISOString(), new Date(Date.now()+60e3).toISOString());
@@ -1110,7 +1136,7 @@ async function pintar(){
   if (!enServicio){
     cuerpo.innerHTML = `<div class="offbox"><b>Fuera de servicio</b>No recibes avisos ni sonidos.<br>Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.
       <div class="offacts"><button class="ghost" data-p="fichajes">Ver mis fichajes</button>
-      ${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><a class="ghost" href="${location.pathname}?fotos">Fotos de la carta</a><button class="ghost" id="pinsOlv">PIN olvidado</button>`:""}
+      ${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><a class="ghost" href="${location.pathname}?fotos">Fotos de la carta</a><button class="ghost" id="pinsOlv">Camareros</button>`:""}
       <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div></div>`;
     cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
     document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
@@ -1159,7 +1185,7 @@ async function pintar(){
       }).join("") : `<p class="empty">No se ha cobrado ninguna mesa en los últimos 7 días.</p>`;
   }
   // también de servicio: las herramientas del encargado y cambiar de trabajador, abajo del todo
-  h += `<div class="offacts herr">${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><a class="ghost" href="${location.pathname}?fotos">Fotos de la carta</a><button class="ghost" id="pinsOlv">PIN olvidado</button>`:""}
+  h += `<div class="offacts herr">${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><a class="ghost" href="${location.pathname}?fotos">Fotos de la carta</a><button class="ghost" id="pinsOlv">Camareros</button>`:""}
     <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div>`;
   const abiertos = new Set([...cuerpo.querySelectorAll("details[open][data-k]")].map(d=>d.dataset.k));
   cuerpo.innerHTML = h;
@@ -1392,6 +1418,15 @@ function descargaQR(n){
 const LANG = ["zh","ca"].includes(ls.get("esencia_lang", "es")) ? ls.get("esencia_lang", "es") : "es";
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Añade o quita nombres. Si alguien olvida su PIN, bórralo: la próxima vez que toque su nombre elegirá uno nuevo.":"添加或删除名字。如果有人忘记密码，删除它：下次点自己名字时会设置新密码。",
+  "Tú":"你",
+  "Quitar":"删除",
+  "¿Seguro? Quitar":"确定删除？",
+  "Nombre del camarero":"服务员名字",
+  "Añadir":"添加",
+  "No se ha podido quitar":"没能删除",
+  "Ese nombre ya está en la lista":"这个名字已经在名单里",
+  "No se ha podido añadir":"没能添加",
   // carta: secciones y grupos
   "Refrescos":"汽水","Cervezas":"啤酒","Vinos":"葡萄酒","Cafés":"咖啡","Copas":"酒","Comida":"食物",
   "Refrescos y agua":"汽水和水","Cafetería":"咖啡","Carajillos":"加酒咖啡","Chupitos":"小杯烈酒","Tubos":"高杯酒","Combinados":"调酒","Bocadillos":"三明治","Para picar":"小吃",
@@ -1485,6 +1520,8 @@ const ZH_RE = [
   [/^No soy (.+), cambiar nombre$/, m=>`我不是 ${m[1]}，换名字`],
   [/^No soy (.+)$/, m=>`我不是 ${m[1]}`],
   [/^Lo de siempre, (.+)$/, m=>`${m[1]}，老样子`],
+  [/^(.+) quitado de la lista$/, m=>`${m[1]} 已从名单删除`],
+  [/^(.+) añadido\. La primera vez que toque su nombre elegirá su PIN\.$/, m=>`已添加 ${m[1]}。第一次点名字时会设置密码。`],
   [/^Mesas abiertas \((\d+)\)$/, m=>`开着的桌子（${m[1]}）`],
   [/^Móviles bloqueados \((\d+)\)$/, m=>`被屏蔽的手机（${m[1]}）`],
   [/^Ver mi pedido \((\d+)\)$/, m=>`查看我的订单（${m[1]}）`],
@@ -1520,6 +1557,15 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Añade o quita nombres. Si alguien olvida su PIN, bórralo: la próxima vez que toque su nombre elegirá uno nuevo.":"Afegeix o treu noms. Si algú oblida el seu PIN, esborra'l: la pròxima vegada que toqui el seu nom en triarà un de nou.",
+  "Tú":"Tu",
+  "Quitar":"Treure",
+  "¿Seguro? Quitar":"Segur? Treure",
+  "Nombre del camarero":"Nom del cambrer",
+  "Añadir":"Afegir",
+  "No se ha podido quitar":"No s'ha pogut treure",
+  "Ese nombre ya está en la lista":"Aquest nom ja és a la llista",
+  "No se ha podido añadir":"No s'ha pogut afegir",
   "Refrescos":"Refrescos","Cervezas":"Cerveses","Vinos":"Vins","Cafés":"Cafès","Copas":"Copes","Comida":"Menjar",
   "Refrescos y agua":"Refrescos i aigua","Cafetería":"Cafeteria","Carajillos":"Rebentats","Chupitos":"Xopets","Tubos":"Tubs","Combinados":"Combinats","Bocadillos":"Entrepans","Para picar":"Per picar",
   "Caña de barril":"Canya de barril","Pequeña de barril":"Petita de barril","Copa de barril":"Copa de barril","Clara de barril":"Clara de barril",
@@ -1604,6 +1650,8 @@ const CA_RE = [
   [/^No soy (.+), cambiar nombre$/, m=>`No sóc ${m[1]}, canviar el nom`],
   [/^No soy (.+)$/, m=>`No sóc ${m[1]}`],
   [/^Lo de siempre, (.+)$/, m=>`El de sempre, ${m[1]}`],
+  [/^(.+) quitado de la lista$/, m=>`${m[1]} tret de la llista`],
+  [/^(.+) añadido\. La primera vez que toque su nombre elegirá su PIN\.$/, m=>`${m[1]} afegit. La primera vegada que toqui el seu nom triarà el seu PIN.`],
   [/^Mesas abiertas \((\d+)\)$/, m=>`Taules obertes (${m[1]})`],
   [/^Móviles bloqueados \((\d+)\)$/, m=>`Mòbils bloquejats (${m[1]})`],
   [/^Ver mi pedido \((\d+)\)$/, m=>`Veure la meva comanda (${m[1]})`],
