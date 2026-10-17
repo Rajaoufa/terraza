@@ -11,7 +11,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 /* Terraza: letra grande, botones enormes, alto contraste. Verde botella + azafrán. */
+/* FONDO: sube una foto llamada fondo.jpg junto a este index.html (o cambia CONFIG.FONDO).
+   Si no hay foto, se ve el dibujo del Pont del Diable de abajo. */
 :root{
+  --foto:url("fondo.jpg"); --foto-pos:center 55%;
+  --foto-dibujo:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600' preserveAspectRatio='xMidYMax slice'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23F6D08A'/%3E%3Cstop offset='.55' stop-color='%23EFA265'/%3E%3Cstop offset='1' stop-color='%23D9744E'/%3E%3C/linearGradient%3E%3ClinearGradient id='w' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%232B5A4A'/%3E%3Cstop offset='1' stop-color='%23123128'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='800' height='600' fill='url(%23s)'/%3E%3Ccircle cx='600' cy='250' r='70' fill='%23FBE3A8' opacity='.75'/%3E%3Cpath d='M0 360 L60 330 L90 300 L110 318 L135 270 L160 300 L185 262 L210 292 L240 250 L262 286 L300 300 L360 320 L430 300 L500 318 L560 296 L640 322 L720 304 L800 330 V600 H0Z' fill='%23B9674D' opacity='.55'/%3E%3Cpath d='M0 420 Q120 380 240 400 T480 395 T800 410 V600 H0Z' fill='%237E5A43' opacity='.55'/%3E%3Cpath fill='%2316352C' fill-rule='evenodd' d='M0 470 L120 455 L260 410 L400 330 L540 410 L680 455 L800 470 V530 H0Z M285 530 Q292 420 400 360 Q508 420 515 530Z M150 530 Q155 482 185 468 Q215 482 220 530Z M585 530 Q590 490 615 478 Q640 490 645 530Z'/%3E%3Cpath fill='%2316352C' d='M384 338 V296 L400 282 L416 296 V338Z M60 466 V420 H112 V460Z M70 466 V438 Q86 424 102 438 V462Z'/%3E%3Crect y='528' width='800' height='72' fill='url(%23w)'/%3E%3Cpath d='M300 548 H500 M330 566 H470 M360 584 H440 M120 556 H230 M590 560 H690' stroke='%23F6D08A' stroke-width='3' stroke-linecap='round' opacity='.35'/%3E%3C/svg%3E");
+  --hero:clamp(250px,40vh,400px);
   --bg:#F3F5F1; --card:#FFFFFF; --ink:#16241F; --muted:#56655F; --line:#D8DFDA; --soft:#E8EEEA;
   --brand:#1E4A3D; --brand-ink:#FFFFFF; --link:#1E4A3D; --accent:#E3A12F; --accent-ink:#2A1C00;
   --ok:#2E7D4F; --ok-soft:#DDF1E4; --alert:#C2412B; --alert-soft:#FBE3DE; --warn-soft:#FCEFD3;
@@ -38,22 +43,39 @@ html.big{--fs:22px}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:var(--fs);line-height:1.45;
-  padding-top:env(safe-area-inset-top,0px);-webkit-tap-highlight-color:transparent}
+  -webkit-tap-highlight-color:transparent;position:relative}
+body.compact,body.staff{--hero:170px}
+
+/* foto de Martorell detrás de la cabecera */
+.bg{position:absolute;top:0;left:0;right:0;height:calc(var(--hero) + 60px);z-index:0;background-color:#1E4A3D;
+  background-image:linear-gradient(180deg,rgba(8,24,19,.62) 0,rgba(8,24,19,.15) 42%,rgba(8,24,19,.35) 100%),var(--foto),var(--foto-dibujo);
+  background-size:cover,cover,cover;background-position:center,var(--foto-pos),center bottom;background-repeat:no-repeat}
+body.plain .bg{display:none}
+#app{position:relative;z-index:1}
+/* contenido en una hoja clara que sube sobre la foto: se lee bien al sol */
+main.wrap{background:var(--bg);border-radius:28px 28px 0 0;margin-top:-28px;position:relative;padding-top:8px;
+  min-height:calc(100vh - var(--hero) + 28px);box-shadow:0 -10px 30px rgba(0,0,0,.18)}
+#app > main.wrap:first-child{margin-top:0;border-radius:0;box-shadow:none}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 140px}
 [hidden]{display:none!important}
 
 /* cabecera */
-.top{background:var(--brand);color:var(--brand-ink)}
-.top .wrap{padding-block:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.logo{font-family:var(--f-display);font-weight:800;font-size:1.7em;letter-spacing:-.01em;line-height:1}
+.top{color:#fff;min-height:var(--hero);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);text-shadow:0 1px 10px rgba(0,0,0,.45)}
+.top .wrap{width:100%;padding-block:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top .lugar{margin-top:auto;padding-bottom:44px}
+.lugar span{display:inline-flex;align-items:center;gap:8px;background:rgba(8,24,19,.55);border-radius:999px;padding:7px 14px 7px 10px;
+  font-weight:700;font-size:.85em;text-shadow:none;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.lugar svg{width:18px;height:18px;flex:none;color:var(--accent)}
+body.compact .top .lugar,body.staff .top .lugar{display:none}
+.logo{font-family:var(--f-display);font-weight:800;font-size:1.9em;letter-spacing:-.01em;line-height:1}
 .logo small{display:block;font-family:var(--f-body);font-weight:400;font-size:.45em;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-top:6px}
 .hr{display:flex;gap:10px;align-items:center}
-.mesa{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:8px 14px;text-align:center;font-weight:700;line-height:1.1}
+.mesa{background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:8px 14px;text-align:center;font-weight:700;line-height:1.1;text-shadow:none;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .mesa b{display:block;font-family:var(--f-display);font-size:1.6em}
 .mesa span{font-size:.7em;letter-spacing:.1em;text-transform:uppercase}
-.tsize{background:transparent;border:2px solid rgba(255,255,255,.5);color:var(--brand-ink);border-radius:10px;padding:6px 10px;font-weight:700}
+.tsize{background:rgba(8,24,19,.45);border:2px solid rgba(255,255,255,.7);color:#fff;border-radius:12px;padding:8px 12px;font-weight:700;min-height:48px}
 
 /* textos */
 .hello{font-family:var(--f-display);font-weight:600;font-size:1.5em;margin:26px 0 6px;text-wrap:balance}
@@ -62,7 +84,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px soli
 
 /* botones grandes */
 .big-btns{display:grid;gap:16px}
-.bb{display:flex;align-items:center;gap:18px;width:100%;text-align:left;border:0;border-radius:22px;padding:24px 22px;min-height:110px}
+.bb{display:flex;align-items:center;gap:18px;width:100%;text-align:left;border:0;border-radius:22px;padding:24px 22px;min-height:110px;box-shadow:0 6px 18px rgba(22,36,31,.16)}
 .bb svg{flex:none;width:52px;height:52px}
 .bb strong{display:block;font-family:var(--f-display);font-size:1.35em;line-height:1.15}
 .bb em{font-style:normal;opacity:.85;font-size:.9em}
@@ -84,8 +106,8 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px soli
 
 /* carta */
 .back{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:16px 0;font-weight:700;color:var(--link)}
-.tabs{display:flex;gap:10px;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5}
-.tab{flex:1;border:2px solid var(--brand);background:transparent;border-radius:999px;padding:12px;font-weight:700}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5}
+.tab{flex:1;min-height:52px;border:2px solid var(--brand);background:transparent;border-radius:999px;padding:12px;font-weight:700}
 .tab[aria-selected="true"]{background:var(--brand);color:var(--brand-ink)}
 .cat h2{font-family:var(--f-display);font-size:1.2em;margin:22px 0 8px}
 .item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 14px 14px 16px;margin-bottom:10px}
@@ -132,7 +154,8 @@ body.staff .wrap{max-width:1200px}
 .svc{border:0;border-radius:999px;padding:12px 18px;font-weight:700;display:flex;align-items:center;gap:10px;min-height:48px}
 .svc i{width:14px;height:14px;border-radius:50%;background:currentColor}
 .svc.on{background:var(--ok);color:#fff}
-.svc.off{background:rgba(255,255,255,.18);color:var(--brand-ink)}
+.svc.off{background:rgba(8,24,19,.55);color:#fff;text-shadow:none}
+.svc.on{text-shadow:none}
 .ptabs{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
 .ptabs .tab{flex:0 1 auto;padding:10px 18px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
@@ -153,6 +176,7 @@ body.staff .wrap{max-width:1200px}
 .act.ok{background:var(--ok);color:#fff}
 .act.pay{background:var(--brand);color:var(--brand-ink)}
 .act.no{background:var(--line)}
+.act.lnk{background:transparent;color:var(--alert);min-height:44px;padding:6px;font-size:.9em;text-decoration:underline}
 .cons{padding:4px 16px 8px;border-top:1px solid var(--line)}
 .cons .row{padding:7px 0;font-size:.95em}
 .cons .cap{font-size:.75em;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:10px}
@@ -162,6 +186,22 @@ body.staff .wrap{max-width:1200px}
 .empty{color:var(--muted);padding:40px 0;text-align:center}
 .offbox{text-align:center;padding:60px 0;color:var(--muted)}
 .offbox b{display:block;font-family:var(--f-display);font-size:1.6em;color:var(--ink);margin-bottom:8px}
+.offacts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.offacts .ghost{margin:0;color:var(--ink);text-decoration:none;display:inline-block}
+/* registro de jornada */
+.jt{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;font-variant-numeric:tabular-nums;margin-bottom:18px}
+.jt th,.jt td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font-size:.92em;vertical-align:top}
+.jt th{background:var(--soft);font-size:.78em;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.jt tfoot td{font-weight:700;border-bottom:0}
+.jt .obs{color:var(--muted);font-size:.85em}
+.jt .falta{color:var(--alert);font-weight:700}
+.tscroll{overflow-x:auto}
+.fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}
+.fbar label{display:grid;gap:4px;font-weight:700;font-size:.85em}
+.fbar input,.fbar select{font:inherit;border:2px solid var(--line);border-radius:12px;padding:10px;background:var(--card);color:var(--ink);min-height:48px}
+.wk{font-family:var(--f-display);font-size:1.25em;margin:22px 0 8px}
+.legal{color:var(--muted);font-size:.85em;margin-top:24px}
+@media print{.jt{border-color:#999}.jt th{background:#eee}}
 .demo{background:var(--accent);color:var(--accent-ink);text-align:center;font-size:.85em;padding:6px 12px;font-weight:700}
 .hist{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 
@@ -172,11 +212,12 @@ body.staff .wrap{max-width:1200px}
 .qrc .q{display:flex;justify-content:center;margin:12px 0}
 .qrc .ms{font-weight:700;font-size:1.2em}
 .qrc .hint{font-size:.8em;color:#56655F}
-@media print{.noprint{display:none!important}body{background:#fff}.wrap{padding:0}}
+@media print{.noprint,.bg{display:none!important}body{background:#fff}.wrap{padding:0}main.wrap{box-shadow:none;margin:0;border-radius:0;min-height:0}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
+<div class="bg" aria-hidden="true"></div>
 <div id="app"></div>
 
 <script>
@@ -187,50 +228,140 @@ const CONFIG = {
   NOMBRE: "Esencia",
   SUPABASE_URL: "",          // ej: https://xxxx.supabase.co   (vacío = modo prueba)
   SUPABASE_KEY: "",          // anon public key
-  PIN_PANEL: "1234",         // PIN para entrar a la app de camareros
-  MESAS: 20                  // nº de mesas para generar los QR
+  // Con Supabase, cada trabajador entra con SU PIN (se dan de alta en supabase.sql).
+  // Estos solo sirven en modo prueba:
+  TRABAJADORES_PRUEBA: [ {id:1, nombre:"Jamal", pin:"1234", admin:true}, {id:2, nombre:"Camarero de prueba", pin:"0000", admin:false} ],
+  MESAS: 20,                 // nº de mesas para generar los QR
+  FONDO: "fondo.jpg",        // foto de fondo (junto a este archivo). Vacío = dibujo del puente
+  LUGAR: "Barrio Buenos Aires · Martorell"
 };
 
-/* CARTA DE EJEMPLO — pon aquí la carta real de Esencia (m = marca) */
+/* CARTA REAL de Cafetería Essencia (precios de la carta del bar). m = marca, d = detalle */
 const CARTA = [
   { cat: "Bebidas", grupos: [
     { g:"Cervezas", items:[
-      { id:"b1", n:"Caña", m:"Estrella Damm", p:2.20 },
-      { id:"b2", n:"Doble", m:"Estrella Damm", p:3.50 },
-      { id:"b3", n:"Botellín", m:"Voll-Damm", p:3.00 },
-      { id:"b4", n:"Sin alcohol", m:"Free Damm", p:2.80 }
+      { id:"ce1", n:"Caña de barril", d:"200 ml", p:1.80 },
+      { id:"ce2", n:"Pequeña de barril", p:1.70 },
+      { id:"ce3", n:"Copa de barril", p:2.30 },
+      { id:"ce4", n:"Clara de barril", p:2.30 },
+      { id:"ce5", n:"Quinto", p:1.70 },
+      { id:"ce6", n:"Quinto sin alcohol", p:1.80 },
+      { id:"ce7", n:"Lata de cerveza", p:1.50 },
+      { id:"ce8", n:"Mediana", m:"San Miguel", p:1.80 },
+      { id:"ce9", n:"Mediana", m:"Voll-Damm", p:2.40 },
+      { id:"ce10", n:"Mediana", m:"Estrella Galicia", p:2.20 },
+      { id:"ce11", n:"Mediana", m:"Heineken", p:2.20 },
+      { id:"ce12", n:"Mediana", m:"Coronita", p:2.20 },
+      { id:"ce13", n:"Mediana tostada", p:2.30 },
+      { id:"ce14", n:"Mediana sin alcohol", p:2.30 },
+      { id:"ce15", n:"Limón sin alcohol", m:"Free Damm", p:2.30 }
     ]},
     { g:"Refrescos y agua", items:[
-      { id:"b5", n:"Cola", m:"Coca-Cola", p:2.50 },
-      { id:"b6", n:"Cola Zero", m:"Coca-Cola", p:2.50 },
-      { id:"b7", n:"Naranja", m:"Fanta", p:2.50 },
-      { id:"b8", n:"Limón", m:"Fanta", p:2.50 },
-      { id:"b9", n:"Tónica", m:"Schweppes", p:2.50 },
-      { id:"b10", n:"Agua 50 cl", m:"Font Vella", p:1.80 }
+      { id:"re1", n:"Coca-Cola", p:2.00 },
+      { id:"re2", n:"Coca-Cola Zero", p:2.00 },
+      { id:"re3", n:"Coca-Cola de botella", p:2.10 },
+      { id:"re4", n:"Coca-Cola de botella", d:"350 ml", p:2.30 },
+      { id:"re5", n:"Fanta de naranja", p:2.00 },
+      { id:"re6", n:"Fanta de limón", p:2.00 },
+      { id:"re7", n:"Trina de naranja", p:2.00 },
+      { id:"re8", n:"Trina de limón", p:2.00 },
+      { id:"re9", n:"Seven Up", p:2.00 },
+      { id:"re10", n:"Aquarius", p:2.20 },
+      { id:"re11", n:"Schweppes de naranja", p:2.30 },
+      { id:"re12", n:"Schweppes de limón", p:2.30 },
+      { id:"re13", n:"Tónica", m:"Schweppes", p:2.30 },
+      { id:"re14", n:"Bitter Kas", p:2.30 },
+      { id:"re15", n:"Cacaolat", p:2.50 },
+      { id:"re16", n:"Red Bull", p:2.50 },
+      { id:"re17", n:"Agua mineral", d:"500 ml", p:1.30 },
+      { id:"re18", n:"Agua mineral", d:"1,5 litros", p:1.80 },
+      { id:"re19", n:"Agua con gas", m:"Vichy", p:2.30 }
     ]},
-    { g:"Vinos y vermut", items:[
-      { id:"b11", n:"Copa tinto", m:"Rioja crianza", p:3.00 },
-      { id:"b12", n:"Copa blanco", m:"Verdejo", p:3.00 },
-      { id:"b13", n:"Vermut", m:"Yzaguirre", d:"Con oliva y naranja", p:3.50 }
-    ]},
-    { g:"Cafés", items:[
-      { id:"b14", n:"Café solo", m:"Marcilla", p:1.40 },
-      { id:"b15", n:"Cortado", m:"Marcilla", p:1.50 },
-      { id:"b16", n:"Café con leche", m:"Marcilla", p:1.70 }
+    { g:"Vinos", items:[
+      { id:"vi1", n:"Copa de vino", m:"Rioja", p:1.70 },
+      { id:"vi2", n:"Copa de vino blanco", p:2.00 },
+      { id:"vi3", n:"Copa de rosado", m:"Coto", p:2.50 },
+      { id:"vi4", n:"Copa de tinto", m:"Coto", p:2.80 }
     ]}
   ]},
-  { cat: "Comidas", grupos: [
-    { g:"Tapas", items:[
-      { id:"c1", n:"Patatas bravas", p:5.50 },
-      { id:"c2", n:"Croquetas caseras", d:"6 unidades", p:7.00 },
-      { id:"c3", n:"Calamares a la romana", p:9.50 },
-      { id:"c4", n:"Pan con tomate", p:2.50 }
+  { cat: "Cafés", grupos: [
+    { g:"Cafetería", items:[
+      { id:"ca1", n:"Café solo", p:1.35 },
+      { id:"ca2", n:"Cortado", p:1.45 },
+      { id:"ca3", n:"Café con leche", p:1.65 },
+      { id:"ca4", n:"Vaso de leche", p:1.30 },
+      { id:"ca5", n:"Infusión", p:1.50 },
+      { id:"ca6", n:"Cola Cao", p:2.10 }
     ]},
-    { g:"Raciones y bocadillos", items:[
-      { id:"c5", n:"Tabla de embutidos", p:12.00 },
-      { id:"c6", n:"Tortilla de patatas", d:"Ración", p:6.50 },
-      { id:"c7", n:"Bocadillo de lomo con queso", p:6.00 },
-      { id:"c8", n:"Ensalada de la casa", p:8.00 }
+    { g:"Carajillos", items:[
+      { id:"cj1", n:"Carajillo de coñac", p:1.90 },
+      { id:"cj2", n:"Carajillo de anís", p:1.90 },
+      { id:"cj3", n:"Carajillo de Marie Brizard", p:1.90 },
+      { id:"cj4", n:"Carajillo de Magno", p:2.10 },
+      { id:"cj5", n:"Carajillo de Torres 5", p:2.10 },
+      { id:"cj6", n:"Carajillo de whisky", p:2.10 },
+      { id:"cj7", n:"Carajillo de ron", m:"Pujol", p:2.20 },
+      { id:"cj8", n:"Carajillo de Baileys", p:2.30 },
+      { id:"cj9", n:"Barreja", p:1.50 }
+    ]}
+  ]},
+  { cat: "Copas", grupos: [
+    { g:"Chupitos", items:[
+      { id:"ch1", n:"Chupito de orujo", p:1.60 },
+      { id:"ch2", n:"Chupito de Marie Brizard", p:1.60 },
+      { id:"ch3", n:"Chupito de coñac", p:1.60 },
+      { id:"ch4", n:"Chupito de whisky", m:"Ballantine's", p:2.00 },
+      { id:"ch5", n:"Chupito de whisky", m:"J&B", p:2.00 },
+      { id:"ch6", n:"Chupito de ron", m:"Barceló", p:2.20 },
+      { id:"ch7", n:"Chupito de ron", m:"Brugal", p:2.20 },
+      { id:"ch8", n:"Chupito de Baileys", p:2.20 },
+      { id:"ch9", n:"Chupito de whisky", m:"Jack Daniel's", p:3.50 },   // precio dudoso en la foto (¿3,60?)
+      { id:"ch10", n:"Chupito de whisky", m:"Cardhu", p:4.00 }
+      // Chupito de Chivas: precio ilegible en la foto, falta añadirlo
+    ]},
+    { g:"Copas", items:[
+      { id:"co1", n:"Copa de anís pequeña", p:2.00 },
+      { id:"co2", n:"Copa de anís grande", p:2.50 },
+      { id:"co3", n:"Copa de Baileys", p:2.50 },
+      { id:"co4", n:"Copa de whisky", m:"Jack Daniel's", p:5.00 },
+      { id:"co5", n:"Copa de whisky", m:"Chivas", p:6.50 },
+      { id:"co6", n:"Copa de whisky", m:"Cardhu", p:6.80 }
+      // Copa a 2,40 €: el nombre está tapado en la foto, falta añadirla
+    ]},
+    { g:"Tubos", items:[
+      { id:"tu1", n:"Tubo de Martini", p:3.10 },
+      { id:"tu2", n:"Tubo de Marie Brizard", p:3.50 },
+      { id:"tu3", n:"Tubo de orujo", p:3.80 },
+      { id:"tu4", n:"Tubo de whisky", p:4.00 },
+      { id:"tu5", n:"Tubo de Baileys", p:4.50 }
+    ]},
+    { g:"Combinados", items:[
+      { id:"cb1", n:"Combinado de ginebra", m:"Larios", p:5.00 },
+      { id:"cb2", n:"Combinado de ginebra", m:"Beefeater", p:7.00 },
+      { id:"cb3", n:"Combinado de ginebra", m:"Seagram's", p:7.00 },
+      { id:"cb4", n:"Combinado de ron", m:"Cacique", p:7.00 },
+      { id:"cb5", n:"Combinado de ron", m:"Barceló", p:7.00 },
+      { id:"cb6", n:"Combinado de ron", m:"Brugal", p:7.00 },
+      { id:"cb7", n:"Combinado de whisky", p:7.00 },
+      { id:"cb8", n:"Combinado de whisky", m:"Jack Daniel's", p:8.50 },
+      { id:"cb9", n:"Combinado de whisky", m:"Chivas", p:9.50 },
+      { id:"cb10", n:"Combinado de whisky", m:"Cardhu", p:10.00 },
+      { id:"cb11", n:"Suplemento de Red Bull", d:"Para el combinado", p:0.50 }
+    ]}
+  ]},
+  { cat: "Para comer", grupos: [
+    { g:"Bocadillos", items:[
+      { id:"bo1", n:"Biquini", p:2.80 },
+      { id:"bo2", n:"Bocadillo de fuet", p:4.00 },
+      { id:"bo3", n:"Bocadillo de chorizo", p:4.00 },
+      { id:"bo4", n:"Bocadillo de atún", p:4.50 },
+      { id:"bo5", n:"Bocadillo de jamón serrano", p:4.50 },
+      { id:"bo6", n:"Bocadillo de queso manchego", p:4.80 },
+      { id:"bo7", n:"Bocadillo vegetal", p:5.00 }
+    ]},
+    { g:"Para picar", items:[
+      { id:"pi1", n:"Bolsa de patatas fritas", p:1.50 },
+      { id:"pi2", n:"Cortezas", p:2.00 }
     ]}
   ]}
 ];
@@ -239,33 +370,39 @@ const CARTA = [
 const $app = document.getElementById("app");
 const qs = new URLSearchParams(location.search);
 // también vale #panel, #qr o #mesa5 al final del enlace
-{ const h = location.hash.slice(1); if (h==="panel"||h==="qr") qs.set(h,""); else if (/^mesa[0-9A-Za-z-]+$/.test(h)) qs.set("mesa", h.slice(4)); }
+{ const h = location.hash.slice(1); if (h==="panel"||h==="qr"||h==="fichajes") qs.set(h,""); else if (/^mesa[0-9A-Za-z-]+$/.test(h)) qs.set("mesa", h.slice(4)); }
 const PREVIEW = !!window.ESENCIA_PREVIEW;
-if (PREVIEW) { try{ localStorage.setItem("esencia_pin_ok", JSON.stringify("1234")); }catch{} if (!qs.has("panel")&&!qs.has("qr")&&!qs.get("mesa")) qs.set("mesa","5"); }
+if (PREVIEW) { try{ localStorage.setItem("esencia_trab", JSON.stringify({id:1,nombre:"Jamal",pin:"1234",admin:true})); }catch{} if (!qs.has("panel")&&!qs.has("qr")&&!qs.get("mesa")) qs.set("mesa","5"); }
 const eur = n => (Number(n)||0).toLocaleString("es-ES",{style:"currency",currency:"EUR"});
 const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ls = { get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},
              set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}} };
 const ALL_ITEMS = CARTA.flatMap(c=>c.grupos.flatMap(g=>g.items));
 const findItem = id => ALL_ITEMS.find(i=>i.id===id);
-const label = i => i.m ? `${i.n} · ${i.m}` : i.n;
+const label = i => [i.n, i.m, i.d].filter(Boolean).join(" · ");
 const hora = iso => new Date(iso).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
 const hace = iso => { const m = Math.floor((Date.now()-new Date(iso))/60000); return m<1?"ahora":m<60?`hace ${m} min`:hora(iso); };
 const ICON = {
   bell:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`,
   menu:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h13a3 3 0 0 1 3 3v15H7a3 3 0 0 1-3-3z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>`,
   back:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>`,
+  pin:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>`,
   tick:`<svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>`
 };
 if (ls.get("esencia_big", false)) document.documentElement.classList.add("big");
+if (CONFIG.FONDO) document.documentElement.style.setProperty("--foto", `url("${encodeURI(CONFIG.FONDO)}")`);
+else document.documentElement.style.setProperty("--foto", "none");
 function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3200); }
 
 /* ---------- Almacén: Supabase o modo prueba (mismo navegador) ---------- */
 const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_KEY;
 const sb = !DEMO && window.supabase ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY) : null;
 const bc = ("BroadcastChannel" in window) ? new BroadcastChannel("esencia") : null;
-const T = "esencia_pedidos";
+const T = "esencia_pedidos", TB = "esencia_bloqueos";
+// cada móvil guarda un código propio para que la barra pueda reconocerlo y, si hace falta, bloquearlo
+const DISPOSITIVO = (()=>{ let d = ls.get("esencia_dispositivo",""); if (!d){ d = (crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)); ls.set("esencia_dispositivo", d); } return d; })();
 const demoAll = () => ls.get("esencia_demo", []);
+const demoFich = () => ls.get("esencia_demo_fich", []);
 const demoSave = a => { ls.set("esencia_demo", a); bc && bc.postMessage("x"); };
 const Store = {
   async add(rec){
@@ -293,6 +430,56 @@ const Store = {
     if (sb){ const {error} = await sb.from(T).update(patch).eq("mesa",mesa).eq("cerrado",false); if (error) throw error; return; }
     demoSave(demoAll().map(r=>r.mesa===mesa&&!r.cerrado?{...r,...patch}:r));
   },
+  async bloqueados(){
+    if (sb){ const {data,error} = await sb.from(TB).select("*").order("created_at",{ascending:false}); if (error) throw error; return data; }
+    return ls.get("esencia_demo_bloq", []);
+  },
+  async estoyBloqueado(){
+    if (sb){ const {data,error} = await sb.from(TB).select("dispositivo").eq("dispositivo",DISPOSITIVO).limit(1); if (error) throw error; return data.length>0; }
+    return ls.get("esencia_demo_bloq", []).some(b=>b.dispositivo===DISPOSITIVO);
+  },
+  async bloquear(r){ // bloquea el móvil y anula lo que tenga pendiente
+    const b = {dispositivo:r.dispositivo, cliente:r.cliente||"", mesa:r.mesa};
+    const patch = {estado:"anulado"};
+    if (sb){ let {error} = await sb.from(TB).upsert(b,{onConflict:"dispositivo"}); if (error) throw error;
+             ({error} = await sb.from(T).update(patch).eq("dispositivo",r.dispositivo).eq("cerrado",false).eq("estado","nuevo")); if (error) throw error; return; }
+    ls.set("esencia_demo_bloq", [{...b, created_at:new Date().toISOString()}, ...ls.get("esencia_demo_bloq", []).filter(x=>x.dispositivo!==r.dispositivo)]);
+    demoSave(demoAll().map(x=>x.dispositivo===r.dispositivo&&!x.cerrado&&x.estado==="nuevo"?{...x,...patch}:x));
+  },
+  async desbloquear(dispositivo){
+    if (sb){ const {error} = await sb.from(TB).delete().eq("dispositivo",dispositivo); if (error) throw error; return; }
+    ls.set("esencia_demo_bloq", ls.get("esencia_demo_bloq", []).filter(x=>x.dispositivo!==dispositivo)); bc && bc.postMessage("x");
+  },
+  /* --- fichajes (registro de jornada). Con Supabase todo pasa por funciones del servidor:
+         la hora la pone el servidor y nadie puede editar ni borrar un fichaje --- */
+  async trabEntrar(pin){
+    if (sb){ const {data,error} = await sb.rpc("esencia_entrar",{p_pin:pin}); if (error) throw error; return data&&data[0] ? {...data[0], pin} : null; }
+    const t = CONFIG.TRABAJADORES_PRUEBA.find(t=>t.pin===pin); return t ? {...t} : null;
+  },
+  async fichar(trab, tipo){
+    if (sb){ const {data,error} = await sb.rpc("esencia_fichar",{p_pin:trab.pin, p_tipo:tipo, p_dispositivo:DISPOSITIVO}); if (error) throw error; return data; }
+    const f = demoFich(); const ult = f.filter(x=>x.trabajador_id===trab.id).at(-1);
+    if ((ult?.tipo||"salida")===tipo) throw new Error("repetido");
+    const momento = new Date().toISOString();
+    ls.set("esencia_demo_fich", [...f, {id:Date.now(), trabajador_id:trab.id, nombre:trab.nombre, tipo, momento, correccion:false, motivo:null}]); return momento;
+  },
+  async misFichajes(trab, desde, hasta){
+    if (sb){ const {data,error} = await sb.rpc("esencia_mis_fichajes",{p_pin:trab.pin, p_desde:desde, p_hasta:hasta}); if (error) throw error; return data; }
+    return demoFich().filter(x=>x.trabajador_id===trab.id && x.momento>=desde && x.momento<hasta);
+  },
+  async informe(admin, desde, hasta){
+    if (sb){ const {data,error} = await sb.rpc("esencia_informe",{p_pin:admin.pin, p_desde:desde, p_hasta:hasta}); if (error) throw error; return data; }
+    return demoFich().filter(x=>x.momento>=desde && x.momento<hasta);
+  },
+  async trabajadores(admin){
+    if (sb){ const {data,error} = await sb.rpc("esencia_trabajadores",{p_pin:admin.pin}); if (error) throw error; return data; }
+    return CONFIG.TRABAJADORES_PRUEBA.map(({id,nombre})=>({id,nombre}));
+  },
+  async corregir(admin, trabajador_id, tipo, momento, motivo){
+    if (sb){ const {error} = await sb.rpc("esencia_corregir",{p_pin:admin.pin, p_trabajador:trabajador_id, p_tipo:tipo, p_momento:momento, p_motivo:motivo}); if (error) throw error; return; }
+    const t = CONFIG.TRABAJADORES_PRUEBA.find(t=>t.id===trabajador_id);
+    ls.set("esencia_demo_fich", [...demoFich(), {id:Date.now(), trabajador_id, nombre:t?.nombre, tipo, momento, correccion:true, motivo, corregido_por:admin.nombre}].sort((a,b)=>a.momento.localeCompare(b.momento)));
+  },
   subscribe(cb, cada=15000){
     if (sb){ sb.channel("esencia-"+Math.random().toString(36).slice(2)).on("postgres_changes",{event:"*",schema:"public",table:T}, ()=>cb()).subscribe(); }
     else { bc && bc.addEventListener("message", ()=>cb()); addEventListener("storage", e=>e.key==="esencia_demo"&&cb()); }
@@ -304,11 +491,13 @@ const Store = {
 const mesa = (qs.get("mesa") || "").replace(/[^0-9A-Za-z-]/g,"").slice(0,6);
 const KEY = "esencia_cli_"+mesa;
 let yo = ls.get(KEY, {nombre:"", ids:[]});  // nombre del cliente + ids de sus peticiones abiertas
+if (!yo.nombre) yo.nombre = ls.get("esencia_nombre", "");   // el móvil recuerda el nombre de otras visitas
+let bloqueado = false;
 let misFilas = [];
 let cesta = {};
 let vista = yo.nombre ? "inicio" : "nombre";
 let catSel = CARTA[0].cat;
-const guardaYo = () => ls.set(KEY, yo);
+const guardaYo = () => { ls.set(KEY, yo); if (yo.nombre) ls.set("esencia_nombre", yo.nombre); };
 const totalUds = () => Object.values(cesta).reduce((a,b)=>a+b,0);
 const totalEur = () => Object.entries(cesta).reduce((a,[id,q])=>a+findItem(id).p*q,0);
 
@@ -316,14 +505,17 @@ function header(){
   return `<header class="top"><div class="wrap">
     <div class="logo">${esc(CONFIG.NOMBRE)}<small>Terraza</small></div>
     <div class="hr"><button class="tsize" id="tsize" aria-label="Cambiar tamaño de letra">A+</button>
-      ${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:""}</div></div></header>`;
+      ${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:""}</div></div>
+    ${CONFIG.LUGAR?`<div class="wrap lugar"><span>${ICON.pin}${esc(CONFIG.LUGAR)}</span></div>`:""}</header>`;
 }
 function bindHeader(){ const b=document.getElementById("tsize"); if(b) b.onclick=()=>{ ls.set("esencia_big", document.documentElement.classList.toggle("big")); }; }
 
 async function refrescaMias(){
-  if (!mesa || !yo.ids.length) { misFilas = []; return; }
-  try { misFilas = await Store.byIds(yo.ids); } catch { return; }
-  if (misFilas.length && misFilas.every(r=>r.cerrado)) {        // la barra ha cobrado y cerrado la mesa
+  if (!mesa) return;
+  try { const b = await Store.estoyBloqueado(); if (b!==bloqueado){ bloqueado=b; cliente(); } } catch {}
+  if (!yo.ids.length) { misFilas = []; return; }
+  try { misFilas = (await Store.byIds(yo.ids)).filter(r=>r.estado!=="anulado"); } catch { return; }
+  if (yo.ids.length && !misFilas.length || misFilas.length && misFilas.every(r=>r.cerrado)) {        // la barra ha cobrado y cerrado la mesa
     yo.ids = []; guardaYo(); misFilas = [];
     if (["inicio","enviado","avisado"].includes(vista)) { vista = "cerrada"; }
   }
@@ -353,6 +545,7 @@ function bloqueMios(){
 }
 
 function cliente(){
+  document.body.classList.toggle("compact", ["carta","resumen"].includes(vista));
   if (!mesa){
     $app.innerHTML = header() + `<main class="wrap pick">
       <p class="hello">Bienvenido</p>
@@ -363,6 +556,11 @@ function cliente(){
     bindHeader(); return;
   }
   let h = header() + `<main class="wrap">`, barra = "";
+  if (bloqueado){
+    $app.innerHTML = h + `<div class="done"><h2>Este móvil no puede pedir desde la app</h2>
+      <p class="sub">Si es un error, habla con el camarero y lo arreglamos al momento.</p></div></main>`;
+    bindHeader(); return;
+  }
   if (vista==="nombre"){
     h += `<div class="pick"><p class="hello">¡Hola! ¿Cómo te llamas?</p>
       <p class="sub">Solo para que el camarero sepa a quién llevarle cada cosa. No hace falta registrarse.</p>
@@ -430,17 +628,19 @@ function bindCliente(){
   on("inicio", ()=>go("inicio"));
   on("call", async e => {
     e.currentTarget.disabled = true;
-    try { const r = await Store.add({mesa, tipo:"camarero", cliente:yo.nombre});
+    try { const r = await Store.add({mesa, tipo:"camarero", cliente:yo.nombre, dispositivo:DISPOSITIVO});
           yo.ids.push(r.id); guardaYo(); misFilas.push(r); go("avisado"); }
-    catch { e.currentTarget.disabled=false; toast("No se ha podido avisar. Revisa la conexión y prueba otra vez."); }
+    catch { if (await Store.estoyBloqueado().catch(()=>false)) { bloqueado=true; return cliente(); }
+            e.currentTarget.disabled=false; toast("No se ha podido avisar. Revisa la conexión y prueba otra vez."); }
   });
   on("enviar", async e => {
     const btn=e.currentTarget; btn.disabled=true; btn.textContent="Enviando…";
     const items = Object.entries(cesta).map(([id,q])=>{const i=findItem(id);return {n:label(i),q,p:i.p}});
     const nota = (document.getElementById("nota")?.value||"").trim().slice(0,200);
-    try { const r = await Store.add({mesa, tipo:"pedido", cliente:yo.nombre, items, nota, total:Math.round(totalEur()*100)/100});
+    try { const r = await Store.add({mesa, tipo:"pedido", cliente:yo.nombre, dispositivo:DISPOSITIVO, items, nota, total:Math.round(totalEur()*100)/100});
           yo.ids.push(r.id); guardaYo(); misFilas.push(r); cesta={}; ls.set("esencia_nota",""); go("enviado"); }
-    catch { btn.disabled=false; btn.textContent="Enviar pedido"; toast("No se ha enviado. Revisa la conexión y prueba otra vez."); }
+    catch { if (await Store.estoyBloqueado().catch(()=>false)) { bloqueado=true; return cliente(); }
+            btn.disabled=false; btn.textContent="Enviar pedido"; toast("No se ha enviado. Revisa la conexión y prueba otra vez."); }
   });
   document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{catSel=b.dataset.cat;cliente()});
   document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const id=b.dataset.a;cesta[id]=(cesta[id]||0)+1;cliente()});
@@ -450,7 +650,7 @@ function saveNota(){ const n=document.getElementById("nota"); if(n) ls.set("esen
 
 /* ================= APP CAMAREROS ================= */
 let enServicio = ls.get("esencia_servicio", false);
-let pestana = "abiertas", filas = [], vistos = null, cobrando = null, audioCtx = null, wake = null;
+let pestana = "abiertas", filas = [], bloqs = [], vistos = null, cobrando = null, bloqueando = null, audioCtx = null, wake = null;
 
 function sonar(tipo){
   if (!enServicio) return;
@@ -470,36 +670,59 @@ async function pantallaEncendida(on){
 document.addEventListener("pointerdown", ()=>{ try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); audioCtx.resume(); }catch{} }, {once:true});
 document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState==="visible" && enServicio && qs.has("panel")) pantallaEncendida(true); });
 
+let trab = ls.get("esencia_trab", null);   // trabajador que ha entrado en este móvil
+function pantallaPin(titulo, despues){
+  $app.innerHTML = `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>${esc(titulo)}</small></div></div></header>
+    <main class="wrap pick" style="max-width:420px"><p class="hello">Tu PIN personal</p>
+    <p class="sub">Cada trabajador tiene el suyo. Sirve para fichar la entrada y la salida.</p>
+    <form id="pf"><input id="pin" type="password" inputmode="numeric" autocomplete="off" aria-label="PIN personal" required>
+    <button class="cta c" style="margin-top:14px">Entrar</button></form></main>`;
+  document.getElementById("pf").onsubmit = async e => { e.preventDefault();
+    const btn = e.target.querySelector("button"); btn.disabled = true;
+    try { const t = await Store.trabEntrar(document.getElementById("pin").value.trim());
+          if (!t){ btn.disabled=false; return toast("PIN incorrecto"); }
+          trab = t; ls.set("esencia_trab", t); despues(); }
+    catch { btn.disabled=false; toast("Sin conexión con el servidor"); } };
+}
+async function cargaEstado(){ // el estado sale del último fichaje guardado, no del móvil
+  try { const f = await Store.misFichajes(trab, new Date(Date.now()-40*3600e3).toISOString(), new Date(Date.now()+60e3).toISOString());
+        enServicio = f.length ? f[f.length-1].tipo==="entrada" : false; ls.set("esencia_servicio", enServicio); } catch {}
+}
+async function entrarPanel(){ await cargaEstado(); panel(); pintar(); pantallaEncendida(enServicio); }
+
 function panel(){
   document.body.classList.add("staff");
-  if (ls.get("esencia_pin_ok","") !== CONFIG.PIN_PANEL){
-    $app.innerHTML = `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Camareros</small></div></div></header>
-      <main class="wrap pick" style="max-width:420px"><p class="hello">Introduce el PIN</p>
-      <form id="pf"><input id="pin" type="password" inputmode="numeric" aria-label="PIN" required>
-      <button class="cta c" style="margin-top:14px">Entrar</button></form></main>`;
-    document.getElementById("pf").onsubmit = e => { e.preventDefault();
-      if (document.getElementById("pin").value===CONFIG.PIN_PANEL){ ls.set("esencia_pin_ok",CONFIG.PIN_PANEL); panel(); pintar(); } else toast("PIN incorrecto"); };
-    return;
-  }
+  if (!trab) return pantallaPin("Camareros", entrarPanel);
   $app.innerHTML = (DEMO?`<div class="demo">MODO PRUEBA · Solo funciona en este navegador. Pon los datos de Supabase para usarlo de verdad.</div>`:"") +
-    `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Camareros</small></div>
+    `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Camareros · ${esc(trab.nombre)}</small></div>
      <button class="svc ${enServicio?"on":"off"}" id="svc" aria-pressed="${enServicio}"><i></i>${enServicio?"En servicio":"Fuera de servicio"}</button></div></header>
      <main class="wrap" id="cuerpo"></main>`;
-  document.getElementById("svc").onclick = () => {
-    enServicio = !enServicio; ls.set("esencia_servicio", enServicio);
-    pantallaEncendida(enServicio);
-    if (enServicio){ vistos = null; sonar("pedido"); toast("En servicio. Te avisaremos con sonido."); } else toast("Fuera de servicio. No sonará nada.");
+  document.getElementById("svc").onclick = async e => {
+    const btn = e.currentTarget; btn.disabled = true;
+    const tipo = enServicio ? "salida" : "entrada";
+    try { const t = await Store.fichar(trab, tipo);
+          enServicio = tipo==="entrada"; ls.set("esencia_servicio", enServicio); pantallaEncendida(enServicio);
+          if (enServicio){ vistos = null; sonar("pedido"); toast(`Entrada fichada a las ${hora(t)}. Te avisaremos con sonido.`); }
+          else toast(`Salida fichada a las ${hora(t)}. Buen descanso.`);
+          if (pestana==="fichajes" && enServicio) pestana="abiertas";
+    } catch { await cargaEstado(); toast("No se ha podido fichar. Revisa la conexión y prueba otra vez."); }
     panel(); pintar();
   };
 }
 
 async function pintar(){
   const cuerpo = document.getElementById("cuerpo"); if (!cuerpo) return;
+  if (pestana==="fichajes") return pintaMisFichajes(cuerpo);
   if (!enServicio){
-    cuerpo.innerHTML = `<div class="offbox"><b>Fuera de servicio</b>No recibes avisos ni sonidos.<br>Pulsa “Fuera de servicio” arriba cuando empieces a trabajar.</div>`;
+    cuerpo.innerHTML = `<div class="offbox"><b>Fuera de servicio</b>No recibes avisos ni sonidos.<br>Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.
+      <div class="offacts"><button class="ghost" data-p="fichajes">Ver mis fichajes</button>
+      ${trab.admin?`<a class="ghost" href="?fichajes">Registro de jornada</a>`:""}
+      <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div></div>`;
+    cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
+    document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
     return;
   }
-  try { filas = await Store.list(); } catch { toast("Sin conexión con el servidor"); return; }
+  try { filas = (await Store.list()).filter(r=>r.estado!=="anulado"); bloqs = await Store.bloqueados(); } catch { toast("Sin conexión con el servidor"); return; }
   // sonido solo para lo nuevo que no habíamos visto
   const nuevos = filas.filter(r=>r.estado==="nuevo"&&!r.cerrado);
   if (vistos){ const n = nuevos.filter(r=>!vistos.has(r.id));
@@ -519,11 +742,17 @@ async function pintar(){
 
   let h = `<div class="ptabs">
     <button class="tab" data-p="abiertas" aria-selected="${pestana==="abiertas"}">Mesas abiertas (${mesasAb.length})</button>
-    <button class="tab" data-p="cerradas" aria-selected="${pestana==="cerradas"}">Cobradas hoy (${listaCerr.length})</button></div>`;
+    <button class="tab" data-p="cerradas" aria-selected="${pestana==="cerradas"}">Cobradas hoy (${listaCerr.length})</button>
+    <button class="tab" data-p="bloqueados" aria-selected="${pestana==="bloqueados"}">Móviles bloqueados (${bloqs.length})</button>
+    <button class="tab" data-p="fichajes">Mis fichajes</button></div>`;
 
   if (pestana==="abiertas"){
     h += mesasAb.length ? `<div class="grid">${mesasAb.map(m=>tarjetaMesa(m, abiertas[m])).join("")}</div>`
                         : `<p class="empty">No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.</p>`;
+  } else if (pestana==="bloqueados"){
+    h += bloqs.length ? `<div class="grid">${bloqs.map(b=>`<div class="hist"><span><b>${esc(b.cliente||"Sin nombre")}</b><br><span class="t">Mesa ${esc(b.mesa||"?")} · bloqueado ${b.created_at?hace(b.created_at):""}</span></span>
+        <button class="act no" data-desbloq="${esc(b.dispositivo)}">Desbloquear</button></div>`).join("")}</div>`
+      : `<p class="empty">No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Bloquear este móvil” en su aviso.</p>`;
   } else {
     h += listaCerr.length ? `<div class="grid">${listaCerr.map(([k,rs])=>{
         const tot = rs.filter(r=>r.tipo==="pedido").reduce((a,r)=>a+Number(r.total||0),0);
@@ -536,6 +765,15 @@ async function pintar(){
   cuerpo.querySelectorAll("[data-acc]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
     const id = isNaN(b.dataset.acc)?b.dataset.acc:Number(b.dataset.acc);
     try{ await Store.accept(id); pintar(); }catch{ b.disabled=false; toast("No se ha guardado. Prueba otra vez."); } });
+  cuerpo.querySelectorAll("[data-bloq]").forEach(b=>b.onclick=()=>{ bloqueando=b.dataset.bloq; pintar(); });
+  cuerpo.querySelectorAll("[data-nobloq]").forEach(b=>b.onclick=()=>{ bloqueando=null; pintar(); });
+  cuerpo.querySelectorAll("[data-sibloq]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
+    const r = filas.find(x=>String(x.id)===b.dataset.sibloq);
+    try{ await Store.bloquear(r); bloqueando=null; toast("Móvil bloqueado. Ya no podrá pedir ni llamar desde la app."); pintar(); }
+    catch{ b.disabled=false; toast("No se ha podido bloquear. Prueba otra vez."); } });
+  cuerpo.querySelectorAll("[data-desbloq]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
+    try{ await Store.desbloquear(b.dataset.desbloq); toast("Móvil desbloqueado"); pintar(); }
+    catch{ b.disabled=false; toast("No se ha podido desbloquear. Prueba otra vez."); } });
   cuerpo.querySelectorAll("[data-cobrar]").forEach(b=>b.onclick=()=>{ cobrando=b.dataset.cobrar; pintar(); });
   cuerpo.querySelectorAll("[data-nocobrar]").forEach(b=>b.onclick=()=>{ cobrando=null; pintar(); });
   cuerpo.querySelectorAll("[data-cerrar]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
@@ -543,6 +781,12 @@ async function pintar(){
     catch{ b.disabled=false; toast("No se ha podido cerrar. Prueba otra vez."); } });
 }
 
+function botonBloq(r){
+  if (!r.dispositivo) return "";
+  if (String(bloqueando)===String(r.id)) return `<div class="ask"><b>¿Bloquear el móvil de ${esc(r.cliente||"este cliente")}? Se anulará este aviso y no podrá pedir ni llamar más desde la app.</b>
+    <div class="two"><button class="act pay" data-sibloq="${esc(r.id)}">Sí, bloquear</button><button class="act no" data-nobloq>No</button></div></div>`;
+  return `<button class="act lnk" data-bloq="${esc(r.id)}">Es una broma: bloquear este móvil</button>`;
+}
 function tarjetaMesa(m, rs){
   const pend = rs.filter(r=>r.estado==="nuevo");
   const peds = rs.filter(r=>r.tipo==="pedido");
@@ -556,11 +800,11 @@ function tarjetaMesa(m, rs){
     ${nombres.length?`<div class="who">${nombres.map(esc).join(" · ")}</div>`:""}
     ${pend.map(r=> r.tipo==="camarero"
       ? `<div class="ev call"><div class="l"><span>${esc(r.cliente||"Un cliente")} llama al camarero</span><span class="t">${hace(r.created_at)}</span></div>
-         <button class="act go" data-acc="${esc(r.id)}">Voy para allá</button></div>`
+         <button class="act go" data-acc="${esc(r.id)}">Voy para allá</button>${botonBloq(r)}</div>`
       : `<div class="ev ord"><div class="l"><span>Pedido nuevo · ${esc(r.cliente||"")}</span><span class="t">${hace(r.created_at)}</span></div>
          <ul>${(r.items||[]).map(i=>`<li><b>${Number(i.q)||0}×</b> ${esc(i.n)}</li>`).join("")}</ul>
          ${r.nota?`<div class="nota">${esc(r.nota)}</div>`:""}
-         <button class="act ok" data-acc="${esc(r.id)}">Recibido</button></div>`).join("")}
+         <button class="act ok" data-acc="${esc(r.id)}">Recibido</button>${botonBloq(r)}</div>`).join("")}
     ${Object.keys(cons).length?`<div class="cons"><div class="cap">Consumo de la mesa</div>
       ${Object.entries(cons).map(([n,c])=>`<div class="row"><span>${c.q}× ${esc(n)}</span><span>${eur(c.q*c.p)}</span></div>`).join("")}
       <div class="row total"><span>Total</span><span>${eur(total)}</span></div></div>`:""}
@@ -571,8 +815,118 @@ function tarjetaMesa(m, rs){
   </article>`;
 }
 
+/* ================= REGISTRO DE JORNADA (fichajes) ================= */
+const TZ = "Europe/Madrid";
+const fHora = iso => new Date(iso).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit",timeZone:TZ});
+const fDia = iso => new Date(iso).toLocaleDateString("es-ES",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric",timeZone:TZ});
+const dur = ms => { const m = Math.round(ms/60000); return `${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")} min`; };
+const mesActual = () => new Date().toLocaleDateString("sv-SE",{timeZone:TZ}).slice(0,7);
+const rangoMes = ym => { const [y,m] = ym.split("-").map(Number); return [new Date(y,m-1,1).toISOString(), new Date(y,m,1).toISOString()]; };
+const obsDe = f => f && f.correccion ? `Corregido${f.corregido_por?" por "+f.corregido_por:""}: ${f.motivo||""}` : "";
+
+// junta cada entrada con su salida (de un mismo trabajador)
+function jornadas(rows){
+  const out = []; let abierta = null;
+  [...rows].sort((a,b)=>a.momento.localeCompare(b.momento)).forEach(f=>{
+    if (f.tipo==="entrada"){ if (abierta) out.push({e:abierta, s:null}); abierta = f; }
+    else { out.push({e:abierta, s:f}); abierta = null; }
+  });
+  if (abierta) out.push({e:abierta, s:null, curso: Date.now()-new Date(abierta.momento) < 16*3600e3});
+  return out.map(j=>({...j, ms: j.e&&j.s ? new Date(j.s.momento)-new Date(j.e.momento) : 0}));
+}
+function tablaJornada(rows){
+  const js = jornadas(rows);
+  if (!js.length) return `<p class="empty" style="padding:16px 0">Sin fichajes en este periodo.</p>`;
+  const total = js.reduce((a,j)=>a+j.ms,0);
+  return `<div class="tscroll"><table class="jt"><thead><tr><th>Día</th><th>Entrada</th><th>Salida</th><th>Horas</th><th>Observaciones</th></tr></thead><tbody>
+    ${js.map(j=>`<tr><td>${fDia((j.e||j.s).momento)}</td>
+      <td>${j.e?fHora(j.e.momento):`<span class="falta">Falta</span>`}</td>
+      <td>${j.s?fHora(j.s.momento):(j.curso?"En curso":`<span class="falta">Falta</span>`)}</td>
+      <td>${j.ms?dur(j.ms):"—"}</td><td class="obs">${esc([obsDe(j.e),obsDe(j.s)].filter(Boolean).join(" · "))}</td></tr>`).join("")}
+    </tbody><tfoot><tr><td colspan="3">Total</td><td>${dur(total)}</td><td></td></tr></tfoot></table></div>`;
+}
+
+async function pintaMisFichajes(cuerpo, ym=mesActual()){
+  cuerpo.innerHTML = `<button class="back" id="volverP">${ICON.back} Volver</button>
+    <p class="hello" style="margin-top:0">Mis fichajes, ${esc(trab.nombre)}</p>
+    <div class="fbar"><label>Mes<input type="month" id="mesF" value="${ym}"></label></div><div id="tablaF">Cargando…</div>`;
+  document.getElementById("volverP").onclick = ()=>{ pestana="abiertas"; pintar(); };
+  document.getElementById("mesF").onchange = e => pintaMisFichajes(cuerpo, e.target.value||mesActual());
+  try { const [d,h] = rangoMes(ym); document.getElementById("tablaF").innerHTML = tablaJornada(await Store.misFichajes(trab, d, h)); }
+  catch { document.getElementById("tablaF").textContent = "Sin conexión con el servidor."; }
+}
+
+let infMes = mesActual(), infTrab = "", infFilas = [], infLista = [];
+async function informe(){
+  document.body.classList.add("staff");
+  if (!trab) return pantallaPin("Registro de jornada", informe);
+  if (!trab.admin){
+    $app.innerHTML = `<main class="wrap"><p class="hello">Solo el encargado puede ver el registro de todos.</p>
+      <p class="sub">Tus propios fichajes están en el panel, en “Mis fichajes”.</p><a class="ghost" href="?panel" style="display:inline-block;color:var(--ink)">Ir al panel</a></main>`;
+    return;
+  }
+  $app.innerHTML = (DEMO?`<div class="demo noprint">MODO PRUEBA · Los fichajes de prueba solo se guardan en este navegador.</div>`:"") +
+    `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Registro de jornada</small></div>
+     <a class="svc off noprint" href="?panel" style="text-decoration:none">Volver al panel</a></div></header>
+    <main class="wrap"><div class="fbar noprint">
+      <label>Mes<input type="month" id="iMes" value="${infMes}"></label>
+      <label>Trabajador<select id="iTrab"><option value="">Todos</option></select></label>
+      <button class="act pay" id="iCsv">Descargar (Excel)</button><button class="act no" id="iPrint">Imprimir o PDF</button></div>
+      <div id="iTabla">Cargando…</div>
+      <details class="noprint" style="margin-top:20px"><summary style="font-weight:700;cursor:pointer;padding:10px 0">Añadir una corrección (olvido de fichar)</summary>
+        <p class="sub">Los fichajes no se pueden cambiar ni borrar. Si alguien olvidó fichar, añade aquí el fichaje que falta con el motivo: quedará marcado como corrección y con tu nombre.</p>
+        <form id="iCorr" class="fbar">
+          <label>Trabajador<select id="cTrab" required></select></label>
+          <label>Tipo<select id="cTipo"><option value="entrada">Entrada</option><option value="salida">Salida</option></select></label>
+          <label>Día y hora<input type="datetime-local" id="cMom" required></label>
+          <label style="flex:1;min-width:200px">Motivo<input id="cMot" maxlength="200" required placeholder="Ej: olvidó fichar la salida"></label>
+          <button class="act go">Guardar corrección</button></form></details>
+      <p class="legal">Registro diario de jornada con la hora de inicio y fin de cada trabajador (art. 34.9 del Estatuto de los Trabajadores). Se conserva 4 años y debe estar a disposición de los trabajadores, sus representantes y la Inspección de Trabajo.</p></main>`;
+  try { infLista = await Store.trabajadores(trab); } catch { infLista = []; }
+  const opts = infLista.map(t=>`<option value="${esc(t.id)}">${esc(t.nombre)}</option>`).join("");
+  document.getElementById("iTrab").innerHTML = `<option value="">Todos</option>`+opts;
+  document.getElementById("iTrab").value = infTrab;
+  document.getElementById("cTrab").innerHTML = opts;
+  document.getElementById("iMes").onchange = e => { infMes = e.target.value||mesActual(); pintaInforme(); };
+  document.getElementById("iTrab").onchange = e => { infTrab = e.target.value; pintaInforme(); };
+  document.getElementById("iPrint").onclick = () => print();
+  document.getElementById("iCsv").onclick = descargaCsv;
+  document.getElementById("iCorr").onsubmit = async e => { e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true;
+    try { await Store.corregir(trab, Number(document.getElementById("cTrab").value), document.getElementById("cTipo").value,
+            new Date(document.getElementById("cMom").value).toISOString(), document.getElementById("cMot").value.trim());
+          toast("Corrección guardada"); e.target.reset(); pintaInforme(); }
+    catch { toast("No se ha guardado la corrección. Prueba otra vez."); }
+    b.disabled = false; };
+  pintaInforme();
+}
+function infPorTrab(){
+  const g = {};
+  infFilas.filter(f=>!infTrab || String(f.trabajador_id)===infTrab).forEach(f=>{ (g[f.trabajador_id] = g[f.trabajador_id]||[]).push(f); });
+  return Object.values(g).map(rs=>({nombre: rs[0].nombre || infLista.find(t=>t.id===rs[0].trabajador_id)?.nombre || "¿?", rs}))
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+}
+async function pintaInforme(){
+  const box = document.getElementById("iTabla"); box.textContent = "Cargando…";
+  try { const [d,h] = rangoMes(infMes); infFilas = await Store.informe(trab, d, h); }
+  catch { box.textContent = "Sin conexión con el servidor."; return; }
+  const mesTxt = new Date(rangoMes(infMes)[0]).toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+  const g = infPorTrab();
+  box.innerHTML = `<p class="hello" style="margin-top:6px">Jornadas de ${esc(mesTxt)}</p>` +
+    (g.length ? g.map(w=>`<h3 class="wk">${esc(w.nombre)}</h3>${tablaJornada(w.rs)}`).join("") : `<p class="empty">Nadie ha fichado este mes.</p>`);
+}
+function descargaCsv(){
+  const q = v => `"${String(v??"").replace(/"/g,'""')}"`;
+  const lineas = [["Trabajador","Día","Entrada","Salida","Horas","Observaciones"].map(q).join(";")];
+  infPorTrab().forEach(w=>jornadas(w.rs).forEach(j=>lineas.push([w.nombre, fDia((j.e||j.s).momento), j.e?fHora(j.e.momento):"FALTA",
+    j.s?fHora(j.s.momento):(j.curso?"En curso":"FALTA"), j.ms?(j.ms/3600e3).toFixed(2).replace(".",","):"", [obsDe(j.e),obsDe(j.s)].filter(Boolean).join(" · ")].map(q).join(";"))));
+  const blob = new Blob(["﻿"+lineas.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `registro-jornada-${infMes}.csv`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+
 /* ================= QR PARA IMPRIMIR ================= */
 function qrs(){
+  document.body.classList.add("plain");
   const base = location.origin + location.pathname;
   $app.innerHTML = `<main class="wrap"><div class="noprint">
     <p class="hello">Códigos QR de las mesas</p>
@@ -590,7 +944,8 @@ if (PREVIEW){
   document.body.prepend(pv);
   pv.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{ location.hash=b.dataset.v; location.reload(); });
 }
-if (qs.has("panel")) { panel(); pintar(); pantallaEncendida(enServicio); Store.subscribe(()=>pintar(), 10000); }
+if (qs.has("panel")) { if (trab) entrarPanel(); else panel(); Store.subscribe(()=>{ if (trab && pestana!=="fichajes") pintar(); }, 10000); }
+else if (qs.has("fichajes")) informe();
 else if (qs.has("qr")) qrs();
 else { cliente(); if (mesa){ refrescaMias(); Store.subscribe(()=>refrescaMias(), 8000); } }
 </script>
