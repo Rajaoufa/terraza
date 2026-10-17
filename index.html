@@ -58,13 +58,15 @@ body.compact,body.staff{--hero:170px}
   /* en el móvil el puente cabe entero y el río queda justo encima de la hoja */
   background-position:center,var(--foto-pos),center calc(var(--hero) - 28px - 73.9vw)}
 body.plain .bg{display:none}
-/* en el ordenador: puente entero arriba y, debajo y a los lados de la hoja, los bloques de Buenos Aires (barrio.svg) */
+/* en el ordenador: puente entero arriba y, a los lados de la hoja, los bloques de Buenos Aires (barrio.svg) */
 @media (min-width:760px){
   /* el dibujo se escala para que del cielo al río (unidades 200..554) quepa justo encima de la hoja */
   .bg{background-color:transparent;background-size:cover,cover,auto calc((var(--hero) - 28px) * 2.147);background-position:center,var(--foto-pos),center calc((var(--hero) - 28px) * -0.565);
     background-image:linear-gradient(180deg,rgba(8,24,19,.62) 0,rgba(8,24,19,.15) 42%,rgba(8,24,19,0) 100%),var(--foto),var(--foto-dibujo)}
-  body:not(.plain){background:url("barrio.svg") center calc(var(--hero) - 28px) / 100% auto no-repeat,
-    linear-gradient(#F6D08A 0,#F6D08A var(--hero),#2C4636 0)}
+  /* a cada lado de la hoja, los bloques que marcó Jamal, completos */
+  body:not(.plain){background:url("barrio.svg") left 12px top calc(var(--hero) + 4px) / calc(50% - 344px) auto no-repeat,
+    url("barrio.svg") right 12px top calc(var(--hero) + 4px) / calc(50% - 344px) auto no-repeat,
+    linear-gradient(#F6D08A 0,#F6D08A calc(var(--hero) - 40px),#2C4636 0)}
 }
 #app{position:relative;z-index:1}
 /* contenido en una hoja clara que sube sobre la foto: se lee bien al sol */
