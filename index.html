@@ -507,6 +507,17 @@ body{font-variant-numeric:lining-nums}
 .recorte{position:relative;width:min(100%,360px);aspect-ratio:1;margin:0 auto;overflow:hidden;border-radius:18px;border:2px solid #F0C979;background:#000;touch-action:none;cursor:grab}
 .recorte img{position:absolute;left:0;top:0;max-width:none;user-select:none;pointer-events:none}
 .rzoom{display:flex;align-items:center;gap:10px;justify-content:center}.rzoom input{flex:1;max-width:280px;accent-color:#F0C979}
+/* camarero: anotar comanda */
+.modal.anota .mbox{max-width:620px;max-height:94vh;gap:10px}
+.an-t{font-family:var(--f-display);font-size:1.3em;color:#F8EBD2}
+.an-quien,.an-secs{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.an-secs .hj-op,.an-quien .hj-op{min-height:40px;padding:6px 12px}
+.an-busca{width:100%;padding:12px 14px;font:inherit;border-radius:12px;border:1px solid var(--line);background:#170D07;color:var(--ink)}
+.an-items{display:grid;gap:6px;max-height:34vh;overflow:auto;padding-right:2px}
+.an-it{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;min-height:48px}
+.an-it span{flex:1}.an-it b{color:#F0C979}.an-it i{font-style:normal;font-weight:900;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#F0C979,#C38A3C);color:#2A140A}
+.an-sum{margin:0}
+.ev.call{flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -1096,7 +1107,7 @@ function bindHeader(){ const b=document.getElementById("tsize"); if(b) b.onclick
 async function refrescaMias(){
   if (!mesa) return;
   try { const b = await Store.estoyBloqueado(); if (b!==bloqueado){ bloqueado=b; cliente(); } } catch {}
-  try { filasMesa = await Store.deMesa(mesa); } catch {}
+  try { filasMesa = await Store.deMesa(mesa); filasMesa.forEach(r=>{ if (r.dispositivo===DISPOSITIVO && !r.cerrado && !yo.ids.includes(r.id)) { yo.ids.push(r.id); guardaYo(); } }); } catch {}
   if (!yo.ids.length) { misFilas = []; if (["inicio"].includes(vista)) cliente(); return; }
   try { misFilas = (await Store.byIds(yo.ids)).filter(r=>r.estado!=="anulado"); } catch { return; }
   if (yo.ids.length && !misFilas.length || misFilas.length && misFilas.every(r=>r.cerrado)) {        // la barra ha cobrado y cerrado la mesa
@@ -1314,9 +1325,9 @@ function bindCliente(){
     const k = Object.keys(cesta).filter(x=>lineaCesta(x).id===id).pop(); if (!k) return; cesta[k]--; if(cesta[k]<=0) delete cesta[k]; cliente()});
 }
 // hoja con las opciones del producto (sin hielo, leche, azúcar…)
-function elegirOpciones(id){
+function elegirOpciones(id, alAnadir){
   const i = findItem(id), filas = opcionesDe(id), sel = new Set();
-  document.querySelector(".modal")?.remove();
+  document.querySelector(".modal.hoja")?.remove();
   const caja = document.createElement("div"); caja.className = "modal hoja";
   caja.innerHTML = `<div class="mbox" role="dialog" aria-modal="true" aria-label="${esc(label(i))}">
     <div class="hj-cab">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<b class="hj-n">${esc(i.n)}</b>${i.d?`<small>${esc(i.d)}</small>`:""}<b class="hj-p">${eur(i.p)}</b></div>
@@ -1332,7 +1343,7 @@ function elegirOpciones(id){
     caja.querySelector("#hjTot").textContent = eur(i.p + [...sel].reduce((a,x)=>a+extraDe(id,x),0)); });
   caja.querySelector("#hjOk").onclick = () => {
     const o = filas.flatMap(f=>f.o).filter(x=>sel.has(x)), k = o.length ? id+"|"+o.join("·") : id;
-    cesta[k] = (cesta[k]||0)+1; caja.remove(); cliente(); toast("Añadido al pedido"); };
+    caja.remove(); if (alAnadir) return alAnadir(k); cesta[k] = (cesta[k]||0)+1; cliente(); toast("Añadido al pedido"); };
 }
 /* ---------- Instalar la app (clientes) ---------- */
 const OFRECER_INSTALAR = false;   // Jamal prefiere que los clientes entren siempre por el QR
@@ -1634,6 +1645,7 @@ async function pintar(){
     try{ await Store.desbloquear(b.dataset.desbloq); toast("Móvil desbloqueado"); pintar(); }
     catch{ b.disabled=false; toast("No se ha podido desbloquear. Prueba otra vez."); } });
   cuerpo.querySelectorAll("[data-apodo]").forEach(b=>b.onclick=()=>pantallaApodos(b.dataset.apodo));
+  cuerpo.querySelectorAll("[data-anotar]").forEach(b=>b.onclick=()=>anotarComanda(b.dataset.anotar, b.dataset.disp, b.dataset.llamada));
   cuerpo.querySelectorAll("[data-cobrar]").forEach(b=>b.onclick=()=>{ cobrando=b.dataset.cobrar; pintar(); });
   cuerpo.querySelectorAll("[data-nocobrar]").forEach(b=>b.onclick=()=>{ cobrando=null; pintar(); });
   cuerpo.querySelectorAll("[data-cerrar]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
@@ -1665,6 +1677,50 @@ function botonBloq(r){
     <div class="two"><button class="act pay" data-sibloq="${esc(r.id)}">Sí, bloquear</button><button class="act no" data-nobloq>No</button></div></div>`;
   return `<button class="act lnk" data-bloq="${esc(r.id)}">Rechazar y bloquear contacto</button>`;
 }
+// el camarero anota lo que le piden en la mesa (Jamal): va a la cuenta del cliente como un pedido suyo
+function anotarComanda(m, disp, llamada){
+  const deMesa = filas.filter(r=>!r.cerrado && r.mesa===m);
+  const gente = [...new Map(deMesa.filter(r=>r.dispositivo).map(r=>[r.dispositivo, {d:r.dispositivo, ver:r.cliente||"Cliente", nombre:r.puso||r.cliente||""}])).values()];
+  let quien = gente.find(g=>g.d===disp) || gente[0] || null, sec = SECCIONES[0].k, busca = "";
+  const lista = {};   // clave de cesta -> unidades
+  document.querySelector(".modal")?.remove();
+  const caja = document.createElement("div"); caja.className = "modal anota";
+  document.body.appendChild(caja);
+  const total = () => Object.entries(lista).reduce((a,[k,q])=>a+precioLinea(k)*q,0);
+  const pinta = () => {
+    const items = busca ? ALL_ITEMS.filter(i=>label(i).toLowerCase().includes(busca.toLowerCase()))
+                        : SECCIONES.find(x=>x.k===sec).grupos.flatMap(g=>GRUPOS.find(x=>x.g===g)?.items||[]);
+    caja.innerHTML = `<div class="mbox"><b class="an-t">Anotar comanda · Mesa ${esc(m)}</b>
+      ${gente.length>1?`<div class="an-quien"><span class="hj-t">Para</span>${gente.map(g=>`<button type="button" class="hj-op ${quien&&quien.d===g.d?"on":""}" data-q="${esc(g.d)}">${esc(g.ver)}</button>`).join("")}</div>`
+        : quien?`<p class="sub">Para <b>${esc(quien.ver)}</b></p>`:`<p class="sub">Va a la cuenta de la mesa ${esc(m)}.</p>`}
+      <input class="an-busca" type="search" placeholder="Buscar producto…" value="${esc(busca)}" aria-label="Buscar producto">
+      ${busca?"":`<div class="an-secs">${SECCIONES.map(x=>`<button type="button" class="hj-op ${x.k===sec?"on":""}" data-sec="${esc(x.k)}">${x.e} ${esc(x.k)}</button>`).join("")}</div>`}
+      <div class="an-items">${items.map(i=>`<button type="button" class="an-it" data-it="${i.id}"><span>${esc(label(i))}</span><b>${eur(i.p)}</b><i>+</i></button>`).join("") || `<p class="empty">No hay nada con ese nombre.</p>`}</div>
+      ${Object.keys(lista).length?`<div class="sum an-sum">${Object.entries(lista).map(([k,q])=>{ const {i,o} = lineaCesta(k);
+        return `<div class="row lc"><span><b>${q} ×</b> ${esc(label(i))}${o.length?`<span class="opcs">${o.map(x=>`<em>${esc(x)}</em>`).join("")}</span>`:""}</span>
+          <span class="lcd"><span>${eur(precioLinea(k)*q)}</span><span class="lcb"><button type="button" data-ml="${esc(k)}" aria-label="Quitar uno">−</button><button type="button" data-al="${esc(k)}" aria-label="Añadir otro">+</button></span></span></div>`; }).join("")}
+        <div class="row total"><span>Total</span><span>${eur(total())}</span></div></div>`:""}
+      <button class="act pay" id="anOk" ${Object.keys(lista).length?"":"disabled"}>Anotar en la cuenta</button><button class="act no" id="anNo">Cancelar</button></div>`;
+    const $ = q => caja.querySelector(q);
+    $("#anNo").onclick = () => caja.remove();
+    const bus = $(".an-busca"); bus.oninput = () => { busca = bus.value; const pos = bus.selectionStart; pinta(); const n = caja.querySelector(".an-busca"); n.focus(); n.setSelectionRange(pos, pos); };
+    caja.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { quien = gente.find(g=>g.d===b.dataset.q); pinta(); });
+    caja.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { sec = b.dataset.sec; pinta(); });
+    caja.querySelectorAll("[data-it]").forEach(b => b.onclick = () => { const id = b.dataset.it, mete = k => { lista[k] = (lista[k]||0)+1; pinta(); };
+      if (opcionesDe(id).length) elegirOpciones(id, mete); else mete(id); });
+    caja.querySelectorAll("[data-al]").forEach(b => b.onclick = () => { lista[b.dataset.al]++; pinta(); });
+    caja.querySelectorAll("[data-ml]").forEach(b => b.onclick = () => { const k = b.dataset.ml; if (--lista[k] <= 0) delete lista[k]; pinta(); });
+    $("#anOk").onclick = async e => { const btn = e.currentTarget; btn.disabled = true;
+      const items = Object.entries(lista).map(([k,q])=>{ const {i,o} = lineaCesta(k); return {n:conOpciones(label(i),o), q, p:precioLinea(k)}; });
+      try {
+        const r = await Store.add({mesa:m, tipo:"pedido", cliente:quien?.nombre || "Mesa "+m, dispositivo:quien?.d || null, items, nota:`Anotado por ${trab.nombre}`, total:Math.round(total()*100)/100});
+        await Store.accept(r.id).catch(()=>{});
+        if (llamada) await Store.accept(isNaN(llamada)?llamada:Number(llamada)).catch(()=>{});
+        caja.remove(); toast(`Comanda anotada en la mesa ${m}`); pintar();
+      } catch { btn.disabled = false; toast("No se ha guardado. Si el cliente está bloqueado no se le puede anotar."); } };
+  };
+  pinta();
+}
 function tarjetaMesa(m, rs){
   const pend = rs.filter(r=>r.estado==="nuevo");
   const peds = rs.filter(r=>r.tipo==="pedido");
@@ -1678,7 +1734,7 @@ function tarjetaMesa(m, rs){
     ${nombres.length?`<div class="who">${nombres.join(" · ")} <button class="act lnk apodo-b" data-apodo="${esc(m)}">✏️ Apodo</button></div>`:""}
     ${pend.map(r=> r.tipo==="camarero"
       ? `<div class="ev call"><div class="l"><span>${esc(r.cliente||"Un cliente")} llama al camarero</span><span class="t">${hace(r.created_at)}</span></div>
-         <button class="act go" data-acc="${esc(r.id)}">Voy para allá</button>${botonBloq(r)}</div>`
+         <button class="act go" data-acc="${esc(r.id)}">Voy para allá</button><button class="act pay" data-anotar="${esc(m)}" data-disp="${esc(r.dispositivo||"")}" data-llamada="${esc(r.id)}">📝 Anotar comanda</button>${botonBloq(r)}</div>`
       : `<div class="ev ord"><div class="l"><span>Pedido nuevo · ${esc(r.cliente||"")}</span><span class="t">${hace(r.created_at)}</span></div>
          <ul>${(r.items||[]).map(i=>`<li><b>${Number(i.q)||0}×</b> ${esc(i.n)}</li>`).join("")}</ul>
          ${r.nota?`<div class="nota">${esc(r.nota)}</div>`:""}
@@ -1691,7 +1747,7 @@ function tarjetaMesa(m, rs){
     <div class="foot">${cobrando===m
       ? `<div class="ask"><b>¿Ya está cobrada la mesa ${esc(m)}${total?` (${eur(total)})`:""}?</b>
          <div class="two"><button class="act pay" data-cerrar="${esc(m)}">Sí, cerrar mesa</button><button class="act no" data-nocobrar>No</button></div></div>`
-      : `<button class="act pay" data-cobrar="${esc(m)}">Cobrar y cerrar mesa</button>`}</div>
+      : `<button class="act go" data-anotar="${esc(m)}">📝 Anotar comanda</button><button class="act pay" data-cobrar="${esc(m)}">Cobrar y cerrar mesa</button>`}</div>
   </article>`;
 }
 
@@ -2110,6 +2166,13 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "📝 Anotar comanda":"📝 记下点单",
+  "Anotar en la cuenta":"记到账单上",
+  "Para":"给",
+  "Buscar producto…":"搜索商品…",
+  "Buscar producto":"搜索商品",
+  "No hay nada con ese nombre.":"没有这个名字的商品。",
+  "No se ha guardado. Si el cliente está bloqueado no se le puede anotar.":"没有保存。如果客人被屏蔽了，就不能给他点单。",
   "Recorta la foto":"裁剪照片",
   "Mueve la foto con el dedo. Para acercar, pellizca o usa la barra.":"用手指移动照片。双指捏合或拖动滑块来放大。",
   "Usar esta foto":"用这张照片",
@@ -2376,6 +2439,9 @@ const ZH = {
   "No se ha podido crear el QR. Revisa la conexión.":"没能生成二维码。请检查网络。","Solo el encargado puede poner fotos.":"只有负责人能添加照片。"
 };
 const ZH_RE = [
+  [/^Anotar comanda · Mesa (.+)$/, m=>`记下点单 · ${m[1]}号桌`],
+  [/^Comanda anotada en la mesa (.+)$/, m=>`已记到${m[1]}号桌`],
+  [/^Anotado por (.+)$/, m=>`由${m[1]}记下`],
   [/^Añadido: (.+)$/, m=>`已加入：${m[1]}`],
   [/^Para comprar \((\d+)\)$/, m=>`要买的（${m[1]}）`],
   [/^Ya han pagado \((\d+)\)$/, m=>`已经付清（${m[1]}）`],
@@ -2425,6 +2491,13 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "📝 Anotar comanda":"📝 Apuntar comanda",
+  "Anotar en la cuenta":"Apuntar al compte",
+  "Para":"Per a",
+  "Buscar producto…":"Cercar producte…",
+  "Buscar producto":"Cercar producte",
+  "No hay nada con ese nombre.":"No hi ha res amb aquest nom.",
+  "No se ha guardado. Si el cliente está bloqueado no se le puede anotar.":"No s'ha desat. Si el client està bloquejat no se li pot apuntar.",
   "Recorta la foto":"Retalla la foto",
   "Mueve la foto con el dedo. Para acercar, pellizca o usa la barra.":"Mou la foto amb el dit. Per apropar, pessiga o fes servir la barra.",
   "Usar esta foto":"Fer servir aquesta foto",
@@ -2683,6 +2756,9 @@ const CA = {
   "No se ha podido crear el QR. Revisa la conexión.":"No s'ha pogut crear el QR. Revisa la connexió.","Solo el encargado puede poner fotos.":"Només l'encarregat pot posar fotos."
 };
 const CA_RE = [
+  [/^Anotar comanda · Mesa (.+)$/, m=>`Apuntar comanda · Taula ${m[1]}`],
+  [/^Comanda anotada en la mesa (.+)$/, m=>`Comanda apuntada a la taula ${m[1]}`],
+  [/^Anotado por (.+)$/, m=>`Apuntat per ${m[1]}`],
   [/^Añadido: (.+)$/, m=>`Afegit: ${m[1]}`],
   [/^Para comprar \((\d+)\)$/, m=>`Per comprar (${m[1]})`],
   [/^Ya han pagado \((\d+)\)$/, m=>`Ja han pagat (${m[1]})`],
