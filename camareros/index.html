@@ -462,6 +462,43 @@ body{font-variant-numeric:lining-nums}
   main.wrap{background:#fff!important;border:0;box-shadow:none}
   .jt th{color:#000}
 }
+/* hoja de opciones del producto */
+.modal.hoja{place-items:end center;padding:0}
+.modal.hoja .mbox{max-width:560px;border-radius:24px 24px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));gap:12px;max-height:88vh}
+.hj-cab{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:2px 12px}
+.hj-cab .mk{grid-column:1/-1;color:#E9C27E;font-size:.8em;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.hj-n{font-family:var(--f-display);font-size:1.45em;color:#F8EBD2}
+.hj-p{color:#F0C979;font-size:1.2em}
+.hj-cab small{grid-column:1;color:var(--muted)}
+.hj-fila{display:grid;gap:6px}
+.hj-t{font-size:.8em;font-weight:700;color:#E9C27E;text-transform:uppercase;letter-spacing:.08em}
+.hj-ops{display:flex;flex-wrap:wrap;gap:8px}
+.hj-op{font:inherit;font-weight:700;min-height:46px;padding:10px 16px;border-radius:999px;border:1.5px solid rgba(217,168,91,.55);background:rgba(255,255,255,.05);color:var(--ink);cursor:pointer}
+.hj-op.on{background:linear-gradient(180deg,#F0C979,#C38A3C);color:#2A140A;border-color:#E9C27E}
+.hj-op.on::before{content:"✓ "}
+.sum .row.lc{align-items:center;gap:10px}
+.opcs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.opcs em{font-style:normal;font-size:.8em;padding:2px 8px;border-radius:999px;background:rgba(217,168,91,.18);color:#F0C979}
+.lcd{display:flex;flex-direction:column;align-items:flex-end;gap:6px;white-space:nowrap}
+.lcb{display:flex;gap:6px}
+.lcb button{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.07);color:var(--ink);font:inherit;font-weight:900;font-size:1.1em;cursor:pointer}
+/* portada de la carta: iconos como apps del móvil, y la sección se abre desde el icono */
+.apps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px 14px;padding:6px 4px 4px;max-width:520px;margin:0 auto}
+.apw{position:relative;animation:apIn .35s both;animation-delay:var(--d)}
+.app{all:unset;box-sizing:border-box;display:grid;justify-items:center;gap:8px;width:100%;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.api{position:relative;overflow:hidden;display:grid;place-items:center;width:min(86px,24vw);aspect-ratio:1;border-radius:24%;border:1.5px solid rgba(233,194,126,.5);
+  background:linear-gradient(160deg,#6A2433,#3A1219);box-shadow:0 10px 20px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.15);transition:transform .15s}
+.app.a1 .api{background:linear-gradient(160deg,#136663,#0A3332)}
+.app.a2 .api{background:linear-gradient(160deg,#6B4520,#3A2412)}
+.api svg{width:56%;height:56%}
+.api img.foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.api .ct-vel,.api .ct-hueco{display:none}
+.app:active .api{transform:scale(.9)}
+.app:focus-visible .api{outline:3px solid #F0C979;outline-offset:3px}
+.apt{font-weight:800;font-size:.82em;color:#F5E9D3;text-align:center;letter-spacing:.02em}
+.capp.abre{transform-origin:var(--ox) var(--oy);animation:apAbre .38s cubic-bezier(.2,.8,.2,1) both}
+@keyframes apIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes apAbre{from{opacity:0;transform:scale(.18);border-radius:40px;filter:blur(2px)}to{opacity:1;transform:none;filter:none}}
+@media (prefers-reduced-motion:reduce){.apw,.capp.abre{animation:none}}
 </style>
 </head>
 <body>
@@ -631,6 +668,30 @@ const ls = { get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.
 const ALL_ITEMS = CARTA.flatMap(c=>c.grupos.flatMap(g=>g.items));
 const findItem = id => ALL_ITEMS.find(i=>i.id===id);
 const label = i => [i.n, i.m, i.d].filter(Boolean).join(" · ");
+// Opciones al pedir (Jamal, 2026-10-18): al tocar un producto se abre una hoja con las suyas. Son gratis.
+// "uno": de esa fila solo se puede marcar una. Se envían en el nombre: "Café con leche (Leche desnatada, Sacarina)".
+const O_ENDULZAR = {t:"Endulzar", uno:true, o:["Azúcar","Azúcar moreno","Sacarina"]};
+const O_LLEVAR = {t:"", o:["Para llevar"]};
+const OPCIONES_GRUPO = {
+  "Cafetería":        [{t:"Leche", uno:true, o:["Leche desnatada","Leche sin lactosa"]}, {t:"Temperatura", uno:true, o:["Caliente","Templado","Con hielo"]}, O_ENDULZAR, O_LLEVAR],
+  "Carajillos":       [O_ENDULZAR, {t:"", o:["Con hielo"]}, O_LLEVAR],
+  "Refrescos y agua": [{t:"", o:["Sin hielo","Sin limón"]}, O_LLEVAR],
+  "Vinos":            [{t:"", o:["Con hielo","Con gaseosa"]}],
+  "Chupitos":         [{t:"", o:["Con hielo"]}],
+  "Copas":            [{t:"", o:["Con hielo"]}],
+  "Tubos":            [{t:"", o:["Sin hielo","Sin limón"]}],
+  "Combinados":       [{t:"Refresco", uno:true, o:["Con Coca-Cola","Con Coca-Cola Zero","Con tónica","Con limón","Con naranja","Con Seven Up"]}, {t:"", o:["Sin hielo","Sin limón"]}],
+  "Bocadillos":       [{t:"", o:["Con queso","Con tomate"]}, {t:"Temperatura", uno:true, o:["Caliente","Templado"]}, O_LLEVAR],
+  "Para picar":       [O_LLEVAR]};
+const OPCIONES_ITEM = {   // excepciones a las del grupo
+  ca1: OPCIONES_GRUPO["Cafetería"].slice(1),
+  re17: [{t:"", uno:true, o:["Fría","Del tiempo"]}, O_LLEVAR], re18: [{t:"", uno:true, o:["Fría","Del tiempo"]}, O_LLEVAR],
+  cb11: []};
+const opcionesDe = id => OPCIONES_ITEM[id] || OPCIONES_GRUPO[GRUPO_DE[id]] || [];
+// en la cesta cada línea es "id" o "id|opción·opción"
+const lineaCesta = k => { const [id, o=""] = k.split("|"); return {id, i:findItem(id), o:o?o.split("·"):[]}; };
+const conOpciones = (n, o) => o.length ? `${n} (${o.join(", ")})` : n;
+const sinOpciones = n => String(n||"").replace(/ \([^()]*\)$/, "");
 // dibujo de cada producto (para poner fotos reales: añade f:"fotos/nombre.jpg" al producto)
 const EMOJI_GRUPO = {"Cervezas":"🍺","Refrescos y agua":"🥤","Vinos":"🍷","Cafetería":"☕","Carajillos":"☕","Chupitos":"🥃","Copas":"🥃","Tubos":"🍸","Combinados":"🍹","Bocadillos":"🥪","Para picar":"🍟"};
 const EMOJI_ITEM = [[/agua/i,"💧"],[/red bull/i,"⚡"],[/cola cao|cacaolat/i,"🍫"],[/leche/i,"🥛"],[/infusi/i,"🍵"],[/cortezas/i,"🥓"],[/biquini/i,"🧀"],[/clara|limón sin/i,"🍋"],[/naranja/i,"🍊"],[/limón/i,"🍋"],[/suplemento/i,"⚡"]];
@@ -782,7 +843,7 @@ const Store = {
     let rows;
     if (sb){ const {data,error} = await sb.from(T).select("items").eq("tipo","pedido").gte("created_at",desde).order("created_at",{ascending:false}).limit(1000); if (error) throw error; rows = data; }
     else rows = demoAll().filter(r=>r.tipo==="pedido");
-    const c = {}; rows.forEach(r=>(r.items||[]).forEach(i=>{ c[i.n] = (c[i.n]||0) + (Number(i.q)||0); })); return c;
+    const c = {}; rows.forEach(r=>(r.items||[]).forEach(i=>{ const n = sinOpciones(i.n); c[n] = (c[n]||0) + (Number(i.q)||0); })); return c;
   },
   async bloqueados(){
     if (sb){ const {data,error} = await sb.from(TB).select("*").order("created_at",{ascending:false}); if (error) throw error; return data; }
@@ -942,15 +1003,17 @@ let bloqueado = false;
 let misFilas = [];
 let cesta = {};
 let vista = yo.nombre ? "inicio" : "nombre";
-let catSel = null;   // null = portada de la carta; si no, nombre de la sección
+let catSel = null;   // null = portada con las secciones como iconos de apps; "★" = Para ti; si no, nombre de la sección
+let abrirDesde = null;   // centro del icono tocado, para el efecto de abrir la sección
 let filasMesa = [];
 const guardaYo = () => { ls.set(KEY, yo); if (yo.nombre) ls.set("esencia_nombre", yo.nombre); };
 const totalUds = () => Object.values(cesta).reduce((a,b)=>a+b,0);
-const totalEur = () => Object.entries(cesta).reduce((a,[id,q])=>a+findItem(id).p*q,0);
+const totalEur = () => Object.entries(cesta).reduce((a,[k,q])=>a+lineaCesta(k).i.p*q,0);
+const udsDe = id => Object.entries(cesta).reduce((a,[k,q])=>a+(lineaCesta(k).id===id?q:0),0);
 
 function header(){
   if (vista==="carta" || vista==="resumen"){
-    const sec = vista==="resumen" ? "Tu pedido" : catSel || "Para ti";
+    const sec = vista==="resumen" ? "Tu pedido" : catSel==="★" ? "Para ti" : catSel || "La carta";
     return `<header class="top ctop"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>${esc(sec)}</small></div>
       ${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:""}</div></header>`;
   }
@@ -1076,30 +1139,40 @@ function cliente(){
   if (vista==="carta"){
     const sec = catSel ? SECCIONES.find(x=>x.k===catSel) : null;
     if (MODO_FOTOS) h += `<button class="back" id="volver">${ICON.back} Volver al panel</button><p class="sub">Toca 📷 en un producto o una pestaña para hacerle una foto o elegirla de la galería.</p>`;
-    h += `<nav class="ctabs" aria-label="Secciones de la carta">${[{k:"", t:"Para ti"}, ...SECCIONES.map(x=>({k:x.k, t:x.k}))].map(x=>
-      `<div class="ctw">${x.k?botonFoto("cat-"+x.k):""}<button class="ctab ${(catSel||"")===x.k?"on":""}" data-cat="${esc(x.k)}" aria-pressed="${(catSel||"")===x.k}">${x.k&&fotoSubida("cat-"+x.k)?`${fotoSubida("cat-"+x.k)}<i class="ct-vel"></i><em class="ct-hueco"></em>`:ICON_SECC[x.k]||""}<span>${esc(x.t)}</span></button></div>`).join("")}</nav>`;
-    const tarjeta = (i, n) => { const q = cesta[i.id]||0;
+    const TODAS = [{k:"★", t:"Para ti"}, ...SECCIONES.map(x=>({k:x.k, t:x.k}))];
+    const icono = x => x.k!=="★"&&fotoSubida("cat-"+x.k) ? `${fotoSubida("cat-"+x.k)}<i class="ct-vel"></i><em class="ct-hueco"></em>` : ICON_SECC[x.k==="★"?"":x.k]||"";
+    if (!catSel){
+      // portada: las secciones como iconos de aplicaciones del móvil
+      h += `<h2 class="ch">¿Qué te apetece?</h2><div class="apps">${TODAS.map((x,n)=>`<div class="apw" style="--d:${n*35}ms">${x.k!=="★"?botonFoto("cat-"+x.k):""}<button class="app a${n%3}" data-cat="${esc(x.k)}"><span class="api">${icono(x)}</span><span class="apt">${esc(x.t)}</span></button></div>`).join("")}</div>
+        <p class="chint">Toca una sección para ver lo que hay dentro.</p>`;
+    } else
+    h += `<div class="capp ${abrirDesde?"abre":""}" ${abrirDesde?`style="--ox:${abrirDesde.x}px;--oy:${abrirDesde.y}px"`:""}><button class="back" id="aPortada">${ICON.back} Todas las secciones</button><nav class="ctabs" aria-label="Secciones de la carta">${TODAS.map(x=>
+      `<div class="ctw">${x.k!=="★"?botonFoto("cat-"+x.k):""}<button class="ctab ${catSel===x.k?"on":""}" data-cat="${esc(x.k)}" aria-pressed="${catSel===x.k}">${icono(x)}<span>${esc(x.t)}</span></button></div>`).join("")}</nav>`;
+    const tarjeta = (i, n) => { const q = udsDe(i.id);
       return `<article class="pc t${n%3} ${q?"has":""}">${botonFoto(i.id)}<button class="pc-foto" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</button>
         <div class="pc-tx">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<h3>${esc(i.n)}</h3><b class="pc-p">${eur(i.p)}</b>${i.d?`<p>${esc(i.d)}</p>`:""}
         ${q?`<div class="pc-step"><button data-m="${i.id}" aria-label="Quitar uno de ${esc(label(i))}">−</button><output>${q}</output><button data-a="${i.id}" aria-label="Añadir otro ${esc(label(i))}">+</button></div>`
            :`<button class="pc-add" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">+ Añadir</button>`}</div></article>`; };
-    if (!sec){
+    if (catSel==="★"){
       const mios = ALL_ITEMS.filter(i=>MIO()[i.id]).sort((a,b)=>MIO()[b.id]-MIO()[a.id]);
       const top = mios.length ? [] : porConsumo(ALL_ITEMS.filter(i=>(MAS_PEDIDOS||{})[label(i)]));
       const tres = [...new Set([...mios, ...top, ...["ce1","ca2","re1"].map(findItem)])].slice(0,3);
       h += `<h2 class="ch">${mios.length?`Lo de siempre, ${esc(yo.nombre)}`:"Lo que más se pide aquí"}</h2><div class="pcs">${tres.map(tarjeta).join("")}</div>
         <p class="chint">Toca una pestaña de arriba para ver el resto de la carta.</p>`;
-    } else {
+    } else if (sec) {
       let n = 0;
       h += sec.grupos.map(g=>GRUPOS.find(x=>x.g===g)).filter(Boolean)
         .map(g=>`${sec.grupos.length>1?`<h2 class="ch">${esc(g.g)}</h2>`:""}<div class="pcs">${porConsumo(g.items).map(i=>tarjeta(i, n++)).join("")}</div>`).join("");
     }
+    if (catSel) h += `</div>`;
+    abrirDesde = null;
     if (!MODO_FOTOS) barra = "nav";
   }
   if (vista==="resumen"){
     h += `<button class="back" id="volverCarta">${ICON.back} Seguir pidiendo</button>
       <p class="hello" style="margin-top:4px">Tu pedido, ${esc(yo.nombre)}</p>
-      <div class="sum">${Object.entries(cesta).map(([id,q])=>{const i=findItem(id);return `<div class="row"><span>${q} × ${esc(label(i))}</span><span>${eur(i.p*q)}</span></div>`}).join("")}
+      <div class="sum">${Object.entries(cesta).map(([k,q])=>{const {i,o}=lineaCesta(k);return `<div class="row lc"><span><b>${q} ×</b> ${esc(label(i))}${o.length?`<span class="opcs">${o.map(x=>`<em>${esc(x)}</em>`).join("")}</span>`:""}</span>
+        <span class="lcd"><span>${eur(i.p*q)}</span><span class="lcb"><button data-ml="${esc(k)}" aria-label="Quitar uno">−</button><button data-al="${esc(k)}" aria-label="Añadir otro">+</button></span></span></div>`}).join("")}
       <div class="row total"><span>Total de este pedido</span><span>${eur(totalEur())}</span></div></div>
       <label class="lbl" for="nota">¿Algo que debamos saber? (opcional)</label>
       <textarea id="nota" maxlength="200" placeholder="Ej: sin hielo, sin gluten, la caña muy fría…">${esc(ls.get("esencia_nota",""))}</textarea>
@@ -1153,18 +1226,43 @@ function bindCliente(){
   }
   on("enviar", async e => {
     const btn=e.currentTarget; btn.disabled=true; btn.textContent="Enviando…";
-    const items = Object.entries(cesta).map(([id,q])=>{const i=findItem(id);return {n:label(i),q,p:i.p}});
+    const items = Object.entries(cesta).map(([k,q])=>{const {i,o}=lineaCesta(k);return {n:conOpciones(label(i),o),q,p:i.p}});
     const nota = (document.getElementById("nota")?.value||"").trim().slice(0,200);
     try { const r = await Store.add({mesa, tipo:"pedido", cliente:yo.nombre, dispositivo:DISPOSITIVO, items, nota, total:Math.round(totalEur()*100)/100});
-          const hist = MIO(); Object.entries(cesta).forEach(([id,q])=>{ hist[id]=(hist[id]||0)+q; }); ls.set("esencia_historial", hist);
+          const hist = MIO(); Object.entries(cesta).forEach(([k,q])=>{ const id=lineaCesta(k).id; hist[id]=(hist[id]||0)+q; }); ls.set("esencia_historial", hist);
           yo.ids.push(r.id); guardaYo(); misFilas.push(r); cesta={}; ls.set("esencia_nota",""); go("enviado"); }
     catch { if (await Store.estoyBloqueado().catch(()=>false)) { bloqueado=true; return cliente(); }
             btn.disabled=false; btn.textContent="Enviar pedido"; toast("No se ha enviado. Revisa la conexión y prueba otra vez."); }
   });
-  document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{catSel=b.dataset.cat||null;cliente();scrollTo(0,0)});
-  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const id=b.dataset.a;cesta[id]=(cesta[id]||0)+1;cliente()});
+  document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ if (b.classList.contains("app")){ const r=b.getBoundingClientRect(); abrirDesde={x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)}; }
+    catSel=b.dataset.cat||null; cliente(); scrollTo(0,0); });
+  on("aPortada", ()=>{ catSel=null; cliente(); scrollTo(0,0); });
+  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const id=b.dataset.a; if (opcionesDe(id).length) return elegirOpciones(id); cesta[id]=(cesta[id]||0)+1;cliente()});
+  document.querySelectorAll("[data-al]").forEach(b=>b.onclick=()=>{const k=b.dataset.al;cesta[k]=(cesta[k]||0)+1;cliente()});
+  document.querySelectorAll("[data-ml]").forEach(b=>b.onclick=()=>{const k=b.dataset.ml;cesta[k]--; if(cesta[k]<=0) delete cesta[k]; if(!totalUds()) vista="carta"; cliente()});
   document.querySelectorAll("[data-foto]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); subirFoto(b.dataset.foto); });
-  document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const id=b.dataset.m;cesta[id]--; if(cesta[id]<=0) delete cesta[id]; cliente()});
+  document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const id=b.dataset.m;   // quita la última que se añadió de ese producto
+    const k = Object.keys(cesta).filter(x=>lineaCesta(x).id===id).pop(); if (!k) return; cesta[k]--; if(cesta[k]<=0) delete cesta[k]; cliente()});
+}
+// hoja con las opciones del producto (sin hielo, leche, azúcar…)
+function elegirOpciones(id){
+  const i = findItem(id), filas = opcionesDe(id), sel = new Set();
+  document.querySelector(".modal")?.remove();
+  const caja = document.createElement("div"); caja.className = "modal hoja";
+  caja.innerHTML = `<div class="mbox" role="dialog" aria-modal="true" aria-label="${esc(label(i))}">
+    <div class="hj-cab">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<b class="hj-n">${esc(i.n)}</b>${i.d?`<small>${esc(i.d)}</small>`:""}<b class="hj-p">${eur(i.p)}</b></div>
+    <p class="sub">¿Cómo lo quieres? Si no marcas nada, va como siempre.</p>
+    ${filas.map((f,fi)=>`<div class="hj-fila">${f.t?`<span class="hj-t">${esc(f.t)}</span>`:""}<div class="hj-ops">${f.o.map(o=>`<button type="button" class="hj-op" data-f="${fi}" data-o="${esc(o)}" aria-pressed="false">${esc(o)}</button>`).join("")}</div></div>`).join("")}
+    <button class="act pay" id="hjOk">Añadir al pedido</button><button class="act no" id="hjNo">Cancelar</button></div>`;
+  document.body.appendChild(caja);
+  caja.onclick = e => { if (e.target === caja) caja.remove(); };
+  caja.querySelector("#hjNo").onclick = () => caja.remove();
+  caja.querySelectorAll(".hj-op").forEach(b => b.onclick = () => { const o = b.dataset.o, f = filas[b.dataset.f];
+    if (sel.has(o)) sel.delete(o); else { if (f.uno) f.o.forEach(x=>sel.delete(x)); sel.add(o); }
+    caja.querySelectorAll(".hj-op").forEach(x => { const on = sel.has(x.dataset.o); x.classList.toggle("on", on); x.setAttribute("aria-pressed", on); }); });
+  caja.querySelector("#hjOk").onclick = () => {
+    const o = filas.flatMap(f=>f.o).filter(x=>sel.has(x)), k = o.length ? id+"|"+o.join("·") : id;
+    cesta[k] = (cesta[k]||0)+1; caja.remove(); cliente(); toast("Añadido al pedido"); };
 }
 /* ---------- Instalar la app (clientes) ---------- */
 const OFRECER_INSTALAR = false;   // Jamal prefiere que los clientes entren siempre por el QR
@@ -1217,8 +1315,9 @@ async function escanearQR(){
   addEventListener("touchstart", e=>{ if (vista!=="carta"||qs.has("panel")) return; x0=e.touches[0].clientX; y0=e.touches[0].clientY; }, {passive:true});
   addEventListener("touchend", e=>{ if (x0===null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
     if (Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.5 || e.target.closest(".ctabs")) return;
-    const cats=["",...SECCIONES.map(s=>s.k)], k=cats.indexOf(catSel||""), n=k+(dx<0?1:-1);
-    if (n>=0 && n<cats.length){ catSel=cats[n]||null; cliente(); scrollTo(0,0); } }, {passive:true});
+    if (!catSel) return;
+    const cats=["★",...SECCIONES.map(s=>s.k)], k=cats.indexOf(catSel), n=k+(dx<0?1:-1);
+    if (n>=0 && n<cats.length){ catSel=cats[n]; cliente(); scrollTo(0,0); } }, {passive:true});
 }
 function saveNota(){ const n=document.getElementById("nota"); if(n) ls.set("esencia_nota", n.value); }
 
@@ -1697,7 +1796,7 @@ async function gCuentas(){
   cob.forEach(r=>{ const k = new Date(r.created_at).toLocaleDateString("sv-SE",{timeZone:TZ}); const x = porDia[k] = porDia[k]||{t:0, m:new Set()};
     x.t += Number(r.total||0); x.m.add(r.mesa+"|"+r.cerrado_at); });
   const prods = {};
-  rs.forEach(r=>(r.items||[]).forEach(i=>{ const x = prods[i.n] = prods[i.n]||{q:0, e:0}; x.q += Number(i.q)||0; x.e += (Number(i.q)||0)*(Number(i.p)||0); }));
+  rs.forEach(r=>(r.items||[]).forEach(i=>{ const x = prods[sinOpciones(i.n)] = prods[sinOpciones(i.n)]||{q:0, e:0}; x.q += Number(i.q)||0; x.e += (Number(i.q)||0)*(Number(i.p)||0); }));
   const top = Object.entries(prods).sort((a,b)=>b[1].e-a[1].e).slice(0,15);
   return gPerBar() + `<div class="kpis">
       <div><small>Cobrado</small><b>${eur(suma(cob))}</b></div>
@@ -1772,7 +1871,7 @@ async function gStock(){
   gCalc = {};
   gStockL.forEach(x=>{ const b = base[x.id];
     const ent = movs.filter(m=>m.stock_id===x.id && m.tipo==="entrada" && tms(m.created_at)>b.t).reduce((a,m)=>a+Number(m.cantidad),0);
-    const ven = x.producto ? ventas.filter(r=>tms(r.created_at)>b.t).reduce((a,r)=>a+(r.items||[]).filter(i=>i.n===x.producto).reduce((t,i)=>t+(Number(i.q)||0),0),0)*Number(x.por_venta||1) : 0;
+    const ven = x.producto ? ventas.filter(r=>tms(r.created_at)>b.t).reduce((a,r)=>a+(r.items||[]).filter(i=>sinOpciones(i.n)===x.producto).reduce((t,i)=>t+(Number(i.q)||0),0),0)*Number(x.por_venta||1) : 0;
     gCalc[x.id] = {quedan: Math.round((b.q+ent-ven)*100)/100, ent, ven, b}; });
   const bajo = x => gCalc[x.id].quedan <= Number(x.minimo||0);
   const comprar = gStockL.filter(bajo);
@@ -1916,6 +2015,39 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Añadido al pedido":"已加入订单",
+  "Toca una sección para ver lo que hay dentro.":"点一个分类看看里面有什么。",
+  "La carta":"菜单",
+  "Endulzar":"加糖",
+  "Leche":"牛奶",
+  "Temperatura":"温度",
+  "Refresco":"饮料",
+  "Leche desnatada":"脱脂牛奶",
+  "Leche sin lactosa":"无乳糖牛奶",
+  "Caliente":"热的",
+  "Templado":"温的",
+  "Con hielo":"加冰",
+  "Azúcar":"糖",
+  "Azúcar moreno":"红糖",
+  "Sacarina":"代糖",
+  "Para llevar":"外带",
+  "Sin hielo":"不加冰",
+  "Sin limón":"不加柠檬",
+  "Con gaseosa":"加汽水",
+  "Con Coca-Cola":"加可乐",
+  "Con Coca-Cola Zero":"加零度可乐",
+  "Con tónica":"加汤力水",
+  "Con limón":"加柠檬汽水",
+  "Con naranja":"加橙味汽水",
+  "Con Seven Up":"加七喜",
+  "Con queso":"加奶酪",
+  "Con tomate":"加番茄",
+  "Fría":"冰的",
+  "Del tiempo":"常温",
+  "¿Cómo lo quieres? Si no marcas nada, va como siempre.":"你想要怎样的？不选的话就按平常的做。",
+  "Añadir al pedido":"加入订单",
+  "Quitar uno":"减一个",
+  "Añadir otro":"再加一个",
   "📷 Hacer una foto":"📷 拍照",
   "🖼️ Elegir de la galería":"🖼️ 从相册选择",
   "No se ha podido leer esa foto. Prueba con otra.":"无法读取这张照片，请换一张。",
@@ -2136,6 +2268,7 @@ const ZH = {
   "No se ha podido crear el QR. Revisa la conexión.":"没能生成二维码。请检查网络。","Solo el encargado puede poner fotos.":"只有负责人能添加照片。"
 };
 const ZH_RE = [
+  [/^Añadido: (.+)$/, m=>`已加入：${m[1]}`],
   [/^Para comprar \((\d+)\)$/, m=>`要买的（${m[1]}）`],
   [/^Ya han pagado \((\d+)\)$/, m=>`已经付清（${m[1]}）`],
   [/^Se descuenta al vender: (.+)$/, m=>`卖出时扣减：${m[1]}`],
@@ -2184,6 +2317,39 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Añadido al pedido":"Afegit a la comanda",
+  "Toca una sección para ver lo que hay dentro.":"Toca una secció per veure què hi ha a dins.",
+  "La carta":"La carta",
+  "Endulzar":"Endolcir",
+  "Leche":"Llet",
+  "Temperatura":"Temperatura",
+  "Refresco":"Refresc",
+  "Leche desnatada":"Llet desnatada",
+  "Leche sin lactosa":"Llet sense lactosa",
+  "Caliente":"Calent",
+  "Templado":"Temperat",
+  "Con hielo":"Amb gel",
+  "Azúcar":"Sucre",
+  "Azúcar moreno":"Sucre moreno",
+  "Sacarina":"Sacarina",
+  "Para llevar":"Per emportar",
+  "Sin hielo":"Sense gel",
+  "Sin limón":"Sense llimona",
+  "Con gaseosa":"Amb gasosa",
+  "Con Coca-Cola":"Amb Coca-Cola",
+  "Con Coca-Cola Zero":"Amb Coca-Cola Zero",
+  "Con tónica":"Amb tònica",
+  "Con limón":"Amb llimona",
+  "Con naranja":"Amb taronja",
+  "Con Seven Up":"Amb Seven Up",
+  "Con queso":"Amb formatge",
+  "Con tomate":"Amb tomàquet",
+  "Fría":"Freda",
+  "Del tiempo":"Natural",
+  "¿Cómo lo quieres? Si no marcas nada, va como siempre.":"Com el vols? Si no marques res, va com sempre.",
+  "Añadir al pedido":"Afegir a la comanda",
+  "Quitar uno":"Treure'n un",
+  "Añadir otro":"Afegir-ne un altre",
   "📷 Hacer una foto":"📷 Fer una foto",
   "🖼️ Elegir de la galería":"🖼️ Triar de la galeria",
   "No se ha podido leer esa foto. Prueba con otra.":"No s'ha pogut llegir aquesta foto. Prova amb una altra.",
@@ -2396,6 +2562,7 @@ const CA = {
   "No se ha podido crear el QR. Revisa la conexión.":"No s'ha pogut crear el QR. Revisa la connexió.","Solo el encargado puede poner fotos.":"Només l'encarregat pot posar fotos."
 };
 const CA_RE = [
+  [/^Añadido: (.+)$/, m=>`Afegit: ${m[1]}`],
   [/^Para comprar \((\d+)\)$/, m=>`Per comprar (${m[1]})`],
   [/^Ya han pagado \((\d+)\)$/, m=>`Ja han pagat (${m[1]})`],
   [/^Se descuenta al vender: (.+)$/, m=>`Es descompta en vendre: ${m[1]}`],
