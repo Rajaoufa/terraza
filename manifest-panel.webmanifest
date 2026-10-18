@@ -7,8 +7,8 @@
   "start_url": "./camareros/",
   "scope": "./camareros/",
   "display": "standalone",
-  "background_color": "#F3F5F1",
-  "theme_color": "#1E4A3D",
+  "background_color": "#1D120B",
+  "theme_color": "#24150D",
   "icons": [
     {
       "src": "icons/icon-192.png",
