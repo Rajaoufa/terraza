@@ -268,9 +268,37 @@ body.staff .wrap{max-width:1200px}
 .offbox b{display:block;font-family:var(--f-display);font-size:1.6em;color:var(--ink);margin-bottom:8px}
 .offacts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
 .mbox .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-.mbox .alta{display:flex;gap:8px;margin-top:14px}.mbox .alta input{flex:1;min-width:0}
+.alta{display:flex;gap:8px;margin-top:14px}.alta input{flex:1;min-width:0;font:inherit;border:2px solid var(--line);border-radius:12px;padding:10px;background:var(--card);color:var(--ink);min-height:48px}
 .who .apodo-b{display:inline;width:auto;padding:0 0 0 6px;font-size:.9em}.who small{color:var(--muted)}
 .mbox .apodo input{width:50%;min-width:120px;padding:10px 12px;font:inherit;border:1px solid #c9cfc6;border-radius:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0}
+.kpis div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:2px}
+.kpis small{color:var(--muted);font-size:.8em;font-weight:700}.kpis b{font-size:1.4em;font-variant-numeric:tabular-nums}
+.gest .tscroll{overflow-x:auto}
+.stk tr.bajo td{background:#fbe3df}.stk td small{font-size:.82em}
+.stk .sacts{display:flex;gap:6px;flex-wrap:wrap}.stk .sacts .act{min-height:40px;padding:8px 12px}
+.stk input.inv,.ent input{width:120px;font:inherit;border:2px solid var(--line);border-radius:10px;padding:8px;background:var(--card);color:var(--ink)}
+.ent{display:flex;gap:6px}.comprar{margin-bottom:14px}.comprar span{display:block}
+.fbar.col{display:grid;margin:8px 0}
+.deus{display:grid;gap:8px}.deu .row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);width:100%}
+.deu .paga{margin:8px 0 0;width:100%}.saldadas{margin-top:18px}.saldadas summary{cursor:pointer}
+.stk .movil{display:none}
+@media (max-width:600px){ .stk thead{display:none} .stk tbody tr{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line)}
+  .stk td{border:0;padding:6px 14px} .stk td:first-child{grid-column:1/-1;padding-top:12px} .stk td:last-child{grid-column:1/-1;padding-bottom:12px} .stk .movil{display:inline} }
+.arranque{position:fixed;inset:0;z-index:40;background:radial-gradient(circle at 50% 45%,#2a1513 0,#120807 70%);display:grid;place-items:center;padding:24px;text-align:center;color:#fff}
+.arr-in{display:grid;justify-items:center;gap:18px;max-width:420px}
+.arr-quien{font-family:var(--f-display);font-size:1.5em;font-weight:700;margin:0}
+.pulsador{width:min(64vw,280px);aspect-ratio:1;border-radius:50%;border:10px solid #7a1410;background:radial-gradient(circle at 35% 30%,#ff6a5a,#d4180e 55%,#9e0e07);color:#fff;
+  font:800 1.6em var(--f-display);letter-spacing:.04em;text-transform:uppercase;box-shadow:0 0 0 10px rgba(212,24,14,.18),0 18px 40px rgba(0,0,0,.6),inset 0 -8px 18px rgba(0,0,0,.35);cursor:pointer;animation:latido 1.6s ease-in-out infinite}
+.pulsador:active{transform:scale(.96)}.pulsador:disabled{opacity:.7;animation:none}
+@keyframes latido{0%,100%{box-shadow:0 0 0 10px rgba(212,24,14,.18),0 18px 40px rgba(0,0,0,.6),inset 0 -8px 18px rgba(0,0,0,.35)}50%{box-shadow:0 0 0 26px rgba(212,24,14,.08),0 18px 40px rgba(0,0,0,.6),inset 0 -8px 18px rgba(0,0,0,.35)}}
+@media (prefers-reduced-motion:reduce){.pulsador{animation:none}}
+.arr-txt{margin:0;color:rgba(255,255,255,.8)}
+.arr-mini{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.arr-mini a,.arr-mini button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:10px 16px;font:inherit;font-size:.9em;text-decoration:none;min-height:44px}
+.svc.on{font-size:.95em;padding:10px 16px}.svc.on i{background:#7CFC9A;box-shadow:0 0 8px #7CFC9A}
+.glinks{display:grid;gap:12px;margin-top:8px}.glinks .ghost{margin:0;text-decoration:none;color:var(--ink);display:grid;gap:4px;text-align:left}
+.glinks small{font-weight:400;color:var(--muted)}
 .offacts.herr{margin-top:28px;padding-top:18px;border-top:1px solid rgba(0,0,0,.08)}
 .offacts .ghost{margin:0;color:var(--ink);text-decoration:none;display:inline-block}
 /* registro de jornada */
@@ -471,7 +499,7 @@ const CARTA = [
 const $app = document.getElementById("app");
 const qs = new URLSearchParams(location.search);
 // también vale #panel, #qr o #mesa5 al final del enlace
-if (/\/camareros\/?$/.test(location.pathname) && !qs.has("qr") && !qs.has("fichajes") && !qs.has("fotos")) qs.set("panel","");   // app de camareros instalada aparte
+if (/\/camareros\/?$/.test(location.pathname) && !qs.has("qr") && !qs.has("fichajes") && !qs.has("fotos") && !qs.has("gestion")) qs.set("panel","");   // app de camareros instalada aparte
 { const h = location.hash.slice(1); if (h==="panel"||h==="qr"||h==="fichajes") qs.set(h,""); else if (/^mesa[0-9A-Za-z-]+$/.test(h)) qs.set("mesa", h.slice(4)); }
 const PREVIEW = !!window.ESENCIA_PREVIEW;
 if (PREVIEW) { try{ localStorage.setItem("esencia_trab", JSON.stringify({id:1,nombre:"Admin",pin:"1234",admin:true})); }catch{} if (!qs.has("panel")&&!qs.has("qr")&&!qs.get("mesa")) qs.set("mesa","5"); }
@@ -672,6 +700,36 @@ const Store = {
   async ponerApodo(trab, dispositivo, apodo){
     if (sb){ const {error} = await sb.rpc("esencia_poner_apodo",{p_pin:trab.pin, p_dispositivo:dispositivo, p_apodo:apodo}); if (error) throw error; return; }
     const a = ls.get("esencia_demo_apodos", {}); if (apodo) a[dispositivo] = apodo; else delete a[dispositivo]; ls.set("esencia_demo_apodos", a); bc && bc.postMessage("x");
+  },
+  // gestión (solo encargado): todo lo pedido en un periodo, stock con inventario y deudores
+  async ventas(desde, hasta){
+    if (sb){ let out = [];
+      for (let i = 0; ; i += 1000){ const {data,error} = await sb.from(T).select("*").gte("created_at",desde).lt("created_at",hasta).order("created_at").range(i, i+999);
+        if (error) throw error; out = out.concat(data); if (data.length < 1000) return out; } }
+    return demoAll().filter(r=>r.created_at>=desde && r.created_at<hasta);
+  },
+  async gestion(admin){
+    if (sb){ const {data,error} = await sb.rpc("esencia_gestion",{p_pin:admin.pin}); if (error) throw error; return data; }
+    return {stock: ls.get("esencia_demo_stock", []), movs: ls.get("esencia_demo_movs", []), deudas: ls.get("esencia_demo_deudas", [])};
+  },
+  async stockGuardar(admin, it){
+    if (sb){ const {error} = await sb.rpc("esencia_stock_guardar",{p_pin:admin.pin, p_id:it.id||null, p_nombre:it.nombre, p_unidad:it.unidad, p_minimo:it.minimo, p_producto:it.producto||null, p_por_venta:it.por_venta}); if (error) throw error; return; }
+    const l = ls.get("esencia_demo_stock", []), i = l.findIndex(x=>x.id===it.id);
+    if (i >= 0) l[i] = {...l[i], ...it}; else l.push({...it, id:Date.now(), activo:true, created_at:new Date().toISOString()});
+    ls.set("esencia_demo_stock", l);
+  },
+  async stockQuitar(admin, id){
+    if (sb){ const {error} = await sb.rpc("esencia_stock_quitar",{p_pin:admin.pin, p_id:id}); if (error) throw error; return; }
+    ls.set("esencia_demo_stock", ls.get("esencia_demo_stock", []).map(x=>x.id===id?{...x, activo:false}:x));
+  },
+  async stockMov(admin, movs){ // [{stock_id, tipo:"inventario"|"entrada", cantidad}]
+    if (sb){ const {error} = await sb.rpc("esencia_stock_mov",{p_pin:admin.pin, p_movs:movs}); if (error) throw error; return; }
+    const ahora = new Date().toISOString();
+    ls.set("esencia_demo_movs", [...ls.get("esencia_demo_movs", []), ...movs.map((m,i)=>({...m, id:Date.now()+i, created_at:ahora}))]);
+  },
+  async deuda(admin, nombre, importe, concepto){ // importe positivo = deuda; negativo = pago
+    if (sb){ const {error} = await sb.rpc("esencia_deuda",{p_pin:admin.pin, p_nombre:nombre, p_importe:importe, p_concepto:concepto||null}); if (error) throw error; return; }
+    ls.set("esencia_demo_deudas", [...ls.get("esencia_demo_deudas", []), {id:Date.now(), nombre, importe, concepto:concepto||null, created_at:new Date().toISOString(), quien:admin.nombre}]);
   },
   async fotosLista(){
     if (sb){ const {data,error} = await sb.from("esencia_fotos").select("producto,updated_at"); if (error) throw error; return data; }
@@ -1106,17 +1164,16 @@ async function pantallaPin(titulo, despues){
   nombres();
 }
 // El encargado gestiona los camareros: añadir, quitar de la lista y borrar el PIN de quien lo ha olvidado.
-async function pantallaPins(){
+async function pantallaPins(dest){
   let lista = []; try { lista = await Store.trabLista(); } catch { return toast("Sin conexión con el servidor"); }
-  document.querySelector(".modal")?.remove();
-  const caja = document.createElement("div"); caja.className = "modal";
+  if (!dest) document.querySelector(".modal")?.remove();
+  const caja = dest || document.createElement("div"); if (!dest) caja.className = "modal";
   caja.innerHTML = `<div class="mbox"><b>Camareros</b><p class="sub">Añade o quita nombres. Si alguien olvida su PIN, bórralo: la próxima vez que toque su nombre elegirá uno nuevo.</p>
     ${lista.map(t=>`<div class="hist"><span>${esc(t.nombre)}</span><span class="acts">${t.id===trab.id?`<span class="t">Tú</span>`
       :`${t.tiene_pin?`<button class="act no" data-bp="${t.id}">Borrar PIN</button>`:`<span class="t">Sin PIN todavía</span>`}<button class="act no" data-baja="${t.id}">Quitar</button>`}</span></div>`).join("")}
     <form id="altaF" class="alta"><input id="altaN" maxlength="30" placeholder="Nombre del camarero" aria-label="Nombre del camarero" required><button class="act pay">Añadir</button></form>
-    <button class="ghost" id="pinsNo" style="margin-top:12px">Cerrar</button></div>`;
-  document.body.appendChild(caja);
-  caja.querySelector("#pinsNo").onclick = ()=>caja.remove();
+    ${dest?"":`<button class="ghost" id="pinsNo" style="margin-top:12px">Cerrar</button>`}</div>`;
+  if (!dest){ document.body.appendChild(caja); caja.querySelector("#pinsNo").onclick = ()=>caja.remove(); }
   caja.querySelectorAll("[data-bp]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
     try { await Store.trabBorrarPin(trab, +b.dataset.bp); b.replaceWith(Object.assign(document.createElement("span"),{className:"t",textContent:"PIN borrado"})); }
     catch { b.disabled=false; toast("No se ha podido borrar"); } });
@@ -1128,7 +1185,7 @@ async function pantallaPins(){
     catch { b.disabled=false; toast("No se ha podido quitar"); } });
   caja.querySelector("#altaF").onsubmit = async e => { e.preventDefault();
     const n = caja.querySelector("#altaN").value.trim().replace(/\s+/g," ").slice(0,30); if (!n) return;
-    try { await Store.trabAlta(trab, n); toast(`${n} añadido. La primera vez que toque su nombre elegirá su PIN.`); pantallaPins(); }
+    try { await Store.trabAlta(trab, n); toast(`${n} añadido. La primera vez que toque su nombre elegirá su PIN.`); pantallaPins(dest); }
     catch(err) { toast(/ya está/i.test(err?.message||"") ? "Ese nombre ya está en la lista" : "No se ha podido añadir"); } };
 }
 async function cargaEstado(){ // el estado sale del último fichaje guardado, no del móvil
@@ -1142,10 +1199,13 @@ function panel(){
   if (!trab) return pantallaPin("Camareros", entrarPanel);
   $app.innerHTML = (DEMO?`<div class="demo">MODO PRUEBA · Solo funciona en este navegador. Pon los datos de Supabase para usarlo de verdad.</div>`:"") +
     `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Camareros · ${esc(trab.nombre)}</small></div>
-     <button class="svc ${enServicio?"on":"off"}" id="svc" aria-pressed="${enServicio}"><i></i>${enServicio?"En servicio":"Fuera de servicio"}</button></div></header>
+     ${enServicio?`<button class="svc on" id="svc" aria-pressed="true"><i></i>Desconectar</button>`:""}</div></header>
      <main class="wrap" id="cuerpo"></main>`;
-  document.getElementById("svc").onclick = async e => {
-    const btn = e.currentTarget; btn.disabled = true;
+  const b = document.getElementById("svc"); if (b) b.onclick = e => cambiarServicio(e.currentTarget);
+}
+// fichar entrada (pulsador rojo) o salida (punto verde "Desconectar")
+async function cambiarServicio(btn){
+    btn.disabled = true;
     const tipo = enServicio ? "salida" : "entrada";
     try { const t = await Store.fichar(trab, tipo);
           enServicio = tipo==="entrada"; ls.set("esencia_servicio", enServicio); pantallaEncendida(enServicio);
@@ -1154,7 +1214,6 @@ function panel(){
           if (pestana==="fichajes" && enServicio) pestana="abiertas";
     } catch { await cargaEstado(); toast("No se ha podido fichar. Revisa la conexión y prueba otra vez."); }
     panel(); pintar();
-  };
 }
 
 async function pintar(){
@@ -1162,13 +1221,14 @@ async function pintar(){
   document.body.classList.remove("muchas");
   if (pestana==="fichajes") return pintaMisFichajes(cuerpo);
   if (!enServicio){
-    cuerpo.innerHTML = `<div class="offbox"><b>Fuera de servicio</b>No recibes avisos ni sonidos.<br>Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.
-      <div class="offacts"><button class="ghost" data-p="fichajes">Ver mis fichajes</button>
-      ${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><a class="ghost" href="${location.pathname}?fotos">Fotos de la carta</a><button class="ghost" id="pinsOlv">Camareros</button>`:""}
-      <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div></div>`;
+    cuerpo.innerHTML = `<div class="arranque"><div class="arr-in">
+      <p class="arr-quien">${esc(trab.nombre)}</p>
+      <button class="pulsador" id="pulsador" aria-label="Empezar la jornada"><span>Empezar</span></button>
+      <p class="arr-txt">Pulsa para fichar la entrada y empezar a recibir avisos.</p>
+      <div class="arr-mini"><button data-p="fichajes">Mis fichajes</button>${trab.admin?`<a href="${location.pathname}?gestion">Gestión</a>`:""}<button id="salirTrab">Cambiar de trabajador</button></div></div></div>`;
+    document.getElementById("pulsador").onclick = e => cambiarServicio(e.currentTarget);
     cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
     document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
-    const po = document.getElementById("pinsOlv"); if (po) po.onclick = pantallaPins;
     return;
   }
   try { filas = (await Store.list()).filter(r=>r.estado!=="anulado"); bloqs = await Store.bloqueados(); } catch { toast("Sin conexión con el servidor"); return; }
@@ -1216,7 +1276,7 @@ async function pintar(){
       }).join("") : `<p class="empty">No se ha cobrado ninguna mesa en los últimos 7 días.</p>`;
   }
   // también de servicio: las herramientas del encargado y cambiar de trabajador, abajo del todo
-  h += `<div class="offacts herr">${trab.admin?`<a class="ghost" href="${location.pathname}?fichajes">Registro de jornada</a><a class="ghost" href="${location.pathname}?qr">QR de las mesas</a><a class="ghost" href="${location.pathname}?fotos">Fotos de la carta</a><button class="ghost" id="pinsOlv">Camareros</button>`:""}
+  h += `<div class="offacts herr">${trab.admin?`<a class="ghost" href="${location.pathname}?gestion">Gestión</a>`:""}
     <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div>`;
   const abiertos = new Set([...cuerpo.querySelectorAll("details[open][data-k]")].map(d=>d.dataset.k));
   cuerpo.innerHTML = h;
@@ -1224,7 +1284,6 @@ async function pintar(){
 
   cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
   document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
-  { const po = document.getElementById("pinsOlv"); if (po) po.onclick = pantallaPins; }
   const aa = document.getElementById("actAvisos");
   if (aa) aa.onclick = async ()=>{ aa.disabled = true; const ok = await activarAvisos(true);
     toast(ok ? "Avisos activados. Te llegarán aunque el móvil esté bloqueado." : "No se han podido activar los avisos."); pintar(); };
@@ -1411,6 +1470,229 @@ function descargaCsv(){
   setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
 }
 
+/* ================= GESTIÓN (solo encargado) ================= */
+// Cuentas, pedidos, deudores, stock con inventario y resumen de fichajes.
+// El stock que queda se calcula: último inventario + entradas − lo vendido (si el producto está unido a la carta).
+let gTab = "cuentas", gPer = "hoy", gBusca = "", gInv = false, gPeds = [], gStockL = [], gCalc = {};
+const UNIDADES = ["unidades","botellas","latas","cajas","barriles","kg","litros","paquetes"];
+const tms = x => +new Date(x);
+const num = v => String(+Number(v||0).toFixed(2)).replace(".", ",");
+function periodo(p){
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const d = new Date(hoy), h = new Date(hoy); h.setDate(h.getDate()+1);
+  if (p==="ayer"){ d.setDate(d.getDate()-1); h.setDate(h.getDate()-1); }
+  else if (p==="7d") d.setDate(d.getDate()-6);
+  else if (p==="mes") d.setDate(1);
+  else if (p==="mespas"){ d.setDate(1); d.setMonth(d.getMonth()-1); h.setTime(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); }
+  return [d.toISOString(), h.toISOString()];
+}
+const gPerBar = (extra="") => `<div class="fbar"><label>Periodo<select id="gPer">${[["hoy","Hoy"],["ayer","Ayer"],["7d","Últimos 7 días"],["mes","Este mes"],["mespas","Mes pasado"]]
+  .map(([k,t])=>`<option value="${k}" ${gPer===k?"selected":""}>${t}</option>`).join("")}</select></label>${extra}</div>`;
+function bajaCsv(lineas, nombre){
+  const blob = new Blob(["﻿"+lineas.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nombre; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+
+async function gestion(){
+  document.body.classList.add("staff");
+  if (!trab) return pantallaPin("Gestión", gestion);
+  document.body.classList.add("muchas");   // en PC, a todo el ancho: las tablas necesitan sitio
+  if (!trab.admin){
+    $app.innerHTML = `<main class="wrap"><p class="hello">Solo el encargado puede entrar en la gestión.</p><a class="ghost" href="${location.pathname}?panel" style="display:inline-block;color:var(--ink)">Ir al panel</a></main>`;
+    return;
+  }
+  $app.innerHTML = (DEMO?`<div class="demo noprint">MODO PRUEBA · Lo que apuntes solo se guarda en este navegador.</div>`:"") +
+    `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Gestión</small></div>
+     <a class="svc off noprint" href="${location.pathname}?panel" style="text-decoration:none">Volver al panel</a></div></header>
+    <main class="wrap gest"><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["carta","Carta y QR"]]
+      .map(([k,t])=>`<button class="tab" data-g="${k}" aria-selected="${gTab===k}">${t}</button>`).join("")}</div>
+    <div id="gCuerpo">Cargando…</div></main>`;
+  $app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ gTab = b.dataset.g; gInv = false;
+    $app.querySelectorAll("[data-g]").forEach(x=>x.setAttribute("aria-selected", x===b)); pintaGestion(); });
+  pintaGestion();
+}
+async function pintaGestion(){
+  const box = document.getElementById("gCuerpo"); if (!box) return;
+  box.textContent = "Cargando…";
+  if (gTab==="camareros") return pantallaPins(box);
+  try { box.innerHTML = await {cuentas:gCuentas, pedidos:gPedidos, deudores:gDeudores, stock:gStock, fichajes:gFichajes, carta:gCarta}[gTab](); }
+  catch(err) { box.innerHTML = /PGRST202|esencia_gestion|function/i.test((err?.code||"")+(err?.message||""))
+      ? `<p class="empty">Falta pegar el SQL de gestión en Supabase.</p>` : `<p class="empty">Sin conexión con el servidor.</p>`; return; }
+  gEnlaces(box);
+}
+
+async function gCuentas(){
+  const [d,h] = periodo(gPer);
+  const rs = (await Store.ventas(d,h)).filter(r=>r.tipo==="pedido" && r.estado!=="anulado");
+  const cob = rs.filter(r=>r.cerrado), abiertas = rs.filter(r=>!r.cerrado);
+  const suma = a => a.reduce((t,r)=>t+Number(r.total||0),0);
+  const mesas = new Set(cob.map(r=>r.mesa+"|"+r.cerrado_at)).size;
+  const porDia = {};
+  cob.forEach(r=>{ const k = new Date(r.created_at).toLocaleDateString("sv-SE",{timeZone:TZ}); const x = porDia[k] = porDia[k]||{t:0, m:new Set()};
+    x.t += Number(r.total||0); x.m.add(r.mesa+"|"+r.cerrado_at); });
+  const prods = {};
+  rs.forEach(r=>(r.items||[]).forEach(i=>{ const x = prods[i.n] = prods[i.n]||{q:0, e:0}; x.q += Number(i.q)||0; x.e += (Number(i.q)||0)*(Number(i.p)||0); }));
+  const top = Object.entries(prods).sort((a,b)=>b[1].e-a[1].e).slice(0,15);
+  return gPerBar() + `<div class="kpis">
+      <div><small>Cobrado</small><b>${eur(suma(cob))}</b></div>
+      <div><small>Mesas cobradas</small><b>${mesas}</b></div>
+      <div><small>Ticket medio</small><b>${eur(mesas?suma(cob)/mesas:0)}</b></div>
+      <div><small>Sin cobrar todavía</small><b>${eur(suma(abiertas))}</b></div></div>
+    ${Object.keys(porDia).length>1?`<h3 class="wk">Por día</h3><div class="tscroll"><table class="jt"><thead><tr><th>Día</th><th>Mesas</th><th>Cobrado</th></tr></thead><tbody>
+      ${Object.entries(porDia).sort().reverse().map(([k,x])=>`<tr><td>${fDia(k+"T12:00:00")}</td><td>${x.m.size}</td><td>${eur(x.t)}</td></tr>`).join("")}</tbody></table></div>`:""}
+    <h3 class="wk">Lo más vendido</h3>${top.length?`<div class="tscroll"><table class="jt"><thead><tr><th>Producto</th><th>Cantidad</th><th>Importe</th></tr></thead><tbody>
+      ${top.map(([n,x])=>`<tr><td>${esc(n)}</td><td>${x.q}</td><td>${eur(x.e)}</td></tr>`).join("")}</tbody></table></div>`:`<p class="empty">No hay ventas en este periodo.</p>`}`;
+}
+
+async function gPedidos(){
+  const [d,h] = periodo(gPer);
+  const rs = await Store.ventas(d,h);
+  try { APODOS = Object.fromEntries((await Store.apodos(trab)).map(a=>[a.dispositivo, a.apodo])); } catch {}
+  gPeds = rs.map(conApodo).reverse();
+  return gPerBar(`<label style="flex:1;min-width:160px">Buscar<input id="gBusca" value="${esc(gBusca)}" placeholder="Mesa o nombre"></label><button class="act no" id="gCsv">Descargar (Excel)</button>`)
+    + `<div id="gLista">${gListaPedidos()}</div>`;
+}
+const gEstado = r => r.estado==="anulado" ? "Anulado" : r.cerrado ? "Cobrado" : "Abierto";
+function gListaPedidos(){
+  const q = gBusca.trim().toLowerCase();
+  const l = gPeds.filter(r=>!q || String(r.mesa).toLowerCase()===q || (r.cliente||"").toLowerCase().includes(q) || (r.puso||"").toLowerCase().includes(q));
+  if (!l.length) return `<p class="empty">No hay pedidos en este periodo.</p>`;
+  return `<div class="tscroll"><table class="jt"><thead><tr><th>Día y hora</th><th>Mesa</th><th>Cliente</th><th>Qué</th><th>Total</th><th>Estado</th></tr></thead><tbody>
+    ${l.map(r=>`<tr><td>${fDia(r.created_at)} ${fHora(r.created_at)}</td><td>${esc(r.mesa)}</td>
+      <td>${esc(r.cliente||"")}${r.puso?` <small class="t">(${esc(r.puso)})</small>`:""}</td>
+      <td>${r.tipo==="camarero"?"Llamada":(r.items||[]).map(i=>`${Number(i.q)||0}× ${esc(i.n)}`).join(", ")}</td>
+      <td>${r.tipo==="pedido"?eur(r.total):""}</td><td>${gEstado(r)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function gCsvPedidos(){
+  const q = v => `"${String(v??"").replace(/"/g,'""')}"`;
+  const lineas = [["Día","Hora","Mesa","Cliente","Tipo","Productos","Total","Estado"].map(q).join(";")];
+  gPeds.forEach(r=>lineas.push([new Date(r.created_at).toLocaleDateString("es-ES",{timeZone:TZ}), fHora(r.created_at), r.mesa, r.cliente||"", r.tipo==="camarero"?"Llamada":"Pedido",
+    (r.items||[]).map(i=>`${i.q}x ${i.n}`).join(", "), r.tipo==="pedido"?Number(r.total||0).toFixed(2).replace(".",","):"", gEstado(r)].map(q).join(";")));
+  bajaCsv(lineas, `pedidos-${periodo(gPer)[0].slice(0,10)}.csv`);
+}
+
+async function gDeudores(){
+  const dat = await Store.gestion(trab);
+  const g = {}; (dat.deudas||[]).forEach(x=>{ const k = x.nombre.trim(); (g[k] = g[k]||[]).push(x); });
+  const filas = Object.entries(g).map(([n,l])=>({n, l, saldo: Math.round(l.reduce((t,x)=>t+Number(x.importe),0)*100)/100})).sort((a,b)=>b.saldo-a.saldo);
+  const deben = filas.filter(f=>f.saldo>0), saldadas = filas.filter(f=>f.saldo<=0);
+  const fila = f => `<details class="hist pago deu"><summary><span><b>${esc(f.n)}</b></span><b>${eur(Math.max(f.saldo,0))}</b></summary>
+      ${f.l.slice().reverse().map(x=>`<div class="row"><span>${fDia(x.created_at)} · ${Number(x.importe)<0?"Pago":"Deuda"}${x.concepto&&x.concepto!=="Pago"?` · ${esc(x.concepto)}`:""}${x.quien?` <small class="t">(${esc(x.quien)})</small>`:""}</span><span>${eur(Math.abs(x.importe))}</span></div>`).join("")}
+      ${f.saldo>0?`<form class="fbar paga" data-paga="${esc(f.n)}"><label>Ha pagado (€)<input type="number" step="0.01" min="0.01" value="${f.saldo.toFixed(2)}" required></label><button class="act ok">Apuntar pago</button></form>`:""}</details>`;
+  return `<form id="gDeu" class="fbar"><label style="flex:1;min-width:150px">Nombre<input id="dNom" list="dNoms" maxlength="40" required placeholder="Quién debe"></label>
+      <datalist id="dNoms">${filas.map(f=>`<option value="${esc(f.n)}">`).join("")}</datalist>
+      <label>Importe (€)<input id="dImp" type="number" step="0.01" min="0.01" required></label>
+      <label style="flex:1;min-width:150px">Concepto<input id="dCon" maxlength="100" placeholder="Ej: 2 cafés y un bocadillo"></label>
+      <button class="act pay">Apuntar deuda</button></form>
+    <div class="kpis"><div><small>Total que os deben</small><b>${eur(deben.reduce((t,f)=>t+f.saldo,0))}</b></div><div><small>Personas que deben</small><b>${deben.length}</b></div></div>
+    <div class="deus">${deben.length?deben.map(fila).join(""):`<p class="empty">Nadie os debe nada.</p>`}</div>
+    ${saldadas.length?`<details class="saldadas"><summary class="wk">Ya han pagado (${saldadas.length})</summary><div class="deus">${saldadas.map(fila).join("")}</div></details>`:""}`;
+}
+
+async function gStock(){
+  const dat = await Store.gestion(trab);
+  gStockL = (dat.stock||[]).filter(x=>x.activo!==false).sort((a,b)=>a.nombre.localeCompare(b.nombre,"es"));
+  const movs = dat.movs||[];
+  // desde cuándo se cuenta: el último inventario de cada producto (o desde que se añadió)
+  const base = {};
+  gStockL.forEach(x=>{ const inv = movs.filter(m=>m.stock_id===x.id && m.tipo==="inventario").sort((a,b)=>tms(a.created_at)-tms(b.created_at)).at(-1);
+    base[x.id] = inv ? {t:tms(inv.created_at), q:Number(inv.cantidad), inv:true} : {t:tms(x.created_at||0), q:0, inv:false}; });
+  const unidos = gStockL.filter(x=>x.producto);
+  let ventas = [];
+  if (unidos.length){
+    const desde = Math.max(Math.min(...unidos.map(x=>base[x.id].t)), Date.now()-120*864e5);
+    ventas = (await Store.ventas(new Date(desde).toISOString(), new Date(Date.now()+864e5).toISOString())).filter(r=>r.tipo==="pedido" && r.estado!=="anulado");
+  }
+  gCalc = {};
+  gStockL.forEach(x=>{ const b = base[x.id];
+    const ent = movs.filter(m=>m.stock_id===x.id && m.tipo==="entrada" && tms(m.created_at)>b.t).reduce((a,m)=>a+Number(m.cantidad),0);
+    const ven = x.producto ? ventas.filter(r=>tms(r.created_at)>b.t).reduce((a,r)=>a+(r.items||[]).filter(i=>i.n===x.producto).reduce((t,i)=>t+(Number(i.q)||0),0),0)*Number(x.por_venta||1) : 0;
+    gCalc[x.id] = {quedan: Math.round((b.q+ent-ven)*100)/100, ent, ven, b}; });
+  const bajo = x => gCalc[x.id].quedan <= Number(x.minimo||0);
+  const comprar = gStockL.filter(bajo);
+  return `<div class="fbar"><button class="act pay" id="sNuevo">+ Añadir producto</button>
+      ${gStockL.length?`<button class="act ${gInv?"ok":"go"}" id="sInv">${gInv?"Guardar inventario":"Hacer inventario"}</button>${gInv?`<button class="act no" id="sInvNo">Cancelar</button>`:""}`:""}</div>
+    ${gInv?`<p class="sub">Cuenta lo que hay de cada cosa y escríbelo. Lo que dejes vacío no cambia.</p>`:""}
+    ${comprar.length&&!gInv?`<div class="ask comprar"><b>Para comprar (${comprar.length})</b>${comprar.map(x=>`<span>${esc(x.nombre)}: quedan ${num(gCalc[x.id].quedan)} ${esc(x.unidad)} (mínimo ${num(x.minimo)})</span>`).join("")}</div>`:""}
+    ${gStockL.length?`<div class="tscroll"><table class="jt stk"><thead><tr><th>Producto</th><th>Quedan</th><th>Mínimo</th><th></th></tr></thead><tbody>
+      ${gStockL.map(x=>{ const c = gCalc[x.id]; return `<tr class="${bajo(x)?"bajo":""}"><td><b>${esc(x.nombre)}</b>
+        ${x.producto?`<br><small class="t">Se descuenta al vender: ${esc(x.producto)}${Number(x.por_venta)!==1?` (${num(x.por_venta)} por venta)`:""}</small>`:""}
+        <br><small class="t">${c.b.inv?`Contado el ${fDia(new Date(c.b.t).toISOString())}: ${num(c.b.q)}`:"Sin inventario todavía"}${c.ent?` · entradas ${num(c.ent)}`:""}${c.ven?` · vendido ${num(c.ven)}`:""}</small></td>
+        <td>${gInv?`<input class="inv" type="number" step="0.01" min="0" data-inv="${esc(x.id)}" placeholder="${num(c.quedan)}" aria-label="Cantidad contada">`:`<b>${num(c.quedan)}</b> ${esc(x.unidad)}`}</td>
+        <td><small class="t movil">Mínimo </small>${num(x.minimo)}</td>
+        <td>${gInv?"":`<div class="sacts"><button class="act ok" data-ent="${esc(x.id)}">Entrada</button><button class="act no" data-edit="${esc(x.id)}">Editar</button></div>`}</td></tr>`; }).join("")}</tbody></table></div>`
+      :`<p class="empty">Todavía no hay nada en el stock. Toca “+ Añadir producto” para empezar: cajas de refrescos, barriles, botellas, café…</p>`}`;
+}
+function gEditar(x){
+  document.querySelector(".modal")?.remove();
+  const caja = document.createElement("div"); caja.className = "modal";
+  caja.innerHTML = `<form class="mbox" id="sForm"><b>${x?"Editar producto":"Añadir producto"}</b>
+    <div class="fbar col">
+      <label>Nombre<input id="sNom" maxlength="40" required value="${esc(x?.nombre||"")}" placeholder="Ej: Coca-Cola lata"></label>
+      <label>Se cuenta en<select id="sUni">${UNIDADES.map(u=>`<option value="${u}" ${(x?.unidad||"unidades")===u?"selected":""}>${u}</option>`).join("")}</select></label>
+      <label>Avisar cuando queden<input id="sMin" type="number" step="0.01" min="0" value="${x?.minimo??0}"></label>
+      <label>Se descuenta al vender<select id="sPro"><option value="">No, solo con el inventario</option>${ALL_ITEMS.map(label).map(n=>`<option value="${esc(n)}" ${x?.producto===n?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
+      <label>Cuánto se gasta en cada venta<input id="sPor" type="number" step="0.01" min="0.01" value="${x?.por_venta??1}"></label></div>
+    <div class="two"><button class="act pay">Guardar</button><button type="button" class="act no" id="sNo">Cerrar</button></div>
+    ${x?`<button type="button" class="act lnk" id="sQuitar">Quitar del stock</button>`:""}</form>`;
+  document.body.appendChild(caja);
+  const v = id => caja.querySelector(id).value;
+  caja.querySelector("#sNo").onclick = ()=>caja.remove();
+  caja.querySelector("#sForm").onsubmit = async e => { e.preventDefault();
+    const it = {id:x?.id, nombre:v("#sNom").trim().replace(/\s+/g," "), unidad:v("#sUni"), minimo:Number(v("#sMin"))||0, producto:v("#sPro")||null, por_venta:Number(v("#sPor"))||1};
+    if (!it.nombre) return;
+    try { await Store.stockGuardar(trab, it); caja.remove(); toast("Guardado"); pintaGestion(); } catch { toast("No se ha podido guardar"); } };
+  const q = caja.querySelector("#sQuitar");
+  if (q) q.onclick = async () => { if (q.dataset.seguro !== "1"){ q.dataset.seguro = "1"; q.textContent = "¿Seguro? Quitar del stock"; return; }
+    try { await Store.stockQuitar(trab, x.id); caja.remove(); toast("Quitado del stock"); pintaGestion(); } catch { toast("No se ha podido quitar"); } };
+}
+
+async function gFichajes(){
+  const [d,h] = rangoMes(mesActual());
+  const [fs, lista] = await Promise.all([Store.informe(trab,d,h), Store.trabajadores(trab)]);
+  const g = {}; fs.forEach(f=>{ (g[f.trabajador_id] = g[f.trabajador_id]||[]).push(f); });
+  const filas = lista.map(t=>{ const js = jornadas(g[t.id]||[]);
+    return {n:t.nombre, ms:js.reduce((a,j)=>a+j.ms,0), dias:new Set(js.map(j=>fDia((j.e||j.s).momento))).size, ahora:js.at(-1)?.curso, faltan:js.filter(j=>!j.e||(!j.s&&!j.curso)).length}; });
+  return `<p class="hello" style="margin-top:6px">Fichajes de este mes</p><div class="tscroll"><table class="jt"><thead><tr><th>Trabajador</th><th>Ahora</th><th>Días</th><th>Horas</th><th>Fichajes que faltan</th></tr></thead><tbody>
+    ${filas.map(f=>`<tr><td><b>${esc(f.n)}</b></td><td>${f.ahora?"Trabajando":"—"}</td><td>${f.dias}</td><td>${f.ms?dur(f.ms):"—"}</td><td>${f.faltan?`<span class="falta">${f.faltan}</span>`:"—"}</td></tr>`).join("")}</tbody></table></div>
+    <a class="ghost" href="${location.pathname}?fichajes" style="display:inline-block;color:var(--ink);text-decoration:none">Ver el registro de jornada completo</a>`;
+}
+
+async function gCarta(){
+  return `<div class="glinks"><a class="ghost" href="${location.pathname}?qr">QR de las mesas<small>Descargar o imprimir el QR de cada mesa</small></a>
+    <a class="ghost" href="${location.pathname}?fotos">Fotos de la carta<small>Poner o cambiar la foto de cada producto</small></a></div>`;
+}
+function gEnlaces(box){
+  const $ = q => box.querySelector(q);
+  if ($("#gPer")) $("#gPer").onchange = e => { gPer = e.target.value; pintaGestion(); };
+  if ($("#gBusca")) $("#gBusca").oninput = e => { gBusca = e.target.value; $("#gLista").innerHTML = gListaPedidos(); };
+  if ($("#gCsv")) $("#gCsv").onclick = gCsvPedidos;
+  if ($("#gDeu")) $("#gDeu").onsubmit = async e => { e.preventDefault(); const b = e.target.querySelector("button"); b.disabled = true;
+    const nom = $("#dNom").value.trim().replace(/\s+/g," "), imp = Math.round(Number($("#dImp").value)*100)/100;
+    if (!nom || !(imp > 0)) { b.disabled = false; return; }
+    try { await Store.deuda(trab, nom, imp, $("#dCon").value.trim()); toast("Deuda apuntada"); pintaGestion(); }
+    catch { b.disabled = false; toast("No se ha podido guardar"); } };
+  box.querySelectorAll("[data-paga]").forEach(f=>f.onsubmit = async e => { e.preventDefault();
+    const v = Math.round(Number(f.querySelector("input").value)*100)/100; if (!(v > 0)) return;
+    try { await Store.deuda(trab, f.dataset.paga, -v, "Pago"); toast("Pago apuntado"); pintaGestion(); } catch { toast("No se ha podido guardar"); } });
+  if ($("#sNuevo")) $("#sNuevo").onclick = () => gEditar(null);
+  box.querySelectorAll("[data-edit]").forEach(b=>b.onclick = () => gEditar(gStockL.find(x=>String(x.id)===b.dataset.edit)));
+  box.querySelectorAll("[data-ent]").forEach(b=>b.onclick = () => {
+    const d = b.closest(".sacts");
+    d.innerHTML = `<form class="ent"><input type="number" step="0.01" min="0.01" required placeholder="Cuántas llegan" aria-label="Cuántas llegan"><button class="act ok">OK</button></form>`;
+    const f = d.querySelector("form"); f.querySelector("input").focus();
+    f.onsubmit = async e => { e.preventDefault();
+      try { await Store.stockMov(trab, [{stock_id:gStockL.find(x=>String(x.id)===b.dataset.ent).id, tipo:"entrada", cantidad:Number(f.querySelector("input").value)}]); toast("Entrada apuntada"); pintaGestion(); }
+      catch { toast("No se ha podido guardar"); } }; });
+  if ($("#sInvNo")) $("#sInvNo").onclick = () => { gInv = false; pintaGestion(); };
+  if ($("#sInv")) $("#sInv").onclick = async () => {
+    if (!gInv){ gInv = true; return pintaGestion(); }
+    const movs = [...box.querySelectorAll("[data-inv]")].filter(i=>i.value!=="").map(i=>({stock_id:gStockL.find(x=>String(x.id)===i.dataset.inv).id, tipo:"inventario", cantidad:Math.max(0, Number(i.value))}));
+    if (!movs.length){ gInv = false; return pintaGestion(); }
+    try { await Store.stockMov(trab, movs); gInv = false; toast("Inventario guardado"); pintaGestion(); } catch { toast("No se ha podido guardar el inventario"); } };
+}
+
 /* ================= QR PARA IMPRIMIR ================= */
 // Solo el encargado. Están dentro de la app de camareros por si un QR se estropea:
 // se puede descargar o imprimir el de una mesa, o todos.
@@ -1469,6 +1751,104 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Desconectar":"下班",
+  "Empezar":"开始",
+  "Empezar la jornada":"开始上班",
+  "Pulsa para fichar la entrada y empezar a recibir avisos.":"点一下打上班卡，开始接收提醒。",
+  "Carta y QR":"菜单和二维码",
+  "Descargar o imprimir el QR de cada mesa":"下载或打印每张桌子的二维码",
+  "Poner o cambiar la foto de cada producto":"添加或更换每个产品的照片",
+  "Gestión":"管理",
+  "Cuentas":"账目",
+  "Pedidos":"订单",
+  "Deudores":"欠款人",
+  "Stock":"库存",
+  "Fichajes":"打卡",
+  "Periodo":"时间段",
+  "Hoy":"今天",
+  "Ayer":"昨天",
+  "Últimos 7 días":"最近7天",
+  "Este mes":"本月",
+  "Mes pasado":"上个月",
+  "Cobrado":"已收款",
+  "Mesas cobradas":"已结账桌数",
+  "Ticket medio":"平均消费",
+  "Sin cobrar todavía":"尚未收款",
+  "Por día":"按天",
+  "Lo más vendido":"最畅销",
+  "Producto":"产品",
+  "Cantidad":"数量",
+  "Importe":"金额",
+  "Mesas":"桌数",
+  "No hay ventas en este periodo.":"这个时间段没有销售。",
+  "Buscar":"搜索",
+  "Mesa o nombre":"桌号或名字",
+  "Cliente":"客人",
+  "Qué":"内容",
+  "Estado":"状态",
+  "Llamada":"呼叫",
+  "Anulado":"已取消",
+  "Abierto":"未结账",
+  "No hay pedidos en este periodo.":"这个时间段没有订单。",
+  "Nombre":"名字",
+  "Quién debe":"谁欠钱",
+  "Importe (€)":"金额（€）",
+  "Concepto":"说明",
+  "Ej: 2 cafés y un bocadillo":"例：两杯咖啡和一个三明治",
+  "Apuntar deuda":"记下欠款",
+  "Total que os deben":"别人欠你们的总额",
+  "Personas que deben":"欠款人数",
+  "Nadie os debe nada.":"没有人欠钱。",
+  "Pago":"付款",
+  "Deuda":"欠款",
+  "Ha pagado (€)":"已付（€）",
+  "Apuntar pago":"记下付款",
+  "Deuda apuntada":"欠款已记下",
+  "Pago apuntado":"付款已记下",
+  "+ Añadir producto":"+ 添加产品",
+  "Hacer inventario":"盘点",
+  "Guardar inventario":"保存盘点",
+  "Cuenta lo que hay de cada cosa y escríbelo. Lo que dejes vacío no cambia.":"数一数每样东西还有多少并填写。空着的不会改变。",
+  "Quedan":"剩余",
+  "Mínimo":"最少",
+  "Editar":"编辑",
+  "Sin inventario todavía":"还没有盘点",
+  "Cantidad contada":"盘点数量",
+  "Todavía no hay nada en el stock. Toca “+ Añadir producto” para empezar: cajas de refrescos, barriles, botellas, café…":"库存里还没有东西。点“+ 添加产品”开始：汽水箱、啤酒桶、酒瓶、咖啡……",
+  "Editar producto":"编辑产品",
+  "Añadir producto":"添加产品",
+  "Ej: Coca-Cola lata":"例：可口可乐罐装",
+  "Se cuenta en":"计量单位",
+  "Avisar cuando queden":"剩余多少时提醒",
+  "Se descuenta al vender":"卖出时扣减",
+  "No, solo con el inventario":"不，只靠盘点",
+  "Cuánto se gasta en cada venta":"每次卖出用量",
+  "Quitar del stock":"从库存删除",
+  "¿Seguro? Quitar del stock":"确定从库存删除？",
+  "Guardado":"已保存",
+  "Quitado del stock":"已从库存删除",
+  "No se ha podido guardar":"没能保存",
+  "No se ha podido guardar el inventario":"没能保存盘点",
+  "Inventario guardado":"盘点已保存",
+  "Entrada apuntada":"进货已记下",
+  "Cuántas llegan":"到货数量",
+  "unidades":"个",
+  "botellas":"瓶",
+  "latas":"罐",
+  "cajas":"箱",
+  "barriles":"桶",
+  "kg":"公斤",
+  "litros":"升",
+  "paquetes":"包",
+  "Fichajes de este mes":"本月打卡",
+  "Ahora":"现在",
+  "Días":"天数",
+  "Fichajes que faltan":"缺少的打卡",
+  "Trabajando":"上班中",
+  "Ver el registro de jornada completo":"查看完整工时记录",
+  "Solo el encargado puede entrar en la gestión.":"只有负责人可以进入管理。",
+  "MODO PRUEBA · Lo que apuntes solo se guarda en este navegador.":"测试模式 · 记录只保存在这个浏览器里。",
+  "Falta pegar el SQL de gestión en Supabase.":"还需要在 Supabase 运行管理的 SQL。",
   "Falta pegar el SQL de apodos en Supabase":"还需要在 Supabase 运行昵称的 SQL",
   "Pon el nombre con el que conocéis al cliente. Lo veréis todos los camareros, siempre que pida desde ese móvil. El cliente sigue viendo el suyo.":"填写你们认识这位客人的名字。只要他用这部手机点单，所有服务员都会看到。客人仍然看到自己的名字。",
   "Apodo":"昵称",
@@ -1575,6 +1955,9 @@ const ZH = {
   "No se ha podido crear el QR. Revisa la conexión.":"没能生成二维码。请检查网络。","Solo el encargado puede poner fotos.":"只有负责人能添加照片。"
 };
 const ZH_RE = [
+  [/^Para comprar \((\d+)\)$/, m=>`要买的（${m[1]}）`],
+  [/^Ya han pagado \((\d+)\)$/, m=>`已经付清（${m[1]}）`],
+  [/^Se descuenta al vender: (.+)$/, m=>`卖出时扣减：${m[1]}`],
   [/^Hola, (.+)\. ¿Qué necesitas\?$/, m=>`你好，${m[1]}。需要什么？`],
   [/^Hola, (.+)\. ¿En qué mesa estás\?$/, m=>`你好，${m[1]}。你在哪张桌？`],
   [/^Hola, (.+)$/, m=>`你好，${m[1]}`],
@@ -1619,6 +2002,104 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Desconectar":"Desconnectar",
+  "Empezar":"Començar",
+  "Empezar la jornada":"Començar la jornada",
+  "Pulsa para fichar la entrada y empezar a recibir avisos.":"Prem per fitxar l'entrada i començar a rebre avisos.",
+  "Carta y QR":"Carta i QR",
+  "Descargar o imprimir el QR de cada mesa":"Descarregar o imprimir el QR de cada taula",
+  "Poner o cambiar la foto de cada producto":"Posar o canviar la foto de cada producte",
+  "Gestión":"Gestió",
+  "Cuentas":"Comptes",
+  "Pedidos":"Comandes",
+  "Deudores":"Deutors",
+  "Stock":"Estoc",
+  "Fichajes":"Fitxatges",
+  "Periodo":"Període",
+  "Hoy":"Avui",
+  "Ayer":"Ahir",
+  "Últimos 7 días":"Últims 7 dies",
+  "Este mes":"Aquest mes",
+  "Mes pasado":"Mes passat",
+  "Cobrado":"Cobrat",
+  "Mesas cobradas":"Taules cobrades",
+  "Ticket medio":"Tiquet mitjà",
+  "Sin cobrar todavía":"Encara sense cobrar",
+  "Por día":"Per dia",
+  "Lo más vendido":"El més venut",
+  "Producto":"Producte",
+  "Cantidad":"Quantitat",
+  "Importe":"Import",
+  "Mesas":"Taules",
+  "No hay ventas en este periodo.":"No hi ha vendes en aquest període.",
+  "Buscar":"Cercar",
+  "Mesa o nombre":"Taula o nom",
+  "Cliente":"Client",
+  "Qué":"Què",
+  "Estado":"Estat",
+  "Llamada":"Crida",
+  "Anulado":"Anul·lat",
+  "Abierto":"Obert",
+  "No hay pedidos en este periodo.":"No hi ha comandes en aquest període.",
+  "Nombre":"Nom",
+  "Quién debe":"Qui deu",
+  "Importe (€)":"Import (€)",
+  "Concepto":"Concepte",
+  "Ej: 2 cafés y un bocadillo":"Ex: 2 cafès i un entrepà",
+  "Apuntar deuda":"Apuntar deute",
+  "Total que os deben":"Total que us deuen",
+  "Personas que deben":"Persones que deuen",
+  "Nadie os debe nada.":"Ningú no us deu res.",
+  "Pago":"Pagament",
+  "Deuda":"Deute",
+  "Ha pagado (€)":"Ha pagat (€)",
+  "Apuntar pago":"Apuntar pagament",
+  "Deuda apuntada":"Deute apuntat",
+  "Pago apuntado":"Pagament apuntat",
+  "+ Añadir producto":"+ Afegir producte",
+  "Hacer inventario":"Fer inventari",
+  "Guardar inventario":"Desar inventari",
+  "Cuenta lo que hay de cada cosa y escríbelo. Lo que dejes vacío no cambia.":"Compta el que hi ha de cada cosa i escriu-ho. El que deixis buit no canvia.",
+  "Quedan":"En queden",
+  "Mínimo":"Mínim",
+  "Editar":"Editar",
+  "Sin inventario todavía":"Encara sense inventari",
+  "Cantidad contada":"Quantitat comptada",
+  "Todavía no hay nada en el stock. Toca “+ Añadir producto” para empezar: cajas de refrescos, barriles, botellas, café…":"Encara no hi ha res a l'estoc. Toca “+ Afegir producte” per començar: caixes de refrescos, barrils, ampolles, cafè…",
+  "Editar producto":"Editar producte",
+  "Añadir producto":"Afegir producte",
+  "Ej: Coca-Cola lata":"Ex: Coca-Cola llauna",
+  "Se cuenta en":"Es compta en",
+  "Avisar cuando queden":"Avisar quan en quedin",
+  "Se descuenta al vender":"Es descompta en vendre",
+  "No, solo con el inventario":"No, només amb l'inventari",
+  "Cuánto se gasta en cada venta":"Quant es gasta a cada venda",
+  "Quitar del stock":"Treure de l'estoc",
+  "¿Seguro? Quitar del stock":"Segur? Treure de l'estoc",
+  "Guardado":"Desat",
+  "Quitado del stock":"Tret de l'estoc",
+  "No se ha podido guardar":"No s'ha pogut desar",
+  "No se ha podido guardar el inventario":"No s'ha pogut desar l'inventari",
+  "Inventario guardado":"Inventari desat",
+  "Entrada apuntada":"Entrada apuntada",
+  "Cuántas llegan":"Quantes n'arriben",
+  "unidades":"unitats",
+  "botellas":"ampolles",
+  "latas":"llaunes",
+  "cajas":"caixes",
+  "barriles":"barrils",
+  "kg":"kg",
+  "litros":"litres",
+  "paquetes":"paquets",
+  "Fichajes de este mes":"Fitxatges d'aquest mes",
+  "Ahora":"Ara",
+  "Días":"Dies",
+  "Fichajes que faltan":"Fitxatges que falten",
+  "Trabajando":"Treballant",
+  "Ver el registro de jornada completo":"Veure el registre de jornada complet",
+  "Solo el encargado puede entrar en la gestión.":"Només l'encarregat pot entrar a la gestió.",
+  "MODO PRUEBA · Lo que apuntes solo se guarda en este navegador.":"MODE PROVA · El que apuntis només es desa en aquest navegador.",
+  "Falta pegar el SQL de gestión en Supabase.":"Falta enganxar l'SQL de gestió a Supabase.",
   "Falta pegar el SQL de apodos en Supabase":"Falta enganxar l'SQL de sobrenoms a Supabase",
   "Pon el nombre con el que conocéis al cliente. Lo veréis todos los camareros, siempre que pida desde ese móvil. El cliente sigue viendo el suyo.":"Posa el nom amb què coneixeu el client. El veureu tots els cambrers, sempre que demani des d'aquest mòbil. El client continua veient el seu.",
   "Apodo":"Sobrenom",
@@ -1717,6 +2198,9 @@ const CA = {
   "No se ha podido crear el QR. Revisa la conexión.":"No s'ha pogut crear el QR. Revisa la connexió.","Solo el encargado puede poner fotos.":"Només l'encarregat pot posar fotos."
 };
 const CA_RE = [
+  [/^Para comprar \((\d+)\)$/, m=>`Per comprar (${m[1]})`],
+  [/^Ya han pagado \((\d+)\)$/, m=>`Ja han pagat (${m[1]})`],
+  [/^Se descuenta al vender: (.+)$/, m=>`Es descompta en vendre: ${m[1]}`],
   [/^Hola, (.+)\. ¿Qué necesitas\?$/, m=>`Hola, ${m[1]}. Què necessites?`],
   [/^Hola, (.+)\. ¿En qué mesa estás\?$/, m=>`Hola, ${m[1]}. A quina taula ets?`],
   [/^No soy (.+), cambiar nombre$/, m=>`No sóc ${m[1]}, canviar el nom`],
@@ -1807,6 +2291,7 @@ if (PREVIEW){
   pv.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{ location.hash=b.dataset.v; location.reload(); });
 }
 if (qs.has("panel")) { if (trab) entrarPanel(); else panel(); Store.subscribe(()=>{ if (trab && pestana!=="fichajes") pintar(); }, 10000); }
+else if (qs.has("gestion")) gestion();
 else if (qs.has("fichajes")) informe();
 else if (qs.has("qr")) qrs();
 else if (MODO_FOTOS) fotosCarta();
