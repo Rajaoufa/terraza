@@ -570,6 +570,20 @@ body{font-variant-numeric:lining-nums}
 .gobras{border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px;background:var(--card)}
 .gobras.on{border-color:#E2A33B;background:repeating-linear-gradient(45deg,rgba(226,59,46,.18) 0 18px,rgba(0,0,0,0) 18px 36px),var(--card)}
 .gpp .gpo{white-space:nowrap}
+.favs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.fav{position:relative;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;padding:0 0 12px;border-radius:20px;overflow:hidden;font:inherit;color:#F8EBD2;cursor:pointer;
+  border:1.5px solid rgba(240,201,121,.55);background:linear-gradient(180deg,#3A2414,#24150D);box-shadow:0 10px 24px rgba(0,0,0,.35)}
+.fav .fv-f{width:100%;aspect-ratio:4/3;min-height:0;margin-bottom:6px}
+.fav .fv-n{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:rgba(0,0,0,.55);color:#F0C979;border:1px solid rgba(240,201,121,.6)}
+.fav .fv-t{font-family:var(--f-display);font-size:1.15em;padding:0 12px;line-height:1.15}
+.fav small{padding:0 12px;color:#CDB592}
+.fav .fv-p{padding:2px 12px 0;color:#F0C979;font-weight:800}
+.fav:active{transform:scale(.97)}
+.fav.vacio{cursor:default;align-items:center;justify-content:center;text-align:center;min-height:190px;padding:16px;border-style:dashed;border-color:rgba(240,201,121,.3);background:rgba(0,0,0,.18);box-shadow:none}
+.fav.vacio .fv-n{position:static;margin-bottom:8px}
+.fav.vacio small{color:#9C8468;padding:0}
+.otra{display:block;width:100%;margin:16px 0 4px;padding:18px;border-radius:18px;font:inherit;font-size:1.2em;font-weight:900;letter-spacing:.04em;cursor:pointer;
+  border:1.5px solid #F0C979;background:transparent;color:#F0C979}
 </style>
 </head>
 <body>
@@ -1193,7 +1207,7 @@ if (!yo.nombre) yo.nombre = ls.get("esencia_nombre", "");   // el móvil recuerd
 let bloqueado = false;
 let misFilas = [];
 let cesta = {};
-let vista = yo.nombre ? "inicio" : "nombre";
+let vista = yo.nombre ? "carta" : "nombre";
 let catSel = null;   // null = portada con las secciones como iconos de apps; "★" = Favoritas; si no, nombre de la sección
 let abrirDesde = null;   // centro del icono tocado, para el efecto de abrir la sección
 let filasMesa = [];
@@ -1204,7 +1218,7 @@ const udsDe = id => Object.entries(cesta).reduce((a,[k,q])=>a+(lineaCesta(k).id=
 
 function header(){
   if (vista==="carta" || vista==="resumen"){
-    const sec = vista==="resumen" ? "Tu pedido" : catSel==="★" ? "Bebida favorita" : catSel || "La carta";
+    const sec = vista==="resumen" ? "Tu pedido" : catSel==="★" ? "Bebida favorita" : catSel && catSel!=="·" ? catSel : "La carta";
     return `<header class="top ctop"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>${esc(sec)}</small></div>
       ${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:""}</div></header>`;
   }
@@ -1356,7 +1370,16 @@ function cliente(){
     const TODAS = [{k:"★", t:"Bebida favorita"}, ...SECCIONES.map(x=>({k:x.k, t:x.k}))];
     const fk = x => "cat-"+(x.k==="★"?"Favoritas":x.k);
     const icono = x => fotoSubida(fk(x)) ? `${fotoSubida(fk(x))}<i class="ct-vel"></i><em class="ct-hueco"></em>` : ICON_SECC[x.k==="★"?"":x.k]||"";
-    if (!catSel){
+    if (!catSel && !MODO_FOTOS){
+      // al abrir con el QR: lo que más pide este cliente, 1 y 2 arriba, 3 y 4 abajo; se va llenando según pide (Jamal)
+      const top = Object.entries(MIO()).sort((a,b)=>b[1]-a[1]).map(([id])=>findItem(id)).filter(Boolean).slice(0,4);
+      h += `<h2 class="ch">${top.length?`Lo que más pides, ${esc(yo.nombre)}`:`Hola, ${esc(yo.nombre)}`}</h2><div class="favs">${[0,1,2,3].map(n=>{ const i = top[n];
+          if (!i) return `<div class="fav vacio"><span class="fv-n">${n+1}</span><small>Aquí saldrá lo que más pidas</small></div>`;
+          const q = udsDe(i.id);
+          return `<button class="fav" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}"><span class="fv-f pc-foto">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</span><span class="fv-n">${n+1}</span>
+            <b class="fv-t">${esc(i.n)}</b>${i.d?`<small>${esc(i.d)}</small>`:""}<span class="fv-p">${eur(i.p)}</span></button>`; }).join("")}</div>
+        <button class="otra" id="otraCosa">Otra cosa</button>`;
+    } else if (!catSel || catSel==="·"){
       // portada: las secciones como iconos de aplicaciones del móvil
       h += `<h2 class="ch">¿Qué te apetece?</h2><div class="apps">${TODAS.map((x,n)=>`<div class="apw" style="--d:${n*35}ms">${botonFoto(fk(x))}<button class="app a${n%3}" data-cat="${esc(x.k)}"><span class="api">${icono(x)}</span><span class="apt">${esc(x.t)}</span></button></div>`).join("")}</div>
         <p class="chint">Toca una sección para ver lo que hay dentro.</p>`;
@@ -1378,7 +1401,7 @@ function cliente(){
       h += sec.grupos.map(g=>GRUPOS.find(x=>x.g===g)).filter(Boolean)
         .map(g=>`${sec.grupos.length>1?`<h2 class="ch">${esc(g.g)}</h2>`:""}<div class="pcs">${porConsumo(g.items).map(i=>tarjeta(i, n++)).join("")}</div>`).join("");
     }
-    if (catSel) h += `</div>`;
+    if (catSel && catSel!=="·") h += `</div>`;
     abrirDesde = null;
     if (!MODO_FOTOS) barra = "nav";
   }
@@ -1424,7 +1447,7 @@ function go(v){ vista=v; cliente(); scrollTo(0,0); }
 function bindCliente(){
   const on = (id,fn) => { const el=document.getElementById(id); if(el) el.onclick=fn; };
   const fn = document.getElementById("fn");
-  if (fn) fn.onsubmit = e => { e.preventDefault(); const v=document.getElementById("nom").value.trim().slice(0,30); if(!v) return; yo.nombre=v; guardaYo(); go("inicio"); };
+  if (fn) fn.onsubmit = e => { e.preventDefault(); const v=document.getElementById("nom").value.trim().slice(0,30); if(!v) return; yo.nombre=v; guardaYo(); go("carta"); };
   on("cambiaNom", ()=>go("nombre"));
   on("cambiaMesa", ()=>{ ls.set("esencia_mesa", null); location.href = location.pathname + "?app"; });
   on("carta", ()=>{ catSel = null; go("carta"); cargaFotos(); if (!MAS_PEDIDOS) Store.masPedidos().then(c=>{ MAS_PEDIDOS=c; if (vista==="carta") cliente(); }).catch(()=>{}); });
@@ -1456,7 +1479,8 @@ function bindCliente(){
   });
   document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ if (b.classList.contains("app")){ const r=b.getBoundingClientRect(); abrirDesde={x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)}; }
     catSel=b.dataset.cat||null; cliente(); scrollTo(0,0); });
-  on("aPortada", ()=>{ catSel=null; cliente(); scrollTo(0,0); });
+  on("aPortada", ()=>{ catSel="·"; cliente(); scrollTo(0,0); });
+  on("otraCosa", ()=>{ catSel="·"; cliente(); scrollTo(0,0); });
   document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const id=b.dataset.a; if (opcionesDe(id).length) return elegirOpciones(id); cesta[id]=(cesta[id]||0)+1;cliente()});
   document.querySelectorAll("[data-al]").forEach(b=>b.onclick=()=>{const k=b.dataset.al;cesta[k]=(cesta[k]||0)+1;cliente()});
   document.querySelectorAll("[data-ml]").forEach(b=>b.onclick=()=>{const k=b.dataset.ml;cesta[k]--; if(cesta[k]<=0) delete cesta[k]; if(!totalUds() && vista==="resumen") vista="carta"; cliente()});
@@ -1542,7 +1566,7 @@ async function escanearQR(){
   addEventListener("touchstart", e=>{ if (vista!=="carta"||qs.has("panel")) return; x0=e.touches[0].clientX; y0=e.touches[0].clientY; }, {passive:true});
   addEventListener("touchend", e=>{ if (x0===null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
     if (Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.5 || e.target.closest(".ctabs")) return;
-    if (!catSel) return;
+    if (!catSel || catSel==="·") return;
     const cats=["★",...SECCIONES.map(s=>s.k)], k=cats.indexOf(catSel), n=k+(dx<0?1:-1);
     if (n>=0 && n<cats.length){ catSel=cats[n]; cliente(); scrollTo(0,0); } }, {passive:true});
 }
@@ -2449,6 +2473,8 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Otra cosa":"别的东西",
+  "Aquí saldrá lo que más pidas":"这里会显示你最常点的",
   "App en construcción":"应用正在建设中",
   "Estamos preparando la app. Vuelve a entrar más tarde.":"我们正在准备应用。请稍后再进入。",
   "🚧 La app está EN CONSTRUCCIÓN":"🚧 应用正在建设中",
@@ -2796,6 +2822,7 @@ const ZH = {
   "No se ha podido crear el QR. Revisa la conexión.":"没能生成二维码。请检查网络。","Solo el encargado puede poner fotos.":"只有负责人能添加照片。"
 };
 const ZH_RE = [
+  [/^Lo que más pides, (.+)$/, m=>`${m[1]}，你最常点的`],
   [/^Opciones \((\d+)\)$/, m=>`选项 (${m[1]})`],
   [/^(.+) añadido a la carta$/, m=>`${m[1]} 已加入菜单`],
   [/^Aviso de prueba enviado a (\d+) móviles$/, m=>`测试通知已发送到 ${m[1]} 部手机`],
@@ -2854,6 +2881,8 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Otra cosa":"Una altra cosa",
+  "Aquí saldrá lo que más pidas":"Aquí sortirà el que més demanis",
   "App en construcción":"App en construcció",
   "Estamos preparando la app. Vuelve a entrar más tarde.":"Estem preparant l'app. Torna a entrar més tard.",
   "🚧 La app está EN CONSTRUCCIÓN":"🚧 L'app està EN CONSTRUCCIÓ",
@@ -3193,6 +3222,7 @@ const CA = {
   "No se ha podido crear el QR. Revisa la conexión.":"No s'ha pogut crear el QR. Revisa la connexió.","Solo el encargado puede poner fotos.":"Només l'encarregat pot posar fotos."
 };
 const CA_RE = [
+  [/^Lo que más pides, (.+)$/, m=>`El que més demanes, ${m[1]}`],
   [/^Opciones \((\d+)\)$/, m=>`Opcions (${m[1]})`],
   [/^(.+) añadido a la carta$/, m=>`${m[1]} afegit a la carta`],
   [/^Aviso de prueba enviado a (\d+) móviles$/, m=>`Avís de prova enviat a ${m[1]} mòbils`],
