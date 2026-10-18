@@ -541,6 +541,14 @@ body{font-variant-numeric:lining-nums}
 .lleva li{display:flex;gap:6px;padding:3px 0;border-top:1px dashed rgba(255,255,255,.08)}
 .lleva li span{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
 .bg-p{flex-wrap:wrap}
+.mped{max-width:640px;margin:0 auto 8px;padding:10px 12px 0;border:1px solid rgba(217,168,91,.35);border-radius:18px;background:rgba(0,0,0,.25)}
+.mp-cab{display:flex;justify-content:space-between;align-items:baseline;color:#F8EBD2;padding:0 4px 4px}.mp-cab span{color:#F0C979;font-weight:800}
+.mp-lista{max-height:24vh;overflow:auto}
+.mp-l{display:flex;align-items:center;gap:8px;padding:6px 4px;border-top:1px dashed rgba(255,255,255,.1);color:var(--ink)}
+.mp-l>span:first-child{flex:1;min-width:0}.mp-l em{font-style:normal;color:var(--muted);font-size:.85em}
+.mp-p{font-variant-numeric:tabular-nums;color:#E9D8BE}
+.mp-l button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.06);color:#F8EBD2;font-size:1.3em;font-weight:900;flex:none}
+.mped .verped{margin:8px 0 10px}
 </style>
 </head>
 <body>
@@ -712,7 +720,7 @@ const findItem = id => ALL_ITEMS.find(i=>i.id===id);
 const label = i => [i.n, i.m, i.d].filter(Boolean).join(" · ");
 // Opciones al pedir (Jamal, 2026-10-18): al tocar un producto se abre una hoja con las suyas. Son gratis.
 // "uno": de esa fila solo se puede marcar una. Se envían en el nombre: "Café con leche (Leche desnatada, Sacarina)".
-const O_ENDULZAR = {t:"Endulzar", uno:true, o:["Azúcar","Azúcar moreno","Sacarina"]};
+const O_ENDULZAR = {t:"Endulzar", uno:true, o:["Azúcar moreno","Sacarina"]};
 const O_LLEVAR = {t:"", o:["Para llevar"]};
 const OPCIONES_GRUPO = {
   "Cafetería":        [{t:"Leche", uno:true, o:["Leche desnatada","Leche sin lactosa"]}, {t:"Temperatura", uno:true, o:["Caliente","Templado","Con hielo"]}, O_ENDULZAR, O_LLEVAR],
@@ -1273,8 +1281,7 @@ function cliente(){
     const tarjeta = (i, n) => { const q = udsDe(i.id);
       return `<article class="pc t${n%3} ${q?"has":""}">${botonFoto(i.id)}<button class="pc-foto" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</button>
         <div class="pc-tx">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<h3>${esc(i.n)}</h3><b class="pc-p">${eur(i.p)}</b>${i.d?`<p>${esc(i.d)}</p>`:""}
-        ${q?`<div class="pc-step"><button data-m="${i.id}" aria-label="Quitar uno de ${esc(label(i))}">−</button><output>${q}</output><button data-a="${i.id}" aria-label="Añadir otro ${esc(label(i))}">+</button></div>`
-           :`<button class="pc-add" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">+ Añadir</button>`}</div></article>`; };
+        <button class="pc-add" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${q?`+ Otro`:`+ Añadir`}</button></div></article>`; };
     if (catSel==="★"){
       const mios = ALL_ITEMS.filter(i=>MIO()[i.id]).sort((a,b)=>MIO()[b.id]-MIO()[a.id]);
       const top = mios.length ? [] : porConsumo(ALL_ITEMS.filter(i=>(MAS_PEDIDOS||{})[label(i)]));
@@ -1313,13 +1320,19 @@ function cliente(){
       <button class="ghost" id="inicio">Volver al inicio</button></div>${bloqueInstalar()}`;
   }
   h += `</main>`;
-  if (barra==="nav") h += `<div class="bnav">${totalUds()?`<button class="verped" id="verPedido"><span>Ver mi pedido (${totalUds()})</span><b>${eur(totalEur())}</b></button>`:""}
+  if (barra==="nav") h += `<div class="bnav">${totalUds()?`<div class="mped"><div class="mp-cab"><b>Tu pedido</b><span>${totalUds()} · ${eur(totalEur())}</span></div>
+      <div class="mp-lista">${Object.entries(cesta).map(([k,q])=>{ const {i,o}=lineaCesta(k);
+        return `<div class="mp-l"><span><b>${q}×</b> ${esc(label(i))}${o.length?` <em>${o.map(esc).join(", ")}</em>`:""}</span><span class="mp-p">${eur(precioLinea(k)*q)}</span><button data-ml="${esc(k)}" aria-label="Quitar uno">−</button></div>`; }).join("")}</div>
+      <button class="verped" id="enviar"><span>Realizar pedido</span><b>${eur(totalEur())}</b></button></div>`:""}
     <nav class="in" aria-label="Menú de abajo"><button class="on" id="nMenu" aria-current="page">${ICON_NAV.menu}<span>Menú</span></button>
       <button id="inicio">${ICON_NAV.pedidos}<span>Mis pedidos</span></button>
       <button id="nCall" ${llamadaActual()==="espera"?"disabled":""}>${ICON_NAV.camarero}<span>Camarero</span></button>
       <button id="nCarro">${ICON_NAV.carrito}${totalUds()?`<i>${totalUds()}</i>`:""}<span>Carrito</span></button></nav></div>`;
   else if (barra) h += `<div class="bar"><div class="in">${barra}</div></div>`;
   $app.innerHTML = h; bindHeader(); bindCliente(); bindInstalar();
+  const bn = document.querySelector(".bnav"), mw = document.querySelector("main.wrap");
+  if (bn && mw) mw.style.paddingBottom = (bn.offsetHeight + 24) + "px";
+  const ml = document.querySelector(".mp-lista"); if (ml) ml.scrollTop = ml.scrollHeight;
 }
 function go(v){ vista=v; cliente(); scrollTo(0,0); }
 
@@ -1354,14 +1367,14 @@ function bindCliente(){
           const hist = MIO(); Object.entries(cesta).forEach(([k,q])=>{ const id=lineaCesta(k).id; hist[id]=(hist[id]||0)+q; }); ls.set("esencia_historial", hist);
           yo.ids.push(r.id); guardaYo(); misFilas.push(r); cesta={}; ls.set("esencia_nota",""); go("enviado"); }
     catch { if (await Store.estoyBloqueado().catch(()=>false)) { bloqueado=true; return cliente(); }
-            btn.disabled=false; btn.textContent="Enviar pedido"; toast("No se ha enviado. Revisa la conexión y prueba otra vez."); }
+            btn.disabled=false; btn.textContent = vista==="resumen" ? "Enviar pedido" : "Realizar pedido"; toast("No se ha enviado. Revisa la conexión y prueba otra vez."); }
   });
   document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{ if (b.classList.contains("app")){ const r=b.getBoundingClientRect(); abrirDesde={x:Math.round(r.left+r.width/2), y:Math.round(r.top+r.height/2)}; }
     catSel=b.dataset.cat||null; cliente(); scrollTo(0,0); });
   on("aPortada", ()=>{ catSel=null; cliente(); scrollTo(0,0); });
   document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const id=b.dataset.a; if (opcionesDe(id).length) return elegirOpciones(id); cesta[id]=(cesta[id]||0)+1;cliente()});
   document.querySelectorAll("[data-al]").forEach(b=>b.onclick=()=>{const k=b.dataset.al;cesta[k]=(cesta[k]||0)+1;cliente()});
-  document.querySelectorAll("[data-ml]").forEach(b=>b.onclick=()=>{const k=b.dataset.ml;cesta[k]--; if(cesta[k]<=0) delete cesta[k]; if(!totalUds()) vista="carta"; cliente()});
+  document.querySelectorAll("[data-ml]").forEach(b=>b.onclick=()=>{const k=b.dataset.ml;cesta[k]--; if(cesta[k]<=0) delete cesta[k]; if(!totalUds() && vista==="resumen") vista="carta"; cliente()});
   document.querySelectorAll("[data-foto]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); subirFoto(b.dataset.foto); });
   document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const id=b.dataset.m;   // quita la última que se añadió de ese producto
     const k = Object.keys(cesta).filter(x=>lineaCesta(x).id===id).pop(); if (!k) return; cesta[k]--; if(cesta[k]<=0) delete cesta[k]; cliente()});
@@ -1385,7 +1398,7 @@ function elegirOpciones(id, alAnadir){
     caja.querySelector("#hjTot").textContent = eur(i.p + [...sel].reduce((a,x)=>a+extraDe(id,x),0)); });
   caja.querySelector("#hjOk").onclick = () => {
     const o = filas.flatMap(f=>f.o).filter(x=>sel.has(x)), k = o.length ? id+"|"+o.join("·") : id;
-    caja.remove(); if (alAnadir) return alAnadir(k); cesta[k] = (cesta[k]||0)+1; cliente(); toast("Añadido al pedido"); };
+    caja.remove(); if (alAnadir) return alAnadir(k); cesta[k] = (cesta[k]||0)+1; cliente(); };
 }
 /* ---------- Instalar la app (clientes) ---------- */
 const OFRECER_INSTALAR = false;   // Jamal prefiere que los clientes entren siempre por el QR
@@ -2290,6 +2303,9 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Tu pedido":"你的点单",
+  "Realizar pedido":"下单",
+  "+ Otro":"+ 再来一个",
   "Avisos":"通知",
   "Camarero":"服务员",
   "Activados":"开启时间",
@@ -2651,6 +2667,9 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Tu pedido":"La teva comanda",
+  "Realizar pedido":"Fer la comanda",
+  "+ Otro":"+ Un altre",
   "Avisos":"Avisos",
   "Camarero":"Cambrer",
   "Activados":"Activats",
