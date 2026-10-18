@@ -519,6 +519,13 @@ body{font-variant-numeric:lining-nums}
 .an-sum{margin:0}
 .ev.call{flex-wrap:wrap}
 .scan-num{display:flex;gap:8px;width:min(90vw,420px)}.scan-num input{flex:1;padding:12px;font:inherit;border-radius:12px;border:1px solid #fff6;background:#111;color:#fff}.scan-num .act{min-width:70px}
+.nueva-com{width:100%;margin:4px 0 14px;font-size:1.1em}
+.an-donde{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px}
+.an-donde .hj-op{min-height:48px;padding:6px;justify-content:center;font-size:1.05em}
+.an-donde .hj-op[data-m="Barra"]{grid-column:span 2}
+.barra-gente{display:grid;gap:6px;margin:8px 0}
+.bg-p{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px}
+.bg-p .act{min-height:40px;padding:8px 16px}
 </style>
 </head>
 <body>
@@ -890,6 +897,11 @@ const Store = {
     const patch = {estado:"aceptado", aceptado_at:new Date().toISOString()};
     if (sb){ const {error} = await sb.from(T).update(patch).eq("id",id); if (error) throw error; return; }
     demoSave(demoAll().map(r=>r.id===id?{...r,...patch}:r));
+  },
+  async closeCliente(mesa, cliente){   // barra: cada persona paga lo suyo
+    const patch = {cerrado:true, cerrado_at:new Date().toISOString(), estado:"aceptado"};
+    if (sb){ const {error} = await sb.from(T).update(patch).eq("mesa",mesa).eq("cliente",cliente).eq("cerrado",false); if (error) throw error; return; }
+    demoSave(demoAll().map(r=>r.mesa===mesa&&r.cliente===cliente&&!r.cerrado?{...r,...patch}:r));
   },
   async closeMesa(mesa){
     const patch = {cerrado:true, cerrado_at:new Date().toISOString(), estado:"aceptado"};
@@ -1609,6 +1621,7 @@ async function pintar(){
 
   if (pestana==="abiertas"){
     document.body.classList.toggle("muchas", mesasAb.length > 2);
+    h += `<button class="act pay nueva-com" id="nuevaCom">📝 Nueva comanda (sin QR)</button>`;
     h += mesasAb.length ? `<div class="grid">${mesasAb.map(m=>tarjetaMesa(m, abiertas[m])).join("")}</div>`
                         : `<p class="empty">No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.</p>`;
   } else if (pestana==="bloqueados"){
@@ -1655,7 +1668,12 @@ async function pintar(){
     catch{ b.disabled=false; toast("No se ha podido desbloquear. Prueba otra vez."); } });
   cuerpo.querySelectorAll("[data-apodo]").forEach(b=>b.onclick=()=>pantallaApodos(b.dataset.apodo));
   cuerpo.querySelectorAll("[data-anotar]").forEach(b=>b.onclick=()=>anotarComanda(b.dataset.anotar, b.dataset.disp, b.dataset.llamada));
+  { const n = document.getElementById("nuevaCom"); if (n) n.onclick = () => nuevaComanda(); }
+  cuerpo.querySelectorAll("[data-nueva]").forEach(b=>b.onclick=()=>nuevaComanda(b.dataset.nueva));
   cuerpo.querySelectorAll("[data-cobrar]").forEach(b=>b.onclick=()=>{ cobrando=b.dataset.cobrar; pintar(); });
+  cuerpo.querySelectorAll("[data-cerrarc]").forEach(b=>b.onclick=async()=>{ b.disabled=true; const [m, ...n] = b.dataset.cerrarc.split("|"), nom = n.join("|");
+    try{ await Store.closeCliente(m, nom); cobrando=null; toast(`${nom} ha pagado`); pintar(); }
+    catch{ b.disabled=false; toast("No se ha podido cerrar. Prueba otra vez."); } });
   cuerpo.querySelectorAll("[data-nocobrar]").forEach(b=>b.onclick=()=>{ cobrando=null; pintar(); });
   cuerpo.querySelectorAll("[data-cerrar]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
     try{ await Store.closeMesa(b.dataset.cerrar); cobrando=null; toast(`Mesa ${b.dataset.cerrar} cobrada y cerrada`); pintar(); }
@@ -1687,10 +1705,44 @@ function botonBloq(r){
   return `<button class="act lnk" data-bloq="${esc(r.id)}">Rechazar y bloquear contacto</button>`;
 }
 // el camarero anota lo que le piden en la mesa (Jamal): va a la cuenta del cliente como un pedido suyo
-function anotarComanda(m, disp, llamada){
+// comanda sin QR (gente mayor, barra…): el camarero elige mesa o barra y el nombre, y luego lo que piden
+let NOMBRES_CONOCIDOS = null;
+async function nuevaComanda(mPre){
+  let m = mPre || "", nombre = "";
+  if (!NOMBRES_CONOCIDOS) { NOMBRES_CONOCIDOS = []; Store.ventas(new Date(Date.now()-120*864e5).toISOString(), new Date(Date.now()+864e5).toISOString())
+      .then(rs => { NOMBRES_CONOCIDOS = [...new Set(rs.map(r=>r.cliente).filter(Boolean))]; if (caja.isConnected) pinta(); }).catch(()=>{}); }
+  document.querySelector(".modal")?.remove();
+  const caja = document.createElement("div"); caja.className = "modal anota"; document.body.appendChild(caja);
+  const pinta = () => {
+    const enMesa = m ? [...new Set(filas.filter(r=>!r.cerrado && r.mesa===m).map(r=>r.puso||r.cliente).filter(Boolean))] : [];
+    const todos = [...new Set([...enMesa, ...filas.map(r=>r.puso||r.cliente).filter(Boolean), ...NOMBRES_CONOCIDOS])];
+    const q = nombre.trim().toLowerCase();
+    const sugeridos = (m==="Barra" || q ? todos : enMesa).filter(n=>!q || n.toLowerCase().includes(q)).slice(0, 30);
+    caja.innerHTML = `<div class="mbox"><b class="an-t">Nueva comanda</b>
+      <span class="hj-t">¿Dónde está?</span>
+      <div class="an-donde"><button type="button" class="hj-op ${m==="Barra"?"on":""}" data-m="Barra">🍺 Barra</button>${Array.from({length:CONFIG.MESAS},(_,i)=>String(i+1)).map(n=>`<button type="button" class="hj-op ${m===n?"on":""}" data-m="${n}">${n}</button>`).join("")}</div>
+      ${m?`<span class="hj-t">Nombre del cliente</span>
+      <input class="an-busca" id="ncNom" maxlength="30" placeholder="Escribe o busca el nombre…" value="${esc(nombre)}" autocomplete="off" aria-label="Nombre del cliente">
+      ${sugeridos.length?`<div class="an-quien">${sugeridos.map(n=>`<button type="button" class="hj-op ${n.toLowerCase()===q?"on":""}" data-n="${esc(n)}">${esc(n)}</button>`).join("")}</div>`:""}`:""}
+      <button class="act pay" id="ncOk" ${m&&nombre.trim()?"":"disabled"}>Seguir: elegir lo que pide</button><button class="act no" id="ncNo">Cancelar</button></div>`;
+    caja.querySelector("#ncNo").onclick = () => caja.remove();
+    caja.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { m = b.dataset.m; pinta(); caja.querySelector("#ncNom")?.focus(); });
+    caja.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { nombre = b.dataset.n; pinta(); });
+    const inp = caja.querySelector("#ncNom");
+    if (inp) inp.oninput = () => { nombre = inp.value; const pos = inp.selectionStart; pinta(); const n = caja.querySelector("#ncNom"); n.focus(); n.setSelectionRange(pos, pos); };
+    caja.querySelector("#ncOk").onclick = () => { const n = nombre.trim().replace(/\s+/g," "); if (!m || !n) return; caja.remove(); anotarComanda(m, null, null, n); };
+  };
+  pinta();
+}
+function anotarComanda(m, disp, llamada, nombreNuevo){
   const deMesa = filas.filter(r=>!r.cerrado && r.mesa===m);
-  const gente = [...new Map(deMesa.filter(r=>r.dispositivo).map(r=>[r.dispositivo, {d:r.dispositivo, ver:r.cliente||"Cliente", nombre:r.puso||r.cliente||""}])).values()];
-  let quien = gente.find(g=>g.d===disp) || gente[0] || null, sec = SECCIONES[0].k, busca = "";
+  // cada persona de la mesa: por su móvil, o por su nombre si la apuntó un camarero (sin móvil)
+  const gente = [...new Map(deMesa.filter(r=>r.cliente).map(r=>{ const nombre = r.puso||r.cliente; return [r.dispositivo || "n:"+nombre.toLowerCase(), {d:r.dispositivo||null, ver:r.cliente, nombre}]; })).values()];
+  let quien = null;
+  if (nombreNuevo) { quien = gente.find(g=>g.nombre.toLowerCase()===nombreNuevo.toLowerCase() || g.ver.toLowerCase()===nombreNuevo.toLowerCase());
+    if (!quien) { quien = {d:null, ver:nombreNuevo, nombre:nombreNuevo}; gente.push(quien); } }
+  quien = quien || gente.find(g=>disp && g.d===disp) || gente[0] || null;
+  let sec = SECCIONES[0].k, busca = "";
   const lista = {};   // clave de cesta -> unidades
   document.querySelector(".modal")?.remove();
   const caja = document.createElement("div"); caja.className = "modal anota";
@@ -1699,8 +1751,8 @@ function anotarComanda(m, disp, llamada){
   const pinta = () => {
     const items = busca ? ALL_ITEMS.filter(i=>label(i).toLowerCase().includes(busca.toLowerCase()))
                         : SECCIONES.find(x=>x.k===sec).grupos.flatMap(g=>GRUPOS.find(x=>x.g===g)?.items||[]);
-    caja.innerHTML = `<div class="mbox"><b class="an-t">Anotar comanda · Mesa ${esc(m)}</b>
-      ${gente.length>1?`<div class="an-quien"><span class="hj-t">Para</span>${gente.map(g=>`<button type="button" class="hj-op ${quien&&quien.d===g.d?"on":""}" data-q="${esc(g.d)}">${esc(g.ver)}</button>`).join("")}</div>`
+    caja.innerHTML = `<div class="mbox"><b class="an-t">${m==="Barra"?"Anotar en barra":"Anotar comanda · Mesa "+esc(m)}</b>
+      ${gente.length>1?`<div class="an-quien"><span class="hj-t">Para</span>${gente.map(g=>`<button type="button" class="hj-op ${quien===g?"on":""}" data-q="${esc(g.d||"n:"+g.nombre)}">${esc(g.ver)}</button>`).join("")}</div>`
         : quien?`<p class="sub">Para <b>${esc(quien.ver)}</b></p>`:`<p class="sub">Va a la cuenta de la mesa ${esc(m)}.</p>`}
       <input class="an-busca" type="search" placeholder="Buscar producto…" value="${esc(busca)}" aria-label="Buscar producto">
       ${busca?"":`<div class="an-secs">${SECCIONES.map(x=>`<button type="button" class="hj-op ${x.k===sec?"on":""}" data-sec="${esc(x.k)}">${x.e} ${esc(x.k)}</button>`).join("")}</div>`}
@@ -1713,7 +1765,7 @@ function anotarComanda(m, disp, llamada){
     const $ = q => caja.querySelector(q);
     $("#anNo").onclick = () => caja.remove();
     const bus = $(".an-busca"); bus.oninput = () => { busca = bus.value; const pos = bus.selectionStart; pinta(); const n = caja.querySelector(".an-busca"); n.focus(); n.setSelectionRange(pos, pos); };
-    caja.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { quien = gente.find(g=>g.d===b.dataset.q); pinta(); });
+    caja.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { quien = gente.find(g=>(g.d||"n:"+g.nombre)===b.dataset.q); pinta(); });
     caja.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { sec = b.dataset.sec; pinta(); });
     caja.querySelectorAll("[data-it]").forEach(b => b.onclick = () => { const id = b.dataset.it, mete = k => { lista[k] = (lista[k]||0)+1; pinta(); };
       if (opcionesDe(id).length) elegirOpciones(id, mete); else mete(id); });
@@ -1722,10 +1774,10 @@ function anotarComanda(m, disp, llamada){
     $("#anOk").onclick = async e => { const btn = e.currentTarget; btn.disabled = true;
       const items = Object.entries(lista).map(([k,q])=>{ const {i,o} = lineaCesta(k); return {n:conOpciones(label(i),o), q, p:precioLinea(k)}; });
       try {
-        const r = await Store.add({mesa:m, tipo:"pedido", cliente:quien?.nombre || "Mesa "+m, dispositivo:quien?.d || null, items, nota:`Anotado por ${trab.nombre}`, total:Math.round(total()*100)/100});
+        const r = await Store.add({mesa:m, tipo:"pedido", cliente:(quien?.nombre || "Mesa "+m).slice(0,30), dispositivo:quien?.d || null, items, nota:`Anotado por ${trab.nombre}`, total:Math.round(total()*100)/100});
         await Store.accept(r.id).catch(()=>{});
         if (llamada) await Store.accept(isNaN(llamada)?llamada:Number(llamada)).catch(()=>{});
-        caja.remove(); toast(`Comanda anotada en la mesa ${m}`); pintar();
+        caja.remove(); toast(m==="Barra" ? "Comanda anotada en la barra" : `Comanda anotada en la mesa ${m}`); pintar();
       } catch { btn.disabled = false; toast("No se ha guardado. Si el cliente está bloqueado no se le puede anotar."); } };
   };
   pinta();
@@ -1739,8 +1791,8 @@ function tarjetaMesa(m, rs){
   peds.forEach(r=>(r.items||[]).forEach(i=>{ const k=i.n; cons[k]=cons[k]||{q:0,p:Number(i.p)||0}; cons[k].q+=Number(i.q)||0; }));
   const desde = rs[0]?.created_at;
   return `<article class="mc ${pend.length?"hot":""}">
-    <div class="h"><b>Mesa ${esc(m)}</b><span class="t">Abierta ${desde?hora(desde):""}</span></div>
-    ${nombres.length?`<div class="who">${nombres.join(" · ")} <button class="act lnk apodo-b" data-apodo="${esc(m)}">✏️ Apodo</button></div>`:""}
+    <div class="h"><b>${m==="Barra"?"Barra":"Mesa "+esc(m)}</b><span class="t">Abierta ${desde?hora(desde):""}</span></div>
+    ${nombres.length?`<div class="who">${nombres.join(" · ")}${rs.some(r=>r.dispositivo)?` <button class="act lnk apodo-b" data-apodo="${esc(m)}">✏️ Apodo</button>`:""}</div>`:""}
     ${pend.map(r=> r.tipo==="camarero"
       ? `<div class="ev call"><div class="l"><span>${esc(r.cliente||"Un cliente")} llama al camarero</span><span class="t">${hace(r.created_at)}</span></div>
          <button class="act go" data-acc="${esc(r.id)}">Voy para allá</button><button class="act pay" data-anotar="${esc(m)}" data-disp="${esc(r.dispositivo||"")}" data-llamada="${esc(r.id)}">📝 Anotar comanda</button>${botonBloq(r)}</div>`
@@ -1753,10 +1805,15 @@ function tarjetaMesa(m, rs){
       <div class="row total"><span>Total (${Object.values(cons).reduce((a,c)=>a+c.q,0)} prod.)</span><span>${eur(total)}</span></div>
       ${(()=>{ const q={}; peds.forEach(r=>{ const k=r.cliente||"Sin nombre"; q[k]=(q[k]||0)+Number(r.total||0); });
         return Object.keys(q).length>1?`<div class="quien">${Object.entries(q).map(([n,t])=>`<span>${esc(n)}: <b>${eur(t)}</b></span>`).join("")}</div>`:""; })()}</details>`:""}
+    ${m==="Barra" ? `<div class="barra-gente">${(()=>{ const q={}; peds.forEach(r=>{ const k=r.puso||r.cliente||"Sin nombre"; q[k]=q[k]||{t:0, ver:r.cliente||k}; q[k].t+=Number(r.total||0); });
+        return Object.entries(q).map(([n,x])=> cobrando==="Barra|"+n
+          ? `<div class="ask"><b>¿Ha pagado ${esc(x.ver)} (${eur(x.t)})?</b><div class="two"><button class="act pay" data-cerrarc="${esc("Barra|"+n)}">Sí, ha pagado</button><button class="act no" data-nocobrar>No</button></div></div>`
+          : `<div class="bg-p"><span><b>${esc(x.ver)}</b> · ${eur(x.t)}</span><button class="act pay" data-cobrar="${esc("Barra|"+n)}">Cobrar</button></div>`).join(""); })()}</div>
+      <div class="foot"><button class="act go" data-nueva="Barra">📝 Anotar en barra</button></div>` : `
     <div class="foot">${cobrando===m
       ? `<div class="ask"><b>¿Ya está cobrada la mesa ${esc(m)}${total?` (${eur(total)})`:""}?</b>
          <div class="two"><button class="act pay" data-cerrar="${esc(m)}">Sí, cerrar mesa</button><button class="act no" data-nocobrar>No</button></div></div>`
-      : `<button class="act go" data-anotar="${esc(m)}">📝 Anotar comanda</button><button class="act pay" data-cobrar="${esc(m)}">Cobrar y cerrar mesa</button>`}</div>
+      : `<button class="act go" data-anotar="${esc(m)}">📝 Anotar comanda</button><button class="act pay" data-cobrar="${esc(m)}">Cobrar y cerrar mesa</button>`}</div>`}
   </article>`;
 }
 
@@ -2175,6 +2232,19 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Comanda anotada en la barra":"已记在吧台",
+  "📝 Nueva comanda (sin QR)":"📝 新点单（不用二维码）",
+  "Nueva comanda":"新点单",
+  "¿Dónde está?":"在哪里？",
+  "🍺 Barra":"🍺 吧台",
+  "Barra":"吧台",
+  "Nombre del cliente":"客人名字",
+  "Escribe o busca el nombre…":"输入或搜索名字…",
+  "Seguir: elegir lo que pide":"下一步：选点的东西",
+  "Anotar en barra":"记在吧台",
+  "📝 Anotar en barra":"📝 记在吧台",
+  "Cobrar":"收款",
+  "Sí, ha pagado":"是的，已付款",
   "📷 Leer QR de mesa":"📷 扫桌子二维码",
   "o escribe el número de mesa":"或输入桌号",
   "Número de mesa":"桌号",
@@ -2454,6 +2524,8 @@ const ZH = {
   "No se ha podido crear el QR. Revisa la conexión.":"没能生成二维码。请检查网络。","Solo el encargado puede poner fotos.":"只有负责人能添加照片。"
 };
 const ZH_RE = [
+  [/^¿Ha pagado (.+) \((.+)\)\?$/, m=>`${m[1]}已经付了吗（${m[2]}）？`],
+  [/^(.+) ha pagado$/, m=>`${m[1]}已付款`],
   [/^Anotar comanda · Mesa (.+)$/, m=>`记下点单 · ${m[1]}号桌`],
   [/^Comanda anotada en la mesa (.+)$/, m=>`已记到${m[1]}号桌`],
   [/^Anotado por (.+)$/, m=>`由${m[1]}记下`],
@@ -2506,6 +2578,19 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Comanda anotada en la barra":"Comanda apuntada a la barra",
+  "📝 Nueva comanda (sin QR)":"📝 Nova comanda (sense QR)",
+  "Nueva comanda":"Nova comanda",
+  "¿Dónde está?":"On és?",
+  "🍺 Barra":"🍺 Barra",
+  "Barra":"Barra",
+  "Nombre del cliente":"Nom del client",
+  "Escribe o busca el nombre…":"Escriu o cerca el nom…",
+  "Seguir: elegir lo que pide":"Seguir: triar què demana",
+  "Anotar en barra":"Apuntar a la barra",
+  "📝 Anotar en barra":"📝 Apuntar a la barra",
+  "Cobrar":"Cobrar",
+  "Sí, ha pagado":"Sí, ha pagat",
   "📷 Leer QR de mesa":"📷 Llegir QR de taula",
   "o escribe el número de mesa":"o escriu el número de taula",
   "Número de mesa":"Número de taula",
@@ -2777,6 +2862,8 @@ const CA = {
   "No se ha podido crear el QR. Revisa la conexión.":"No s'ha pogut crear el QR. Revisa la connexió.","Solo el encargado puede poner fotos.":"Només l'encarregat pot posar fotos."
 };
 const CA_RE = [
+  [/^¿Ha pagado (.+) \((.+)\)\?$/, m=>`Ha pagat ${m[1]} (${m[2]})?`],
+  [/^(.+) ha pagado$/, m=>`${m[1]} ha pagat`],
   [/^Anotar comanda · Mesa (.+)$/, m=>`Apuntar comanda · Taula ${m[1]}`],
   [/^Comanda anotada en la mesa (.+)$/, m=>`Comanda apuntada a la taula ${m[1]}`],
   [/^Anotado por (.+)$/, m=>`Apuntat per ${m[1]}`],
