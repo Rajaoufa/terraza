@@ -556,6 +556,18 @@ body{font-variant-numeric:lining-nums}
 .gpn{flex:2 1 180px;font-weight:700}.gpd{flex:2 1 160px}.gnn{flex:2 1 180px}.gnp{width:90px;text-align:right}
 .gpp .act,.gpnuevo .act{width:auto;margin:0;padding:8px 14px;min-height:42px}
 .gpnuevo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;border:1px dashed rgba(240,201,121,.5);border-radius:12px}
+.pc[data-a]{cursor:pointer}
+.obras{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 30%,#3A2414,#120A05 75%)}
+.ob-in{max-width:420px;text-align:center;color:#F8EBD2}
+.ob-in h2{font-family:var(--f-display);font-size:1.9em;margin:18px 0 8px;color:#F0C979}
+.ob-in p{font-size:1.1em;color:#E2CFB2;margin:0}
+.valla{width:min(320px,86vw);height:auto}
+.valla .luz{animation:parpadeo 1s infinite}.valla .l2{animation-delay:.5s}
+@keyframes parpadeo{0%,49%{opacity:1}50%,100%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){.valla .luz{animation:none}}
+.gobras{border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px;background:var(--card)}
+.gobras.on{border-color:#E2A33B;background:repeating-linear-gradient(45deg,rgba(226,59,46,.18) 0 18px,rgba(0,0,0,0) 18px 36px),var(--card)}
+.gpp .gpo{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -728,23 +740,32 @@ const label = i => [i.n, i.m, i.d].filter(Boolean).join(" · ");
 // Opciones al pedir (Jamal, 2026-10-18): al tocar un producto se abre una hoja con las suyas. Son gratis.
 // "uno": de esa fila solo se puede marcar una. Se envían en el nombre: "Café con leche (Leche desnatada, Sacarina)".
 const O_ENDULZAR = {t:"Endulzar", uno:true, o:["Azúcar moreno","Sacarina"]};
-const O_LLEVAR = {t:"", o:["Para llevar"]};
 const OPCIONES_GRUPO = {
-  "Cafetería":        [{t:"Leche", uno:true, o:["Leche desnatada","Leche sin lactosa"]}, {t:"Temperatura", uno:true, o:["Caliente","Templado","Con hielo"]}, O_ENDULZAR, O_LLEVAR],
-  "Carajillos":       [O_ENDULZAR, {t:"", o:["Con hielo"]}, O_LLEVAR],
-  "Refrescos y agua": [{t:"", o:["Sin hielo","Sin limón"]}, O_LLEVAR],
+  "Cafetería":        [{t:"Leche", uno:true, o:["Leche desnatada","Leche sin lactosa"]}, {t:"Temperatura", uno:true, o:["Caliente","Templado","Con hielo"]}, O_ENDULZAR],
+  "Carajillos":       [O_ENDULZAR, {t:"", o:["Con hielo"]}],
+  "Refrescos y agua": [{t:"", o:["Sin hielo","Sin limón"]}],
   "Vinos":            [{t:"", o:["Con hielo","Con gaseosa"]}],
   "Chupitos":         [{t:"", o:["Con hielo"]}],
   "Copas":            [{t:"", o:["Con hielo"]}],
   "Tubos":            [{t:"", o:["Sin hielo","Sin limón"]}],
   "Combinados":       [{t:"Refresco", uno:true, o:["Con Coca-Cola","Con Coca-Cola Zero","Con tónica","Con limón","Con naranja","Con Seven Up"]}, {t:"", o:["Sin hielo","Sin limón"]}],
-  "Bocadillos":       [{t:"", o:["Con queso","Con tomate"]}, {t:"Temperatura", uno:true, o:["Caliente","Templado"]}, O_LLEVAR],
-  "Para picar":       [O_LLEVAR]};
+  "Bocadillos":       [{t:"", o:["Con queso","Con tomate"]}, {t:"Temperatura", uno:true, o:["Caliente","Templado"]}],
+  "Para picar":       []};
 const OPCIONES_ITEM = {   // excepciones a las del grupo
   ca1: OPCIONES_GRUPO["Cafetería"].slice(1),
-  re17: [{t:"", uno:true, o:["Fría","Del tiempo"]}, O_LLEVAR], re18: [{t:"", uno:true, o:["Fría","Del tiempo"]}, O_LLEVAR],
+  re17: [{t:"", uno:true, o:["Fría","Del tiempo"]}], re18: [{t:"", uno:true, o:["Fría","Del tiempo"]}],
   cb11: []};
-const opcionesDe = id => OPCIONES_ITEM[id] || OPCIONES_GRUPO[GRUPO_DE[id]] || [];
+// todas las opciones que existen, juntas por fila (para que el encargado elija las de cada producto)
+const CATALOGO_OPC = (() => { const filas = [];
+  [...Object.values(OPCIONES_GRUPO), ...Object.values(OPCIONES_ITEM)].flat().forEach(f => {
+    let r = filas.find(x => x.t === f.t && !!x.uno === !!f.uno); if (!r) filas.push(r = {t:f.t, uno:!!f.uno, o:[]});
+    f.o.forEach(o => { if (!filas.some(x => x.o.includes(o))) r.o.push(o); }); });
+  return filas.filter(r => r.o.length); })();
+const PROD_OPS = {};   // id -> ["Sin hielo", …] elegidas en Gestión > Productos
+const opcionesDe = id => { const el = PROD_OPS[id];
+  if (!el) return OPCIONES_ITEM[id] || OPCIONES_GRUPO[GRUPO_DE[id]] || [];
+  const usadas = new Set();
+  return CATALOGO_OPC.map(f => ({...f, o: f.o.filter(o => el.includes(o) && !usadas.has(o) && usadas.add(o))})).filter(f => f.o.length); };
 // lo que cuesta de más cada opción (Jamal: café con hielo +0,10 €, extras del bocadillo +1 €, vinos y copas nada)
 const EXTRAS_BASE = {"Cafetería|Con hielo":0.10, "Carajillos|Con hielo":0.10, "Bocadillos|Con queso":1, "Bocadillos|Con tomate":1};
 // precios que el encargado cambia en Gestión > Precios (tabla esencia_precios): "ce1" = producto, "x:Grupo|Opción" = extra
@@ -755,13 +776,13 @@ let ORIG = null;   // la carta tal como está escrita en el código
 const OCULTOS = [];   // los quitados de la carta, para volver a ponerlos desde Gestión
 function ponProductos(){
   if (!ORIG) ORIG = GRUPOS.map(g => ({g, items: g.items.map(i => ({ref:i, n:i.n, m:i.m, d:i.d}))}));
-  ALL_ITEMS.length = 0; OCULTOS.length = 0;
+  ALL_ITEMS.length = 0; OCULTOS.length = 0; Object.keys(PROD_OPS).forEach(k => delete PROD_OPS[k]);
   ORIG.forEach(o => { o.g.items = o.items.map(x => { x.ref.n = x.n; x.ref.m = x.m; x.ref.d = x.d; return x.ref; }); });
   PRODUCTOS.forEach(r => {
     const g = GRUPOS.find(x => x.g === r.grupo); if (!g) return;
     let i = ORIG.flatMap(o => o.items).find(x => x.ref.id === r.id)?.ref;
     if (!i){ i = {id:r.id}; if (r.p != null) { PRECIO_CARTA[r.id] = Number(r.p); i.p = Number(r.p); } g.items.push(i); GRUPO_DE[r.id] = g.g; }
-    i.n = r.n || i.n; i.m = r.m || undefined; i.d = r.d || undefined;
+    i.n = r.n || i.n; i.m = r.m || undefined; i.d = r.d || undefined; if (Array.isArray(r.ops)) PROD_OPS[r.id] = r.ops;
     if (r.oculto){ g.items = g.items.filter(x => x !== i); OCULTOS.push({i, g:g.g}); }
   });
   GRUPOS.forEach(g => ALL_ITEMS.push(...g.items));
@@ -1076,8 +1097,8 @@ const Store = {
     ls.set("esencia_demo_deudas", [...ls.get("esencia_demo_deudas", []), {id:Date.now(), nombre, importe, concepto:concepto||null, created_at:new Date().toISOString(), quien:admin.nombre}]);
   },
   async productos(){
-    if (sb){ const {data,error} = await sb.from("esencia_productos").select("id,grupo,n,m,d,p,oculto").order("updated_at"); if (error) throw error;
-             return data.map(r=>({...r, p: r.p==null ? null : Number(r.p)})); }
+    if (sb){ const {data,error} = await sb.from("esencia_productos").select("*").order("updated_at"); if (error) throw error;
+             return data.map(({updated_at, ...r})=>({...r, p: r.p==null ? null : Number(r.p), ops: r.ops ?? null})); }
     return ls.get("esencia_demo_productos", []);
   },
   async productosGuardar(admin, lista){
@@ -1263,7 +1284,18 @@ function bloqueMios(){
   return estado + tablaCuenta(peds, `La cuenta de la mesa ${esc(mesa)}`);
 }
 
+const enObras = () => Number(PRECIOS["_obras"]) === 1;
+const VALLA = `<svg class="valla" viewBox="0 0 320 170" aria-hidden="true"><defs><pattern id="rayas" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="20" height="40" fill="#E23B2E"/><rect x="20" width="20" height="40" fill="#F7F1E6"/></pattern></defs>
+  <rect x="44" y="70" width="12" height="96" rx="3" fill="#C9C2B6"/><rect x="264" y="70" width="12" height="96" rx="3" fill="#C9C2B6"/>
+  <rect x="26" y="152" width="48" height="12" rx="4" fill="#8A847A"/><rect x="246" y="152" width="48" height="12" rx="4" fill="#8A847A"/>
+  <rect x="14" y="58" width="292" height="40" rx="6" fill="url(#rayas)" stroke="#2A140A" stroke-width="3"/><rect x="34" y="112" width="252" height="26" rx="5" fill="url(#rayas)" stroke="#2A140A" stroke-width="3"/>
+  <rect x="40" y="38" width="20" height="20" rx="4" fill="#3A3A3A"/><circle class="luz" cx="50" cy="30" r="13" fill="#FFB020"/><rect x="260" y="38" width="20" height="20" rx="4" fill="#3A3A3A"/><circle class="luz l2" cx="270" cy="30" r="13" fill="#FFB020"/></svg>`;
+function pantallaObras(){
+  return `<div class="obras" role="alert"><div class="ob-in">${VALLA}<h2>Carta en construcción</h2><p>Estamos preparando la carta. Mientras tanto, pide al camarero.</p></div></div>`;
+}
 function cliente(){
+  document.querySelector(".obras")?.remove();
+  if (enObras() && mesa && !soyAdmin()) { document.body.insertAdjacentHTML("beforeend", pantallaObras()); }
   document.body.classList.toggle("compact", ["carta","resumen"].includes(vista));
   document.body.classList.toggle("oscura", ["carta","resumen"].includes(vista) && !!mesa);
   if (!mesa && !MODO_FOTOS){
@@ -1318,9 +1350,9 @@ function cliente(){
     h += `<div class="capp ${abrirDesde?"abre":""}" ${abrirDesde?`style="--ox:${abrirDesde.x}px;--oy:${abrirDesde.y}px"`:""}><button class="back" id="aPortada">${ICON.back} Todas las secciones</button><nav class="ctabs" aria-label="Secciones de la carta">${TODAS.map(x=>
       `<div class="ctw">${botonFoto(fk(x))}<button class="ctab ${catSel===x.k?"on":""}" data-cat="${esc(x.k)}" aria-pressed="${catSel===x.k}">${icono(x)}<span>${esc(x.t)}</span></button></div>`).join("")}</nav>`;
     const tarjeta = (i, n) => { const q = udsDe(i.id);
-      return `<article class="pc t${n%3} ${q?"has":""}">${botonFoto(i.id)}<button class="pc-foto" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</button>
+      return `<article class="pc t${n%3} ${q?"has":""}" data-a="${i.id}">${botonFoto(i.id)}<button class="pc-foto" aria-label="Añadir ${esc(label(i))}">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</button>
         <div class="pc-tx">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<h3>${esc(i.n)}</h3><b class="pc-p">${eur(i.p)}</b>${i.d?`<p>${esc(i.d)}</p>`:""}
-        <button class="pc-add" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${q?`+ Otro`:`+ Añadir`}</button></div></article>`; };
+        <button class="pc-add" aria-label="Añadir ${esc(label(i))}">${q?`+ Otro`:`+ Añadir`}</button></div></article>`; };
     if (catSel==="★"){
       const mios = ALL_ITEMS.filter(i=>MIO()[i.id]).sort((a,b)=>MIO()[b.id]-MIO()[a.id]);
       const top = mios.length ? [] : porConsumo(ALL_ITEMS.filter(i=>(MAS_PEDIDOS||{})[label(i)]));
@@ -2219,6 +2251,7 @@ async function gProductos(){
   PRODUCTOS = await Store.productos(); ls.set("esencia_productos", PRODUCTOS); ponProductos(); ponPrecios();
   const fila = i => `<div class="gpp" data-id="${esc(i.id)}"><input class="gpn" maxlength="60" value="${esc(i.n)}" aria-label="Nombre">
       <input class="gpd" maxlength="80" value="${esc(i.d||"")}" placeholder="Detalle (tamaño, marca…)" aria-label="Detalle">
+      <button class="act go gpo" data-opc="${esc(i.id)}">Opciones${opcionesDe(i.id).length?` (${opcionesDe(i.id).flatMap(f=>f.o).length})`:""}</button>
       <button class="act no gpq" data-quita="${esc(i.id)}">Quitar</button></div>`;
   const secs = SECCIONES.map(sec => `<h2 class="ch">${esc(sec.k)}</h2>${sec.grupos.map(g=>GRUPOS.find(x=>x.g===g)).filter(Boolean).map(g=>`
       <h3 class="gsec">${esc(g.g)}</h3><div class="gpps">${g.items.map(fila).join("")}
@@ -2252,13 +2285,16 @@ async function gPrecios(){
     <button class="act pay" id="gPreOk2">Guardar precios</button>`;
 }
 async function gCarta(){
-  return `<div class="glinks"><a class="ghost" href="${location.pathname}?qr">QR de las mesas<small>Descargar o imprimir el QR de cada mesa</small></a>
+  return `<div class="gobras ${enObras()?"on":""}"><b>${enObras()?"🚧 La carta está EN CONSTRUCCIÓN":"La carta está abierta a los clientes"}</b>
+      <p class="sub">${enObras()?"Los clientes ven el cartel de obras y no pueden pedir. Tú sí ves la carta normal.":"Si vas a cambiar productos, pon el cartel para que los clientes no pidan mientras tanto."}</p>
+      <button class="act ${enObras()?"pay":"go"}" id="gObras">${enObras()?"Quitar el cartel y abrir la carta":"🚧 Poner \"En construcción\""}</button></div>
+    <div class="glinks"><a class="ghost" href="${location.pathname}?qr">QR de las mesas<small>Descargar o imprimir el QR de cada mesa</small></a>
     <a class="ghost" href="${location.pathname}?fotos">Fotos de la carta<small>Poner o cambiar la foto de cada producto</small></a></div>`;
 }
 function gEnlaces(box){
   const $ = q => box.querySelector(q);
   const filaDe = id => { const r = PRODUCTOS.find(x=>x.id===id), i = findItem(id) || OCULTOS.find(o=>o.i.id===id)?.i;
-    return {id, grupo: r?.grupo || GRUPO_DE[id], n: i?.n || r?.n, m: i?.m || null, d: i?.d || null, p: r?.p ?? null, oculto: !!r?.oculto}; };
+    return {id, grupo: r?.grupo || GRUPO_DE[id], n: i?.n || r?.n, m: i?.m || null, d: i?.d || null, p: r?.p ?? null, oculto: !!r?.oculto, ops: r?.ops ?? null}; };
   const guardaProd = async (lista, ok) => { try { await Store.productosGuardar(trab, lista); toast(ok); pintaGestion(); }
     catch(err) { toast(/PGRST202|PGRST205|esencia_productos|function|relation/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de productos en Supabase" : "No se ha podido guardar"); } };
   box.querySelectorAll("#gProdOk,#gProdOk2").forEach(b => b.onclick = () => {
@@ -2271,12 +2307,31 @@ function gEnlaces(box){
   box.querySelectorAll("[data-quita]").forEach(b => b.onclick = () => {
     if (b.dataset.seguro !== "1"){ b.dataset.seguro = "1"; b.textContent = "¿Seguro? Quitar"; return; }
     b.disabled = true; guardaProd([{...filaDe(b.dataset.quita), oculto:true}], "Quitado de la carta"); });
+  if ($("#gObras")) $("#gObras").onclick = async e => { e.currentTarget.disabled = true; const pon = !enObras();
+    try { await Store.preciosGuardar(trab, [{clave:"_obras", precio: pon ? 1 : null}]); PRECIOS = await Store.precios(); ls.set("esencia_precios", PRECIOS);
+          toast(pon ? "Cartel de obras puesto" : "Carta abierta otra vez"); pintaGestion(); }
+    catch { e.currentTarget.disabled = false; toast("No se ha podido cambiar. ¿Has pegado el SQL de precios?"); } };
+  box.querySelectorAll("[data-opc]").forEach(b => b.onclick = () => {
+    const id = b.dataset.opc, i = findItem(id), sel = new Set(opcionesDe(id).flatMap(f=>f.o));
+    document.querySelector(".modal.hoja")?.remove();
+    const caja = document.createElement("div"); caja.className = "modal hoja";
+    caja.innerHTML = `<div class="mbox" role="dialog" aria-modal="true"><div class="hj-cab"><b class="hj-n">${esc(label(i))}</b></div>
+      <p class="sub">Marca lo que puede pedir el cliente con este producto.</p>
+      ${CATALOGO_OPC.map(f=>`<div class="hj-fila">${f.t?`<span class="hj-t">${esc(f.t)}</span>`:""}<div class="hj-ops">${f.o.map(o=>`<button type="button" class="hj-op ${sel.has(o)?"on":""}" data-o="${esc(o)}" aria-pressed="${sel.has(o)}">${esc(o)}</button>`).join("")}</div></div>`).join("")}
+      <button class="act pay" id="opOk">Guardar opciones</button><button class="act no" id="opNo">Cancelar</button></div>`;
+    document.body.appendChild(caja);
+    caja.onclick = e => { if (e.target === caja) caja.remove(); };
+    caja.querySelector("#opNo").onclick = () => caja.remove();
+    caja.querySelectorAll("[data-o]").forEach(x => x.onclick = () => { const o = x.dataset.o, on = !sel.has(o);
+      caja.querySelectorAll(`[data-o="${CSS.escape(o)}"]`).forEach(y => { y.classList.toggle("on", on); y.setAttribute("aria-pressed", on); });
+      if (on) sel.add(o); else sel.delete(o); });
+    caja.querySelector("#opOk").onclick = () => { caja.remove(); guardaProd([{...filaDe(id), ops:[...sel]}], "Opciones guardadas"); }; });
   box.querySelectorAll("[data-vuelve]").forEach(b => b.onclick = () => { b.disabled = true; guardaProd([{...filaDe(b.dataset.vuelve), oculto:false}], "Vuelve a estar en la carta"); });
   box.querySelectorAll(".gpnuevo").forEach(f => f.onsubmit = e => { e.preventDefault();
     const n = f.querySelector(".gnn").value.trim().replace(/\s+/g," ").slice(0,60), pr = Math.round(Number(String(f.querySelector(".gnp").value).replace(",","."))*100)/100;
     if (!n || !(pr >= 0) || pr > 999) return toast("Pon el nombre y el precio");
     f.querySelector("button").disabled = true;
-    guardaProd([{id:"n"+Date.now().toString(36), grupo:f.dataset.grupo, n, m:null, d:null, p:pr, oculto:false}], `${n} añadido a la carta`); });
+    guardaProd([{id:"n"+Date.now().toString(36), grupo:f.dataset.grupo, n, m:null, d:null, p:pr, oculto:false, ops:[]}], `${n} añadido a la carta`); });
   if ($("#gAvPrueba")) $("#gAvPrueba").onclick = async e => { const b = e.currentTarget; b.disabled = true;
     try { const n = await Store.pushProbar(trab); toast(n ? `Aviso de prueba enviado a ${n} móviles` : "Nadie tiene los avisos activados todavía"); }
     catch(err) { toast(/PGRST202|esencia_push|function/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de avisos en Supabase" : "No se ha podido enviar el aviso de prueba"); }
@@ -2378,6 +2433,21 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Carta en construcción":"菜单正在建设中",
+  "Estamos preparando la carta. Mientras tanto, pide al camarero.":"我们正在准备菜单。请先向服务员点单。",
+  "Opciones":"选项",
+  "Guardar opciones":"保存选项",
+  "Opciones guardadas":"选项已保存",
+  "Marca lo que puede pedir el cliente con este producto.":"选择客人可以为这个商品选的内容。",
+  "Cartel de obras puesto":"已挂上施工牌",
+  "Carta abierta otra vez":"菜单重新开放",
+  "Quitar el cartel y abrir la carta":"取下施工牌，开放菜单",
+  "🚧 La carta está EN CONSTRUCCIÓN":"🚧 菜单正在建设中",
+  "La carta está abierta a los clientes":"菜单对客人开放",
+  "Los clientes ven el cartel de obras y no pueden pedir. Tú sí ves la carta normal.":"客人会看到施工牌，不能点单。你仍然能看到正常菜单。",
+  "Si vas a cambiar productos, pon el cartel para que los clientes no pidan mientras tanto.":"如果要修改商品，先挂上施工牌，客人暂时不能点单。",
+  "🚧 Poner \"En construcción\"":"🚧 挂上“建设中”",
+  "No se ha podido cambiar. ¿Has pegado el SQL de precios?":"没能修改。你运行价格的 SQL 了吗？",
   "Productos":"商品",
   "Guardar nombres":"保存名称",
   "Nombres guardados":"名称已保存",
@@ -2703,6 +2773,7 @@ const ZH = {
   "No se ha podido crear el QR. Revisa la conexión.":"没能生成二维码。请检查网络。","Solo el encargado puede poner fotos.":"只有负责人能添加照片。"
 };
 const ZH_RE = [
+  [/^Opciones \((\d+)\)$/, m=>`选项 (${m[1]})`],
   [/^(.+) añadido a la carta$/, m=>`${m[1]} 已加入菜单`],
   [/^Aviso de prueba enviado a (\d+) móviles$/, m=>`测试通知已发送到 ${m[1]} 部手机`],
   [/^\((\d+) móviles\)$/, m=>`(${m[1]} 部手机)`],
@@ -2760,6 +2831,21 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Carta en construcción":"Carta en construcció",
+  "Estamos preparando la carta. Mientras tanto, pide al camarero.":"Estem preparant la carta. Mentrestant, demana al cambrer.",
+  "Opciones":"Opcions",
+  "Guardar opciones":"Desar opcions",
+  "Opciones guardadas":"Opcions desades",
+  "Marca lo que puede pedir el cliente con este producto.":"Marca el que pot demanar el client amb aquest producte.",
+  "Cartel de obras puesto":"Cartell d'obres posat",
+  "Carta abierta otra vez":"Carta oberta de nou",
+  "Quitar el cartel y abrir la carta":"Treure el cartell i obrir la carta",
+  "🚧 La carta está EN CONSTRUCCIÓN":"🚧 La carta està EN CONSTRUCCIÓ",
+  "La carta está abierta a los clientes":"La carta està oberta als clients",
+  "Los clientes ven el cartel de obras y no pueden pedir. Tú sí ves la carta normal.":"Els clients veuen el cartell d'obres i no poden demanar. Tu sí que veus la carta normal.",
+  "Si vas a cambiar productos, pon el cartel para que los clientes no pidan mientras tanto.":"Si canvies productes, posa el cartell perquè els clients no demanin mentrestant.",
+  "🚧 Poner \"En construcción\"":"🚧 Posar \"En construcció\"",
+  "No se ha podido cambiar. ¿Has pegado el SQL de precios?":"No s'ha pogut canviar. Has enganxat l'SQL de preus?",
   "Productos":"Productes",
   "Guardar nombres":"Desar noms",
   "Nombres guardados":"Noms desats",
@@ -3077,6 +3163,7 @@ const CA = {
   "No se ha podido crear el QR. Revisa la conexión.":"No s'ha pogut crear el QR. Revisa la connexió.","Solo el encargado puede poner fotos.":"Només l'encarregat pot posar fotos."
 };
 const CA_RE = [
+  [/^Opciones \((\d+)\)$/, m=>`Opcions (${m[1]})`],
   [/^(.+) añadido a la carta$/, m=>`${m[1]} afegit a la carta`],
   [/^Aviso de prueba enviado a (\d+) móviles$/, m=>`Avís de prova enviat a ${m[1]} mòbils`],
   [/^\((\d+) móviles\)$/, m=>`(${m[1]} mòbils)`],
