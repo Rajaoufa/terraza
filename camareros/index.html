@@ -1454,6 +1454,8 @@ function saveNota(){ const n=document.getElementById("nota"); if(n) ls.set("esen
 
 /* ================= APP CAMAREROS ================= */
 let enServicio = ls.get("esencia_servicio", false);
+// la cuenta "Admin" es para gestionar, no es un camarero: no sale en las listas de trabajadores (Jamal)
+const noEsAdmin = x => !/^admin$/i.test(String(x?.nombre||"").trim());
 let pestana = "abiertas", filas = [], bloqs = [], vistos = null, cobrando = null, bloqueando = null, audioCtx = null, wake = null;
 
 function sonar(tipo){
@@ -1619,7 +1621,7 @@ const tiraEnLinea = () => !EN_LINEA ? "" : `<div class="enlinea" aria-label="Tra
   ? EN_LINEA.map(w=>`<span class="el-p"><i></i>${esc(w.nombre)}<small>${fHora(w.desde)}</small></span>`).join("") : `<span class="el-p el-no">Nadie</span>`}</div>`;
 async function pintar(){
   const cuerpo = document.getElementById("cuerpo"); if (!cuerpo) return;
-  try { EN_LINEA = await Store.enServicio(trab); } catch { EN_LINEA = null; }
+  try { EN_LINEA = (await Store.enServicio(trab)).filter(noEsAdmin); } catch { EN_LINEA = null; }
   document.body.classList.remove("muchas");
   if (pestana==="fichajes") return pintaMisFichajes(cuerpo);
   if (!enServicio){
@@ -1929,7 +1931,7 @@ async function informe(){
           <label style="flex:1;min-width:200px">Motivo<input id="cMot" maxlength="200" required placeholder="Ej: olvidó fichar la salida"></label>
           <button class="act go">Guardar corrección</button></form></details>
       <p class="legal">Registro diario de jornada con la hora de inicio y fin de cada trabajador (art. 34.9 del Estatuto de los Trabajadores). Se conserva 4 años y debe estar a disposición de los trabajadores, sus representantes y la Inspección de Trabajo.</p></main>`;
-  try { infLista = await Store.trabajadores(trab); } catch { infLista = []; }
+  try { infLista = (await Store.trabajadores(trab)).filter(noEsAdmin); } catch { infLista = []; }
   const opts = infLista.map(t=>`<option value="${esc(t.id)}">${esc(t.nombre)}</option>`).join("");
   document.getElementById("iTrab").innerHTML = `<option value="">Todos</option>`+opts;
   document.getElementById("iTrab").value = infTrab;
@@ -1954,7 +1956,7 @@ function infPorTrab(){
 }
 async function pintaInforme(){
   const box = document.getElementById("iTabla"); box.textContent = "Cargando…";
-  try { const [d,h] = rangoMes(infMes); infFilas = await Store.informe(trab, d, h); }
+  try { const [d,h] = rangoMes(infMes); infFilas = (await Store.informe(trab, d, h)).filter(noEsAdmin); }
   catch { box.textContent = "Sin conexión con el servidor."; return; }
   const mesTxt = new Date(rangoMes(infMes)[0]).toLocaleDateString(LOC,{month:"long",year:"numeric"});
   const g = infPorTrab();
@@ -2153,7 +2155,7 @@ function gEditar(x){
 
 async function gFichajes(){
   const [d,h] = rangoMes(mesActual());
-  const [fs, lista] = await Promise.all([Store.informe(trab,d,h), Store.trabajadores(trab)]);
+  const [fs, todos] = await Promise.all([Store.informe(trab,d,h), Store.trabajadores(trab)]), lista = todos.filter(noEsAdmin);
   const g = {}; fs.forEach(f=>{ (g[f.trabajador_id] = g[f.trabajador_id]||[]).push(f); });
   const filas = lista.map(t=>{ const js = jornadas(g[t.id]||[]);
     return {n:t.nombre, ms:js.reduce((a,j)=>a+j.ms,0), dias:new Set(js.map(j=>fDia((j.e||j.s).momento))).size, ahora:js.at(-1)?.curso, faltan:js.filter(j=>!j.e||(!j.s&&!j.curso)).length}; });
@@ -2163,7 +2165,7 @@ async function gFichajes(){
 }
 
 async function gAvisos(){
-  const lista = await Store.pushEstado(trab);
+  const lista = (await Store.pushEstado(trab)).filter(noEsAdmin);
   return `<p class="sub">Cada camarero tiene que activar los avisos <b>en su propio móvil</b>: abrir la app de camareros, fichar la entrada y pulsar <b>Activar avisos</b>. En iPhone, antes hay que instalarla (Compartir → “Añadir a pantalla de inicio”). Los avisos solo llegan a quien ha fichado la entrada.</p>
     <div class="tscroll"><table class="jt"><thead><tr><th>Camarero</th><th>Avisos</th><th>Ahora</th><th>Activados</th></tr></thead><tbody>
     ${lista.map(f=>`<tr><td><b>${esc(f.nombre)}</b></td><td>${f.moviles?`<span class="av-si">✓ Sí</span>${f.moviles>1?` <small>(${f.moviles} móviles)</small>`:""}`:`<span class="falta">No</span>`}</td>
