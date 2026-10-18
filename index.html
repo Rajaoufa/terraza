@@ -549,6 +549,13 @@ body{font-variant-numeric:lining-nums}
 .mp-p{font-variant-numeric:tabular-nums;color:#E9D8BE}
 .mp-l button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.06);color:#F8EBD2;font-size:1.3em;font-weight:900;flex:none}
 .mped .verped{margin:8px 0 10px}
+.gpps{display:grid;gap:8px}
+.gpp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.gpp>span{flex:1;min-width:0}
+.gpn,.gpd,.gnn,.gnp{padding:9px 10px;font:inherit;border-radius:10px;border:1px solid var(--line);background:#170D07;color:var(--ink);min-width:0}
+.gpn{flex:2 1 180px;font-weight:700}.gpd{flex:2 1 160px}.gnn{flex:2 1 180px}.gnp{width:90px;text-align:right}
+.gpp .act,.gpnuevo .act{width:auto;margin:0;padding:8px 14px;min-height:42px}
+.gpnuevo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;border:1px dashed rgba(240,201,121,.5);border-radius:12px}
 </style>
 </head>
 <body>
@@ -742,6 +749,29 @@ const opcionesDe = id => OPCIONES_ITEM[id] || OPCIONES_GRUPO[GRUPO_DE[id]] || []
 const EXTRAS_BASE = {"Cafetería|Con hielo":0.10, "Carajillos|Con hielo":0.10, "Bocadillos|Con queso":1, "Bocadillos|Con tomate":1};
 // precios que el encargado cambia en Gestión > Precios (tabla esencia_precios): "ce1" = producto, "x:Grupo|Opción" = extra
 let PRECIOS = ls.get("esencia_precios", {});
+// productos cambiados o nuevos (tabla esencia_productos): {id, grupo, n, m, d, p, oculto}
+let PRODUCTOS = ls.get("esencia_productos", []);
+let ORIG = null;   // la carta tal como está escrita en el código
+const OCULTOS = [];   // los quitados de la carta, para volver a ponerlos desde Gestión
+function ponProductos(){
+  if (!ORIG) ORIG = GRUPOS.map(g => ({g, items: g.items.map(i => ({ref:i, n:i.n, m:i.m, d:i.d}))}));
+  ALL_ITEMS.length = 0; OCULTOS.length = 0;
+  ORIG.forEach(o => { o.g.items = o.items.map(x => { x.ref.n = x.n; x.ref.m = x.m; x.ref.d = x.d; return x.ref; }); });
+  PRODUCTOS.forEach(r => {
+    const g = GRUPOS.find(x => x.g === r.grupo); if (!g) return;
+    let i = ORIG.flatMap(o => o.items).find(x => x.ref.id === r.id)?.ref;
+    if (!i){ i = {id:r.id}; if (r.p != null) { PRECIO_CARTA[r.id] = Number(r.p); i.p = Number(r.p); } g.items.push(i); GRUPO_DE[r.id] = g.g; }
+    i.n = r.n || i.n; i.m = r.m || undefined; i.d = r.d || undefined;
+    if (r.oculto){ g.items = g.items.filter(x => x !== i); OCULTOS.push({i, g:g.g}); }
+  });
+  GRUPOS.forEach(g => ALL_ITEMS.push(...g.items));
+}
+async function cargaProductos(){
+  try { const n = await Store.productos(); if (JSON.stringify(n) === JSON.stringify(PRODUCTOS)) return;
+        PRODUCTOS = n; ls.set("esencia_productos", PRODUCTOS); ponProductos(); ponPrecios();
+        Object.keys(cesta).forEach(k => { if (!lineaCesta(k).i) delete cesta[k]; });
+        if (!qs.has("panel") && !qs.has("gestion") && !qs.has("fichajes") && !qs.has("qr")) cliente(); } catch {}
+}
 const PRECIO_CARTA = {};   // el precio escrito en el código, para volver a él
 const ponPrecios = () => ALL_ITEMS.forEach(i => { if (!(i.id in PRECIO_CARTA)) PRECIO_CARTA[i.id] = i.p; i.p = PRECIOS[i.id] ?? PRECIO_CARTA[i.id]; });
 const extraDe = (id, o) => { const k = GRUPO_DE[id]+"|"+o; return Number(PRECIOS["x:"+k] ?? EXTRAS_BASE[k] ?? 0); };
@@ -1045,6 +1075,15 @@ const Store = {
     if (sb){ const {error} = await sb.rpc("esencia_deuda",{p_pin:admin.pin, p_nombre:nombre, p_importe:importe, p_concepto:concepto||null}); if (error) throw error; return; }
     ls.set("esencia_demo_deudas", [...ls.get("esencia_demo_deudas", []), {id:Date.now(), nombre, importe, concepto:concepto||null, created_at:new Date().toISOString(), quien:admin.nombre}]);
   },
+  async productos(){
+    if (sb){ const {data,error} = await sb.from("esencia_productos").select("id,grupo,n,m,d,p,oculto").order("updated_at"); if (error) throw error;
+             return data.map(r=>({...r, p: r.p==null ? null : Number(r.p)})); }
+    return ls.get("esencia_demo_productos", []);
+  },
+  async productosGuardar(admin, lista){
+    if (sb){ const {error} = await sb.rpc("esencia_productos_guardar",{p_pin:admin.pin, p_lista:lista}); if (error) throw error; return; }
+    const d = ls.get("esencia_demo_productos", []); lista.forEach(x=>{ const k = d.findIndex(r=>r.id===x.id); if (k<0) d.push(x); else d[k] = x; }); ls.set("esencia_demo_productos", d);
+  },
   async precios(){
     if (sb){ const {data,error} = await sb.from("esencia_precios").select("clave,precio"); if (error) throw error;
              return Object.fromEntries(data.map(r=>[r.clave, Number(r.precio)])); }
@@ -1285,7 +1324,7 @@ function cliente(){
     if (catSel==="★"){
       const mios = ALL_ITEMS.filter(i=>MIO()[i.id]).sort((a,b)=>MIO()[b.id]-MIO()[a.id]);
       const top = mios.length ? [] : porConsumo(ALL_ITEMS.filter(i=>(MAS_PEDIDOS||{})[label(i)]));
-      const tres = [...new Set([...mios, ...top, ...["ce1","ca2","re1"].map(findItem)])].slice(0,3);
+      const tres = [...new Set([...mios, ...top, ...["ce1","ca2","re1"].map(findItem)].filter(Boolean))].slice(0,3);
       h += `<h2 class="ch">${mios.length?`Lo de siempre, ${esc(yo.nombre)}`:"Lo que más se pide aquí"}</h2><div class="pcs">${tres.map(tarjeta).join("")}</div>
         <p class="chint">Toca una pestaña de arriba para ver el resto de la carta.</p>`;
     } else if (sec) {
@@ -2019,7 +2058,7 @@ async function gestion(){
   $app.innerHTML = (DEMO?`<div class="demo noprint">MODO PRUEBA · Lo que apuntes solo se guarda en este navegador.</div>`:"") +
     `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Gestión</small></div>
      <a class="svc off noprint" href="${location.pathname}?panel" style="text-decoration:none">Volver al panel</a></div></header>
-    <main class="wrap gest"><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["precios","Precios"],["avisos","Avisos"],["carta","Carta y QR"]]
+    <main class="wrap gest"><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["productos","Productos"],["precios","Precios"],["avisos","Avisos"],["carta","Carta y QR"]]
       .map(([k,t])=>`<button class="tab" data-g="${k}" aria-selected="${gTab===k}">${t}</button>`).join("")}</div>
     <div id="gCuerpo">Cargando…</div></main>`;
   $app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ gTab = b.dataset.g; gInv = false;
@@ -2030,8 +2069,9 @@ async function pintaGestion(){
   const box = document.getElementById("gCuerpo"); if (!box) return;
   box.textContent = "Cargando…";
   if (gTab==="camareros") return pantallaPins(box);
-  try { box.innerHTML = await {cuentas:gCuentas, pedidos:gPedidos, deudores:gDeudores, stock:gStock, fichajes:gFichajes, precios:gPrecios, avisos:gAvisos, carta:gCarta}[gTab](); }
-  catch(err) { if (gTab==="avisos") { box.innerHTML = `<p class="empty">Falta pegar el SQL de avisos en Supabase.</p>`; return; }
+  try { box.innerHTML = await {cuentas:gCuentas, pedidos:gPedidos, deudores:gDeudores, stock:gStock, fichajes:gFichajes, productos:gProductos, precios:gPrecios, avisos:gAvisos, carta:gCarta}[gTab](); }
+  catch(err) { if (gTab==="productos") { box.innerHTML = `<p class="empty">Falta pegar el SQL de productos en Supabase.</p>`; return; }
+    if (gTab==="avisos") { box.innerHTML = `<p class="empty">Falta pegar el SQL de avisos en Supabase.</p>`; return; }
     if (gTab==="precios") { box.innerHTML = `<p class="empty">Falta pegar el SQL de precios en Supabase.</p>`; return; }
     box.innerHTML = /PGRST202|esencia_gestion|function/i.test((err?.code||"")+(err?.message||""))
       ? `<p class="empty">Falta pegar el SQL de gestión en Supabase.</p>` : `<p class="empty">Sin conexión con el servidor.</p>`; return; }
@@ -2175,6 +2215,21 @@ async function gFichajes(){
     <a class="ghost" href="${location.pathname}?fichajes" style="display:inline-block;color:var(--ink);text-decoration:none">Ver el registro de jornada completo</a>`;
 }
 
+async function gProductos(){
+  PRODUCTOS = await Store.productos(); ls.set("esencia_productos", PRODUCTOS); ponProductos(); ponPrecios();
+  const fila = i => `<div class="gpp" data-id="${esc(i.id)}"><input class="gpn" maxlength="60" value="${esc(i.n)}" aria-label="Nombre">
+      <input class="gpd" maxlength="80" value="${esc(i.d||"")}" placeholder="Detalle (tamaño, marca…)" aria-label="Detalle">
+      <button class="act no gpq" data-quita="${esc(i.id)}">Quitar</button></div>`;
+  const secs = SECCIONES.map(sec => `<h2 class="ch">${esc(sec.k)}</h2>${sec.grupos.map(g=>GRUPOS.find(x=>x.g===g)).filter(Boolean).map(g=>`
+      <h3 class="gsec">${esc(g.g)}</h3><div class="gpps">${g.items.map(fila).join("")}
+      <form class="gpnuevo" data-grupo="${esc(g.g)}"><input class="gnn" maxlength="60" placeholder="Producto nuevo" aria-label="Nombre del producto nuevo" required>
+        <input class="gnp" type="number" inputmode="decimal" min="0" max="999" step="0.05" placeholder="Precio" aria-label="Precio" required> €
+        <button class="act pay">Añadir</button></form></div>`).join("")}`).join("");
+  return `<p class="sub">Cambia el nombre o el detalle y pulsa <b>Guardar nombres</b>. Para uno nuevo, escríbelo al final de su grupo con su precio y pulsa <b>Añadir</b>. Los precios se cambian en la pestaña Precios.</p>
+    <button class="act pay" id="gProdOk">Guardar nombres</button>
+    ${OCULTOS.length?`<h2 class="ch">Quitados de la carta</h2><div class="gpps">${OCULTOS.map(o=>`<div class="gpp"><span>${esc(label(o.i))} <small>(${esc(o.g)})</small></span><button class="act go" data-vuelve="${esc(o.i.id)}">Volver a poner</button></div>`).join("")}</div>`:""}
+    ${secs}<button class="act pay" id="gProdOk2">Guardar nombres</button>`;
+}
 async function gAvisos(){
   const lista = (await Store.pushEstado(trab)).filter(noEsAdmin);
   return `<p class="sub">Cada camarero tiene que activar los avisos <b>en su propio móvil</b>: abrir la app de camareros, fichar la entrada y pulsar <b>Activar avisos</b>. En iPhone, antes hay que instalarla (Compartir → “Añadir a pantalla de inicio”). Los avisos solo llegan a quien ha fichado la entrada.</p>
@@ -2202,6 +2257,26 @@ async function gCarta(){
 }
 function gEnlaces(box){
   const $ = q => box.querySelector(q);
+  const filaDe = id => { const r = PRODUCTOS.find(x=>x.id===id), i = findItem(id) || OCULTOS.find(o=>o.i.id===id)?.i;
+    return {id, grupo: r?.grupo || GRUPO_DE[id], n: i?.n || r?.n, m: i?.m || null, d: i?.d || null, p: r?.p ?? null, oculto: !!r?.oculto}; };
+  const guardaProd = async (lista, ok) => { try { await Store.productosGuardar(trab, lista); toast(ok); pintaGestion(); }
+    catch(err) { toast(/PGRST202|PGRST205|esencia_productos|function|relation/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de productos en Supabase" : "No se ha podido guardar"); } };
+  box.querySelectorAll("#gProdOk,#gProdOk2").forEach(b => b.onclick = () => {
+    const lista = [];
+    box.querySelectorAll(".gpp[data-id]").forEach(f => { const id = f.dataset.id, i = findItem(id); if (!i) return;
+      const n = f.querySelector(".gpn").value.trim().replace(/\s+/g," "), d = f.querySelector(".gpd").value.trim().replace(/\s+/g," ");
+      if (!n) return; if (n !== i.n || d !== (i.d||"")) lista.push({...filaDe(id), n, d: d || null}); });
+    if (!lista.length) return toast("No has cambiado ningún nombre");
+    b.disabled = true; guardaProd(lista, "Nombres guardados"); });
+  box.querySelectorAll("[data-quita]").forEach(b => b.onclick = () => {
+    if (b.dataset.seguro !== "1"){ b.dataset.seguro = "1"; b.textContent = "¿Seguro? Quitar"; return; }
+    b.disabled = true; guardaProd([{...filaDe(b.dataset.quita), oculto:true}], "Quitado de la carta"); });
+  box.querySelectorAll("[data-vuelve]").forEach(b => b.onclick = () => { b.disabled = true; guardaProd([{...filaDe(b.dataset.vuelve), oculto:false}], "Vuelve a estar en la carta"); });
+  box.querySelectorAll(".gpnuevo").forEach(f => f.onsubmit = e => { e.preventDefault();
+    const n = f.querySelector(".gnn").value.trim().replace(/\s+/g," ").slice(0,60), pr = Math.round(Number(String(f.querySelector(".gnp").value).replace(",","."))*100)/100;
+    if (!n || !(pr >= 0) || pr > 999) return toast("Pon el nombre y el precio");
+    f.querySelector("button").disabled = true;
+    guardaProd([{id:"n"+Date.now().toString(36), grupo:f.dataset.grupo, n, m:null, d:null, p:pr, oculto:false}], `${n} añadido a la carta`); });
   if ($("#gAvPrueba")) $("#gAvPrueba").onclick = async e => { const b = e.currentTarget; b.disabled = true;
     try { const n = await Store.pushProbar(trab); toast(n ? `Aviso de prueba enviado a ${n} móviles` : "Nadie tiene los avisos activados todavía"); }
     catch(err) { toast(/PGRST202|esencia_push|function/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de avisos en Supabase" : "No se ha podido enviar el aviso de prueba"); }
@@ -2303,6 +2378,23 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Productos":"商品",
+  "Guardar nombres":"保存名称",
+  "Nombres guardados":"名称已保存",
+  "No has cambiado ningún nombre":"你没有改任何名称",
+  "Producto nuevo":"新商品",
+  "Añadir":"添加",
+  "Quitar":"移除",
+  "¿Seguro? Quitar":"确定移除？",
+  "Quitado de la carta":"已从菜单移除",
+  "Quitados de la carta":"已移除的商品",
+  "Volver a poner":"重新加入",
+  "Vuelve a estar en la carta":"已重新加入菜单",
+  "Pon el nombre y el precio":"请填写名称和价格",
+  "Detalle (tamaño, marca…)":"细节（大小、品牌…）",
+  "Falta pegar el SQL de productos en Supabase":"还需要在 Supabase 运行商品的 SQL",
+  "Falta pegar el SQL de productos en Supabase.":"还需要在 Supabase 运行商品的 SQL。",
+  "No se ha podido guardar":"没能保存",
   "Tu pedido":"你的点单",
   "Realizar pedido":"下单",
   "+ Otro":"+ 再来一个",
@@ -2611,6 +2703,7 @@ const ZH = {
   "No se ha podido crear el QR. Revisa la conexión.":"没能生成二维码。请检查网络。","Solo el encargado puede poner fotos.":"只有负责人能添加照片。"
 };
 const ZH_RE = [
+  [/^(.+) añadido a la carta$/, m=>`${m[1]} 已加入菜单`],
   [/^Aviso de prueba enviado a (\d+) móviles$/, m=>`测试通知已发送到 ${m[1]} 部手机`],
   [/^\((\d+) móviles\)$/, m=>`(${m[1]} 部手机)`],
   [/^¿Ha pagado (.+) \((.+)\)\?$/, m=>`${m[1]}已经付了吗（${m[2]}）？`],
@@ -2667,6 +2760,23 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Productos":"Productes",
+  "Guardar nombres":"Desar noms",
+  "Nombres guardados":"Noms desats",
+  "No has cambiado ningún nombre":"No has canviat cap nom",
+  "Producto nuevo":"Producte nou",
+  "Añadir":"Afegir",
+  "Quitar":"Treure",
+  "¿Seguro? Quitar":"Segur? Treure",
+  "Quitado de la carta":"Tret de la carta",
+  "Quitados de la carta":"Trets de la carta",
+  "Volver a poner":"Tornar a posar",
+  "Vuelve a estar en la carta":"Torna a ser a la carta",
+  "Pon el nombre y el precio":"Posa el nom i el preu",
+  "Detalle (tamaño, marca…)":"Detall (mida, marca…)",
+  "Falta pegar el SQL de productos en Supabase":"Falta enganxar l'SQL de productes a Supabase",
+  "Falta pegar el SQL de productos en Supabase.":"Falta enganxar l'SQL de productes a Supabase.",
+  "No se ha podido guardar":"No s'ha pogut desar",
   "Tu pedido":"La teva comanda",
   "Realizar pedido":"Fer la comanda",
   "+ Otro":"+ Un altre",
@@ -2967,6 +3077,7 @@ const CA = {
   "No se ha podido crear el QR. Revisa la conexión.":"No s'ha pogut crear el QR. Revisa la connexió.","Solo el encargado puede poner fotos.":"Només l'encarregat pot posar fotos."
 };
 const CA_RE = [
+  [/^(.+) añadido a la carta$/, m=>`${m[1]} afegit a la carta`],
   [/^Aviso de prueba enviado a (\d+) móviles$/, m=>`Avís de prova enviat a ${m[1]} mòbils`],
   [/^\((\d+) móviles\)$/, m=>`(${m[1]} mòbils)`],
   [/^¿Ha pagado (.+) \((.+)\)\?$/, m=>`Ha pagat ${m[1]} (${m[2]})?`],
@@ -3068,7 +3179,7 @@ if (PREVIEW){
   document.body.prepend(pv);
   pv.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{ location.hash=b.dataset.v; location.reload(); });
 }
-ponPrecios(); cargaPrecios();
+ponProductos(); ponPrecios(); cargaPrecios(); cargaProductos();
 if (qs.has("panel")) { if (trab) entrarPanel(); else panel(); Store.subscribe(()=>{ if (trab && pestana!=="fichajes") pintar(); }, 10000); }
 else if (qs.has("gestion")) gestion();
 else if (qs.has("fichajes")) informe();
