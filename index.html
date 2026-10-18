@@ -526,6 +526,13 @@ body{font-variant-numeric:lining-nums}
 .barra-gente{display:grid;gap:6px;margin:8px 0}
 .bg-p{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px}
 .bg-p .act{min-height:40px;padding:8px 16px}
+.enlinea{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 12px;padding:8px 12px;border:1px solid var(--line);border-radius:14px;background:rgba(0,0,0,.18)}
+.el-t{font-size:.75em;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#E9C27E;margin-right:4px}
+.el-p{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(79,175,115,.15);color:var(--ink);font-weight:700;font-size:.92em}
+.el-p i{width:10px;height:10px;border-radius:50%;background:#4FAF73;box-shadow:0 0 8px #4FAF73}
+.el-p small{font-weight:400;color:var(--muted);font-size:.85em}
+.el-no{background:rgba(255,255,255,.06);color:var(--muted)}
+.arranque .enlinea{justify-content:center;max-width:520px;margin:0 auto 18px}
 </style>
 </head>
 <body>
@@ -1058,6 +1065,11 @@ const Store = {
     if (sb){ const {data,error} = await sb.rpc("esencia_informe",{p_pin:admin.pin, p_desde:desde, p_hasta:hasta}); if (error) throw error; return data; }
     return demoFich().filter(x=>x.momento>=desde && x.momento<hasta);
   },
+  async enServicio(trab){   // quién está trabajando ahora (último fichaje = entrada)
+    if (sb){ const {data,error} = await sb.rpc("esencia_en_servicio",{p_pin:trab.pin}); if (error) throw error; return data; }
+    const ult = {}; demoFich().forEach(f=>{ ult[f.trabajador_id] = f; });
+    return Object.values(ult).filter(f=>f.tipo==="entrada" && Date.now()-new Date(f.momento) < 16*3600e3).map(f=>({nombre:f.nombre, desde:f.momento}));
+  },
   async trabajadores(admin){
     if (sb){ const {data,error} = await sb.rpc("esencia_trabajadores",{p_pin:admin.pin}); if (error) throw error; return data; }
     return demoTrab().map(({id,nombre})=>({id,nombre}));
@@ -1580,13 +1592,18 @@ async function cambiarServicio(btn){
     panel(); pintar();
 }
 
+// camareros trabajando ahora (Jamal): tira con un punto verde por cada uno
+let EN_LINEA = null;
+const tiraEnLinea = () => !EN_LINEA ? "" : `<div class="enlinea" aria-label="Trabajando ahora"><span class="el-t">Trabajando ahora</span>${EN_LINEA.length
+  ? EN_LINEA.map(w=>`<span class="el-p"><i></i>${esc(w.nombre)}<small>${fHora(w.desde)}</small></span>`).join("") : `<span class="el-p el-no">Nadie</span>`}</div>`;
 async function pintar(){
   const cuerpo = document.getElementById("cuerpo"); if (!cuerpo) return;
+  try { EN_LINEA = await Store.enServicio(trab); } catch { EN_LINEA = null; }
   document.body.classList.remove("muchas");
   if (pestana==="fichajes") return pintaMisFichajes(cuerpo);
   if (!enServicio){
     cuerpo.innerHTML = `<div class="arranque"><div class="arr-in">
-      <p class="arr-quien">${esc(trab.nombre)}</p>
+      ${tiraEnLinea()}<p class="arr-quien">${esc(trab.nombre)}</p>
       <button class="pulsador" id="pulsador" aria-label="Empezar la jornada"><span>Empezar</span></button>
       <p class="arr-txt">Pulsa para fichar la entrada y empezar a recibir avisos.</p>
       <div class="arr-mini"><button data-p="fichajes">Mis fichajes</button>${trab.admin?`<a href="${location.pathname}?gestion">Gestión</a>`:""}<button id="leerQR">📷 Leer QR de mesa</button><button id="salirTrab">Cambiar de trabajador</button></div></div></div>`;
@@ -1613,7 +1630,7 @@ async function pintar(){
     return ha!==hb ? (ha?-1:1) : a.localeCompare(b,"es",{numeric:true});
   });
 
-  let h = bloqueAvisos() + `<div class="ptabs">
+  let h = bloqueAvisos() + tiraEnLinea() + `<div class="ptabs">
     <button class="tab" data-p="abiertas" aria-selected="${pestana==="abiertas"}">Mesas abiertas (${mesasAb.length})</button>
     <button class="tab" data-p="cerradas" aria-selected="${pestana==="cerradas"}">Cobradas (7 días)</button>
     <button class="tab" data-p="bloqueados" aria-selected="${pestana==="bloqueados"}">Móviles bloqueados (${bloqs.length})</button>
@@ -2232,6 +2249,8 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Trabajando ahora":"正在上班",
+  "Nadie":"没有人",
   "Comanda anotada en la barra":"已记在吧台",
   "📝 Nueva comanda (sin QR)":"📝 新点单（不用二维码）",
   "Nueva comanda":"新点单",
@@ -2578,6 +2597,8 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Trabajando ahora":"Treballant ara",
+  "Nadie":"Ningú",
   "Comanda anotada en la barra":"Comanda apuntada a la barra",
   "📝 Nueva comanda (sin QR)":"📝 Nova comanda (sense QR)",
   "Nueva comanda":"Nova comanda",
