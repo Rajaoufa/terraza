@@ -92,6 +92,70 @@ body.plain .bg{display:none}
   .top .idiomas{margin-left:auto}
 }
 #app{position:relative;z-index:1}
+/* carta del cliente: madera oscura, pestañas con iconos y tarjetas grandes (idea de Jamal) */
+body.oscura{--bg:#1d120b;--card:rgba(255,255,255,.06);--ink:#F5E9D3;--muted:#CDB89A;--line:rgba(217,168,91,.28);--accent:#D9A85B;--accent-ink:#2A140A;--soft:rgba(255,255,255,.08);color:var(--ink)}
+body.oscura,body.oscura:not(.plain){background:
+  repeating-linear-gradient(90deg,rgba(0,0,0,.22) 0 2px,transparent 2px 140px),
+  repeating-linear-gradient(0deg,rgba(255,220,170,.025) 0 2px,rgba(0,0,0,.06) 2px 5px,transparent 5px 11px),
+  linear-gradient(180deg,#3B2416 0,#24150D 45%,#170D07 100%) fixed!important;min-height:100vh}
+body.oscura .bg{display:none}
+body.oscura main.wrap{background:transparent;box-shadow:none;margin-top:0;border-radius:0;min-height:0;padding-bottom:190px}
+@media (min-width:760px){ body.oscura main.wrap,body.oscura .top .wrap{max-width:980px} }
+.top.ctop{min-height:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0));border-bottom:1px solid rgba(217,168,91,.25)}
+.top.ctop .wrap{padding-block:14px 12px;padding-bottom:12px}
+.ctop .logo{color:#F5E9D3;letter-spacing:.02em}
+.ctop .logo small{color:#E9C27E;opacity:1;font-weight:700;font-size:.5em;letter-spacing:.2em}
+.ctop .logo small::before,.ctop .logo small::after{content:"";display:inline-block;width:22px;height:1px;background:#E9C27E;vertical-align:middle;margin:0 8px}
+.ctop .logo small::before{margin-left:0}
+.ctop .mesa{background:linear-gradient(180deg,#E9C27E,#B98340);color:#2A140A;display:flex;gap:6px;align-items:baseline;padding:6px 12px;border-radius:999px}.ctop .mesa b{display:inline;font-size:1.25em}
+.ctabs{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;padding:14px 2px 16px;margin:0 -16px;padding-inline:16px;scrollbar-width:none}
+.ctabs::-webkit-scrollbar{display:none}
+.ctw{position:relative;flex:none;scroll-snap-align:center}
+.ctab{width:92px;height:106px;border-radius:16px;border:1.5px solid rgba(217,168,91,.45);background:linear-gradient(180deg,#5A1E2A,#3A1219);color:#F5E9D3;
+  display:grid;justify-items:center;align-content:center;gap:6px;padding:8px 4px;box-shadow:0 6px 14px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)}
+.ctw:nth-child(3n+1) .ctab{background:linear-gradient(180deg,#5B3A1E,#3A2412)}
+.ctab svg{width:46px;height:46px}
+.ctab span{font-weight:800;font-size:.68em;letter-spacing:.06em;text-transform:uppercase}
+.ctw .ctab.on{background:linear-gradient(180deg,#0F5552,#0A3332);border-color:#E9C27E;box-shadow:0 0 0 2px rgba(233,194,126,.35),0 0 22px rgba(64,200,190,.45)}
+.ch{font-family:var(--f-display);font-size:1.05em;letter-spacing:.14em;text-transform:uppercase;color:#E9C27E;text-align:center;margin:14px 0 12px;display:flex;align-items:center;gap:12px}
+.ch::before,.ch::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(233,194,126,.6),transparent)}
+.chint{text-align:center;color:var(--muted);font-size:.9em;margin:18px 0}
+.pcs{display:grid;gap:14px}
+@media (min-width:760px){ .pcs{grid-template-columns:1fr 1fr} }
+.pc{position:relative;display:grid;grid-template-columns:40% 1fr;min-height:150px;border-radius:20px;overflow:hidden;border:1.5px solid rgba(64,200,190,.6);
+  background:linear-gradient(110deg,#162321 0,#0E4A47 100%);box-shadow:0 0 18px rgba(64,200,190,.28),0 10px 22px rgba(0,0,0,.45)}
+.pc.t1{border-color:rgba(214,84,124,.65);background:linear-gradient(110deg,#24140F 0,#651B38 100%);box-shadow:0 0 18px rgba(214,84,124,.28),0 10px 22px rgba(0,0,0,.45)}
+.pc.t2{border-color:rgba(233,178,90,.7);background:linear-gradient(110deg,#231A0E 0,#6A4815 100%);box-shadow:0 0 18px rgba(233,178,90,.28),0 10px 22px rgba(0,0,0,.45)}
+.pc.has{outline:2px solid #E9C27E;outline-offset:-2px}
+.pc-foto{position:relative;border:0;padding:0;background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.12),rgba(0,0,0,.35));display:grid;place-items:center;overflow:hidden;min-height:150px}
+.pc-foto > span{font-size:64px;line-height:1;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
+.pc-foto img.foto,.pc-foto > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pc-foto .qb{position:absolute;top:8px;left:8px;background:#E9C27E;color:#2A140A;border-radius:999px;min-width:28px;height:28px;display:grid;place-items:center;font-size:.9em}
+.pc-tx{padding:14px 14px 14px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.pc-tx h3{margin:0;font-family:var(--f-display);font-size:1.15em;line-height:1.15;color:#FFF5E4}
+.pc-tx .mk{font-size:.72em;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#E9C27E}
+.pc-p{font-size:1.15em;font-variant-numeric:tabular-nums;color:#F0C979}
+.pc-tx p{margin:0;color:#DCC9AC;font-size:.88em}
+.pc-add,.pc-step button{border:0;border-radius:999px;background:linear-gradient(180deg,#F0C49A,#C07E4E 60%,#A0623A);color:#2A140A;font-weight:900;letter-spacing:.06em;text-transform:uppercase;
+  box-shadow:0 4px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.5)}
+.pc-add{margin-top:auto;padding:11px 20px;min-height:46px}
+.pc-step{margin-top:auto;display:flex;align-items:center;gap:10px}
+.pc-step button{width:46px;height:46px;font-size:1.3em;padding:0}
+.pc-step output{min-width:24px;text-align:center;font-weight:800;font-size:1.2em}
+.pc .subir,.ctw .subir{position:absolute;z-index:2;top:6px;right:6px}
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:linear-gradient(180deg,#2C1A0F,#170D07);border-top:1px solid rgba(217,168,91,.35);
+  padding:8px max(12px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 24px rgba(0,0,0,.45)}
+.bnav .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.bnav nav button{position:relative;border:0;background:none;color:#B9A285;display:grid;justify-items:center;gap:2px;padding:6px 2px;font-size:.78em;font-weight:700;min-height:56px}
+.bnav nav button svg{width:28px;height:28px}
+.bnav nav button.on{color:#F0C979}
+.bnav nav button:disabled{opacity:.45}
+.bnav nav button i{position:absolute;top:0;left:calc(50% + 6px);background:#E0413A;color:#fff;font-style:normal;font-size:.8em;min-width:20px;height:20px;border-radius:999px;display:grid;place-items:center;padding:0 5px;box-shadow:0 0 0 2px #2C1A0F}
+.verped{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:640px;margin:0 auto 8px;border:0;border-radius:16px;padding:14px 18px;
+  background:linear-gradient(180deg,#F0C979,#C9913F);color:#2A140A;font-weight:800;font-size:1.05em;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+body.oscura .bar{background:#1D120B;border-top-color:rgba(217,168,91,.35)}
+body.oscura .sum,body.oscura textarea{background:rgba(255,255,255,.06);color:var(--ink);border-color:rgba(217,168,91,.3)}
+body.oscura .back{color:#E9C27E}
 /* banderas para cambiar de idioma */
 .idiomas{display:flex;gap:8px}
 .idiomas button{width:38px;height:26px;padding:0;border:2px solid rgba(255,255,255,.5);border-radius:6px;overflow:hidden;background:none;cursor:pointer;opacity:.75;box-shadow:0 1px 6px rgba(0,0,0,.3)}
@@ -561,6 +625,22 @@ const SECCIONES = [
   {k:"Copas",     e:"🥃", grupos:["Chupitos","Copas","Tubos","Combinados"]},
   {k:"Comida",    e:"🥪", grupos:["Bocadillos","Para picar"]}];
 const GRUPOS = CARTA.flatMap(c=>c.grupos);
+// iconos de las pestañas de la carta
+const ICON_SECC = (()=>{ const g = (b) => `<svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="#F2D29B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${b}</svg>`;
+  return {
+  "":         g(`<path d="M24 6l5.3 11 12 1.6-8.8 8.3 2.2 11.9L24 33l-10.7 5.8 2.2-11.9-8.8-8.3 12-1.6z" fill="#E0A848"/>`),
+  Refrescos:  g(`<path d="M13 16h22l-3 26H16z" fill="#D8343A"/><path d="M12 12h24v4H12z" fill="#F2F2F2"/><path d="M26 12l4-8h5"/><circle cx="20" cy="27" r="1.6" fill="#fff" stroke="none"/><circle cx="27" cy="33" r="1.4" fill="#fff" stroke="none"/>`),
+  Cervezas:   g(`<path d="M10 16h22v24a3 3 0 0 1-3 3H13a3 3 0 0 1-3-3z" fill="#E8A630"/><path d="M32 20h4a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4h-4"/><path d="M9 16c0-5 4-8 8-7 2-3 7-3 9 0 4-1 7 2 7 7z" fill="#FFF6E0"/><path d="M16 24v13M21 24v13M26 24v13" stroke="#B8761A"/>`),
+  Vinos:      g(`<path d="M15 6h18c0 12-3 18-9 18s-9-6-9-18z" fill="#8E1B2E"/><path d="M24 24v14M16 42h16"/><path d="M15.5 11h17" stroke="#C24A5C"/>`),
+  "Cafés":    g(`<path d="M9 20h26v8a11 11 0 0 1-11 11h-4A11 11 0 0 1 9 28z" fill="#B07A4A"/><path d="M35 23h3a4 4 0 0 1 0 8h-4"/><path d="M6 42h34"/><path d="M17 7c-2 3 2 5 0 8M24 7c-2 3 2 5 0 8"/>`),
+  Copas:      g(`<path d="M8 8h32L24 26z" fill="#E7B04B"/><path d="M24 26v14M16 42h16"/><circle cx="34" cy="10" r="5" fill="#F4C542"/><path d="M12 12h24" stroke="#fff3"/>`),
+  Comida:     g(`<path d="M8 22c0-8 7-13 16-13s16 5 16 13z" fill="#D9963D"/><path d="M7 27h34" stroke="#6BAF3C" stroke-width="4"/><path d="M8 31h32v3a5 5 0 0 1-5 5H13a5 5 0 0 1-5-5z" fill="#8A4B22"/><path d="M17 15h.01M24 13h.01M31 15h.01" stroke-width="3"/>`)};
+})();
+const ICON_NAV = {
+  menu: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 3h10a2 2 0 0 1 2 2v16H7a2 2 0 0 1-2-2z"/><path d="M17 7h2v14h-2"/><path d="M8 8h6M8 12h6M8 16h4"/></svg>`,
+  pedidos: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM8 10h8M8 14h8M8 18h5"/></svg>`,
+  camarero: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>`,
+  carrito: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.5 11h10.5l2-8H7"/><circle cx="9.5" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></svg>`};
 const fotoSecc = s => `img/cat-${s.k.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}.jpg`;
 let MAS_PEDIDOS = null;   // {nombre: unidades} de todos los clientes
 const MIO = () => ls.get("esencia_historial", {});   // {id: unidades} de este móvil
@@ -802,6 +882,11 @@ const totalUds = () => Object.values(cesta).reduce((a,b)=>a+b,0);
 const totalEur = () => Object.entries(cesta).reduce((a,[id,q])=>a+findItem(id).p*q,0);
 
 function header(){
+  if (vista==="carta" || vista==="resumen"){
+    const sec = vista==="resumen" ? "Tu pedido" : catSel || "Para ti";
+    return `<header class="top ctop"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>${esc(sec)}</small></div>
+      ${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:""}</div></header>`;
+  }
   return `<header class="top"><div class="wrap">
     <div class="logo">${esc(CONFIG.NOMBRE)}<small>Terraza</small></div>
     <div class="hr">
@@ -882,6 +967,7 @@ function bloqueMios(){
 
 function cliente(){
   document.body.classList.toggle("compact", ["carta","resumen"].includes(vista));
+  document.body.classList.toggle("oscura", ["carta","resumen"].includes(vista) && !!mesa);
   if (!mesa && !MODO_FOTOS){
     const escaner = "BarcodeDetector" in window && navigator.mediaDevices?.getUserMedia;
     $app.innerHTML = header() + `<main class="wrap pick">
@@ -921,25 +1007,27 @@ function cliente(){
       ${bloqueInstalar()}`;
   }
   if (vista==="carta"){
-    h += `<button class="back" id="volver">${ICON.back} ${catSel?"Todas las secciones":MODO_FOTOS?"Volver al panel":"Volver"}</button>`
-      + (MODO_FOTOS ? `<p class="sub">Toca 📷 en un producto o una sección para hacerle una foto o elegirla de la galería.</p>` : "");
-    const tarjeta = i => { const q = cesta[i.id]||0;
-      return `<div class="tile ${q?"has":""}">${botonFoto(i.id)}<button class="pic" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</button>
-        <div class="tx">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<div class="n">${esc(i.n)}</div>${i.d?`<div class="d">${esc(i.d)}</div>`:""}<div class="p">${eur(i.p)}</div></div>
-        <div class="step">${q?`<button class="m" data-m="${i.id}" aria-label="Quitar uno de ${esc(label(i))}">−</button><output>${q}</output>`:"<span></span>"}
-        <button class="a" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">+</button></div></div>`; };
-    if (!catSel){
+    const sec = catSel ? SECCIONES.find(x=>x.k===catSel) : null;
+    if (MODO_FOTOS) h += `<button class="back" id="volver">${ICON.back} Volver al panel</button><p class="sub">Toca 📷 en un producto o una pestaña para hacerle una foto o elegirla de la galería.</p>`;
+    h += `<nav class="ctabs" aria-label="Secciones de la carta">${[{k:"", t:"Para ti"}, ...SECCIONES.map(x=>({k:x.k, t:x.k}))].map(x=>
+      `<div class="ctw">${x.k?botonFoto("cat-"+x.k):""}<button class="ctab ${(catSel||"")===x.k?"on":""}" data-cat="${esc(x.k)}" aria-pressed="${(catSel||"")===x.k}">${ICON_SECC[x.k]||""}<span>${esc(x.t)}</span></button></div>`).join("")}</nav>`;
+    const tarjeta = (i, n) => { const q = cesta[i.id]||0;
+      return `<article class="pc t${n%3} ${q?"has":""}">${botonFoto(i.id)}<button class="pc-foto" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</button>
+        <div class="pc-tx">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<h3>${esc(i.n)}</h3><b class="pc-p">${eur(i.p)}</b>${i.d?`<p>${esc(i.d)}</p>`:""}
+        ${q?`<div class="pc-step"><button data-m="${i.id}" aria-label="Quitar uno de ${esc(label(i))}">−</button><output>${q}</output><button data-a="${i.id}" aria-label="Añadir otro ${esc(label(i))}">+</button></div>`
+           :`<button class="pc-add" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">+ Añadir</button>`}</div></article>`; };
+    if (!sec){
       const mios = ALL_ITEMS.filter(i=>MIO()[i.id]).sort((a,b)=>MIO()[b.id]-MIO()[a.id]);
       const top = mios.length ? [] : porConsumo(ALL_ITEMS.filter(i=>(MAS_PEDIDOS||{})[label(i)]));
       const tres = [...new Set([...mios, ...top, ...["ce1","ca2","re1"].map(findItem)])].slice(0,3);
-      h += `<section class="cat"><h2>${mios.length?`Lo de siempre, ${esc(yo.nombre)}`:"Lo que más se pide aquí"}</h2><div class="tiles tres">${tres.map(tarjeta).join("")}</div></section>
-        <section class="cat"><h2>¿Qué te apetece?</h2><div class="secciones">${SECCIONES.map(s=>`<div class="sw">${botonFoto("cat-"+s.k)}<button class="secc" data-cat="${esc(s.k)}"><span aria-hidden="true">${s.e}</span>${fotoSubida("cat-"+s.k)||foto(fotoSecc(s))}<b>${esc(s.k)}</b></button></div>`).join("")}</div></section>`;
+      h += `<h2 class="ch">${mios.length?`Lo de siempre, ${esc(yo.nombre)}`:"Lo que más se pide aquí"}</h2><div class="pcs">${tres.map(tarjeta).join("")}</div>
+        <p class="chint">Toca una pestaña de arriba para ver el resto de la carta.</p>`;
     } else {
-      const sec = SECCIONES.find(s=>s.k===catSel);
-      h += `<p class="hello" style="margin-top:0">${sec.e} ${esc(sec.k)}</p>` + sec.grupos.map(n=>GRUPOS.find(g=>g.g===n)).filter(Boolean)
-        .map(g=>`<section class="cat">${sec.grupos.length>1?`<h2>${esc(g.g)}</h2>`:""}<div class="tiles">${porConsumo(g.items).map(tarjeta).join("")}</div></section>`).join("");
+      let n = 0;
+      h += sec.grupos.map(g=>GRUPOS.find(x=>x.g===g)).filter(Boolean)
+        .map(g=>`${sec.grupos.length>1?`<h2 class="ch">${esc(g.g)}</h2>`:""}<div class="pcs">${porConsumo(g.items).map(i=>tarjeta(i, n++)).join("")}</div>`).join("");
     }
-    if (!MODO_FOTOS) barra = `<button class="cta" id="verPedido" ${totalUds()?"":"disabled"}><span>${totalUds()?`Ver mi pedido (${totalUds()})`:"Elige lo que quieras"}</span><span>${totalUds()?eur(totalEur()):""}</span></button>`;
+    if (!MODO_FOTOS) barra = "nav";
   }
   if (vista==="resumen"){
     h += `<button class="back" id="volverCarta">${ICON.back} Seguir pidiendo</button>
@@ -963,7 +1051,12 @@ function cliente(){
       <button class="ghost" id="inicio">Volver al inicio</button></div>${bloqueInstalar()}`;
   }
   h += `</main>`;
-  if (barra) h += `<div class="bar"><div class="in">${barra}</div></div>`;
+  if (barra==="nav") h += `<div class="bnav">${totalUds()?`<button class="verped" id="verPedido"><span>Ver mi pedido (${totalUds()})</span><b>${eur(totalEur())}</b></button>`:""}
+    <nav class="in" aria-label="Menú de abajo"><button class="on" id="nMenu" aria-current="page">${ICON_NAV.menu}<span>Menú</span></button>
+      <button id="inicio">${ICON_NAV.pedidos}<span>Mis pedidos</span></button>
+      <button id="nCall" ${llamadaActual()==="espera"?"disabled":""}>${ICON_NAV.camarero}<span>Camarero</span></button>
+      <button id="nCarro">${ICON_NAV.carrito}${totalUds()?`<i>${totalUds()}</i>`:""}<span>Carrito</span></button></nav></div>`;
+  else if (barra) h += `<div class="bar"><div class="in">${barra}</div></div>`;
   $app.innerHTML = h; bindHeader(); bindCliente(); bindInstalar();
 }
 function go(v){ vista=v; cliente(); scrollTo(0,0); }
@@ -979,13 +1072,18 @@ function bindCliente(){
   on("volverCarta", ()=>{ saveNota(); go("carta"); });
   on("verPedido", ()=>go("resumen"));
   on("inicio", ()=>go("inicio"));
-  on("call", async e => {
-    e.currentTarget.disabled = true;
+  on("nMenu", ()=>{ catSel = null; cliente(); scrollTo(0,0); });
+  on("nCarro", ()=> totalUds() ? go("resumen") : toast("Elige algo de la carta"));
+  on("nCall", e => llamar(e));
+  on("call", e => llamar(e));
+  { const t = document.querySelector(".ctab.on"); if (t){ const n = t.closest(".ctabs"); n.scrollLeft = t.parentElement.offsetLeft - (n.clientWidth - t.parentElement.clientWidth)/2; } }
+  async function llamar(e){
+    const btn = e.currentTarget; btn.disabled = true;
     try { const r = await Store.add({mesa, tipo:"camarero", cliente:yo.nombre, dispositivo:DISPOSITIVO});
           yo.ids.push(r.id); guardaYo(); misFilas.push(r); go("avisado"); }
     catch { if (await Store.estoyBloqueado().catch(()=>false)) { bloqueado=true; return cliente(); }
-            e.currentTarget.disabled=false; toast("No se ha podido avisar. Revisa la conexión y prueba otra vez."); }
-  });
+            btn.disabled=false; toast("No se ha podido avisar. Revisa la conexión y prueba otra vez."); }
+  }
   on("enviar", async e => {
     const btn=e.currentTarget; btn.disabled=true; btn.textContent="Enviando…";
     const items = Object.entries(cesta).map(([id,q])=>{const i=findItem(id);return {n:label(i),q,p:i.p}});
@@ -996,7 +1094,7 @@ function bindCliente(){
     catch { if (await Store.estoyBloqueado().catch(()=>false)) { bloqueado=true; return cliente(); }
             btn.disabled=false; btn.textContent="Enviar pedido"; toast("No se ha enviado. Revisa la conexión y prueba otra vez."); }
   });
-  document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{catSel=b.dataset.cat;cliente();scrollTo(0,0)});
+  document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{catSel=b.dataset.cat||null;cliente();scrollTo(0,0)});
   document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const id=b.dataset.a;cesta[id]=(cesta[id]||0)+1;cliente()});
   document.querySelectorAll("[data-foto]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); subirFoto(b.dataset.foto); });
   document.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const id=b.dataset.m;cesta[id]--; if(cesta[id]<=0) delete cesta[id]; cliente()});
@@ -1051,9 +1149,9 @@ async function escanearQR(){
 { let x0=null, y0=null;
   addEventListener("touchstart", e=>{ if (vista!=="carta"||qs.has("panel")) return; x0=e.touches[0].clientX; y0=e.touches[0].clientY; }, {passive:true});
   addEventListener("touchend", e=>{ if (x0===null) return; const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0; x0=null;
-    if (!catSel || Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.5) return;
-    const cats=SECCIONES.map(s=>s.k), k=cats.indexOf(catSel), n=k+(dx<0?1:-1);
-    if (n>=0 && n<cats.length){ catSel=cats[n]; cliente(); scrollTo(0,0); } }, {passive:true});
+    if (Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.5 || e.target.closest(".ctabs")) return;
+    const cats=["",...SECCIONES.map(s=>s.k)], k=cats.indexOf(catSel||""), n=k+(dx<0?1:-1);
+    if (n>=0 && n<cats.length){ catSel=cats[n]||null; cliente(); scrollTo(0,0); } }, {passive:true});
 }
 function saveNota(){ const n=document.getElementById("nota"); if(n) ls.set("esencia_nota", n.value); }
 
@@ -1751,6 +1849,18 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Para ti":"为你推荐",
+  "+ Añadir":"+ 添加",
+  "Menú":"菜单",
+  "Mis pedidos":"我的订单",
+  "Camarero":"服务员",
+  "Carrito":"购物车",
+  "Elige algo de la carta":"请先从菜单里选点东西",
+  "Secciones de la carta":"菜单分类",
+  "Menú de abajo":"底部菜单",
+  "Tu pedido":"你的订单",
+  "Toca una pestaña de arriba para ver el resto de la carta.":"点上面的分类看完整菜单。",
+  "Toca 📷 en un producto o una pestaña para hacerle una foto o elegirla de la galería.":"点产品或分类上的 📷 拍照或从相册选择。",
   "Desconectar":"下班",
   "Empezar":"开始",
   "Empezar la jornada":"开始上班",
@@ -2002,6 +2112,18 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Para ti":"Per a tu",
+  "+ Añadir":"+ Afegir",
+  "Menú":"Menú",
+  "Mis pedidos":"Les meves comandes",
+  "Camarero":"Cambrer",
+  "Carrito":"Cistella",
+  "Elige algo de la carta":"Tria alguna cosa de la carta",
+  "Secciones de la carta":"Seccions de la carta",
+  "Menú de abajo":"Menú de baix",
+  "Tu pedido":"La teva comanda",
+  "Toca una pestaña de arriba para ver el resto de la carta.":"Toca una pestanya de dalt per veure la resta de la carta.",
+  "Toca 📷 en un producto o una pestaña para hacerle una foto o elegirla de la galería.":"Toca 📷 en un producte o una pestanya per fer-li una foto o triar-la de la galeria.",
   "Desconectar":"Desconnectar",
   "Empezar":"Començar",
   "Empezar la jornada":"Començar la jornada",
