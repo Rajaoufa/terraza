@@ -117,6 +117,8 @@ body.oscura main.wrap{background:transparent;box-shadow:none;margin-top:0;border
   display:grid;justify-items:center;align-content:center;gap:6px;padding:8px 4px;box-shadow:0 6px 14px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)}
 .ctw:nth-child(3n+1) .ctab{background:linear-gradient(180deg,#5B3A1E,#3A2412)}
 .ctab svg{width:46px;height:46px}
+.ctab{position:relative;overflow:hidden}.ctab img.foto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ctab .ct-vel{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(20,10,5,.85))}.ctab .ct-hueco{display:block;height:46px}.ctab span{position:relative}
 .ctab span{font-weight:800;font-size:.68em;letter-spacing:.06em;text-transform:uppercase}
 .ctw .ctab.on{background:linear-gradient(180deg,#0F5552,#0A3332);border-color:#E9C27E;box-shadow:0 0 0 2px rgba(233,194,126,.35),0 0 22px rgba(64,200,190,.45)}
 .ch{font-family:var(--f-display);font-size:1.05em;letter-spacing:.14em;text-transform:uppercase;color:#E9C27E;text-align:center;margin:14px 0 12px;display:flex;align-items:center;gap:12px}
@@ -365,6 +367,7 @@ body.staff .wrap{max-width:1200px}
 .svc.on{font-size:.95em;padding:10px 16px}.svc.on i{background:#7CFC9A;box-shadow:0 0 8px #7CFC9A}
 .glinks{display:grid;gap:12px;margin-top:8px}.glinks .ghost{margin:0;text-decoration:none;color:var(--ink);display:grid;gap:4px;text-align:left}
 .glinks small{font-weight:400;color:var(--muted)}
+.fsel{display:block;text-align:center;cursor:pointer;position:relative}.fsel input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .offacts.herr{margin-top:28px;padding-top:18px;border-top:1px solid rgba(0,0,0,.08)}
 .offacts .ghost{margin:0;color:var(--ink);text-decoration:none;display:inline-block}
 /* registro de jornada */
@@ -663,13 +666,23 @@ function leeFoto(file){
       URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", .72)); };
     img.onerror = () => { URL.revokeObjectURL(url); mal(new Error("foto")); }; img.src = url; });
 }
+// elegir cámara o galería: cada botón es un campo de archivo de verdad, dentro de la página (en Android
+// un campo suelto a veces no abre nada o se pierde la foto al volver de la cámara)
 function subirFoto(k){
-  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*";
-  inp.onchange = async () => { const f = inp.files[0]; if (!f) return;
-    try { toast("Subiendo foto…"); const d = await leeFoto(f); const t = await Store.ponerFoto(ls.get("esencia_trab", null), k, d);
+  document.querySelector(".modal")?.remove();
+  const caja = document.createElement("div"); caja.className = "modal";
+  caja.innerHTML = `<div class="mbox"><b>Foto para ${esc(SECCIONES.find(x=>"cat-"+x.k===k)?.k || label(findItem(k)||{n:k}))}</b>
+    <label class="act pay fsel">📷 Hacer una foto<input type="file" accept="image/*" capture="environment"></label>
+    <label class="act go fsel">🖼️ Elegir de la galería<input type="file" accept="image/*"></label>
+    <button class="act no" id="fNo">Cancelar</button></div>`;
+  document.body.appendChild(caja);
+  caja.querySelector("#fNo").onclick = () => caja.remove();
+  caja.querySelectorAll("input[type=file]").forEach(inp => inp.onchange = async () => { const f = inp.files[0]; if (!f) return;
+    caja.remove(); toast("Subiendo foto…");
+    let d; try { d = await leeFoto(f); } catch { return toast("No se ha podido leer esa foto. Prueba con otra."); }
+    try { const t = await Store.ponerFoto(ls.get("esencia_trab", null), k, d);
           FOTOS[k] = {t, d}; ls.set("esencia_fotos", FOTOS); cliente(); toast("Foto guardada"); }
-    catch { toast("No se ha podido guardar la foto"); } };
-  inp.click();
+    catch(err) { toast(/PGRST202|esencia_poner_foto|function|esencia_fotos/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de fotos en Supabase" : "No se ha podido guardar la foto"); } });
 }
 const SECCIONES = [
   {k:"Refrescos", e:"🥤", grupos:["Refrescos y agua"]},
@@ -1064,7 +1077,7 @@ function cliente(){
     const sec = catSel ? SECCIONES.find(x=>x.k===catSel) : null;
     if (MODO_FOTOS) h += `<button class="back" id="volver">${ICON.back} Volver al panel</button><p class="sub">Toca 📷 en un producto o una pestaña para hacerle una foto o elegirla de la galería.</p>`;
     h += `<nav class="ctabs" aria-label="Secciones de la carta">${[{k:"", t:"Para ti"}, ...SECCIONES.map(x=>({k:x.k, t:x.k}))].map(x=>
-      `<div class="ctw">${x.k?botonFoto("cat-"+x.k):""}<button class="ctab ${(catSel||"")===x.k?"on":""}" data-cat="${esc(x.k)}" aria-pressed="${(catSel||"")===x.k}">${ICON_SECC[x.k]||""}<span>${esc(x.t)}</span></button></div>`).join("")}</nav>`;
+      `<div class="ctw">${x.k?botonFoto("cat-"+x.k):""}<button class="ctab ${(catSel||"")===x.k?"on":""}" data-cat="${esc(x.k)}" aria-pressed="${(catSel||"")===x.k}">${x.k&&fotoSubida("cat-"+x.k)?`${fotoSubida("cat-"+x.k)}<i class="ct-vel"></i><em class="ct-hueco"></em>`:ICON_SECC[x.k]||""}<span>${esc(x.t)}</span></button></div>`).join("")}</nav>`;
     const tarjeta = (i, n) => { const q = cesta[i.id]||0;
       return `<article class="pc t${n%3} ${q?"has":""}">${botonFoto(i.id)}<button class="pc-foto" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</button>
         <div class="pc-tx">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<h3>${esc(i.n)}</h3><b class="pc-p">${eur(i.p)}</b>${i.d?`<p>${esc(i.d)}</p>`:""}
@@ -1903,6 +1916,10 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "📷 Hacer una foto":"📷 拍照",
+  "🖼️ Elegir de la galería":"🖼️ 从相册选择",
+  "No se ha podido leer esa foto. Prueba con otra.":"无法读取这张照片，请换一张。",
+  "Falta pegar el SQL de fotos en Supabase":"还需要在 Supabase 运行照片的 SQL",
   "Para ti":"为你推荐",
   "+ Añadir":"+ 添加",
   "Menú":"菜单",
@@ -2131,6 +2148,7 @@ const ZH_RE = [
   [/^(.+) quitado de la lista$/, m=>`${m[1]} 已从名单删除`],
   [/^(.+) añadido\. La primera vez que toque su nombre elegirá su PIN\.$/, m=>`已添加 ${m[1]}。第一次点名字时会设置密码。`],
   [/^Apodos · Mesa (.+)$/, m=>`昵称 · ${m[1]} 号桌`],
+  [/^Foto para (.+)$/, m=>`${m[1]} 的照片`],
   [/^Mesas abiertas \((\d+)\)$/, m=>`开着的桌子（${m[1]}）`],
   [/^Móviles bloqueados \((\d+)\)$/, m=>`被屏蔽的手机（${m[1]}）`],
   [/^Ver mi pedido \((\d+)\)$/, m=>`查看我的订单（${m[1]}）`],
@@ -2166,6 +2184,10 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "📷 Hacer una foto":"📷 Fer una foto",
+  "🖼️ Elegir de la galería":"🖼️ Triar de la galeria",
+  "No se ha podido leer esa foto. Prueba con otra.":"No s'ha pogut llegir aquesta foto. Prova amb una altra.",
+  "Falta pegar el SQL de fotos en Supabase":"Falta enganxar l'SQL de fotos a Supabase",
   "Para ti":"Per a tu",
   "+ Añadir":"+ Afegir",
   "Menú":"Menú",
@@ -2385,6 +2407,7 @@ const CA_RE = [
   [/^(.+) quitado de la lista$/, m=>`${m[1]} tret de la llista`],
   [/^(.+) añadido\. La primera vez que toque su nombre elegirá su PIN\.$/, m=>`${m[1]} afegit. La primera vegada que toqui el seu nom triarà el seu PIN.`],
   [/^Apodos · Mesa (.+)$/, m=>`Sobrenoms · Taula ${m[1]}`],
+  [/^Foto para (.+)$/, m=>`Foto per a ${m[1]}`],
   [/^Mesas abiertas \((\d+)\)$/, m=>`Taules obertes (${m[1]})`],
   [/^Móviles bloqueados \((\d+)\)$/, m=>`Mòbils bloquejats (${m[1]})`],
   [/^Ver mi pedido \((\d+)\)$/, m=>`Veure la meva comanda (${m[1]})`],
