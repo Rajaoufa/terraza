@@ -497,6 +497,13 @@ body{font-variant-numeric:lining-nums}
 @keyframes apIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
 @keyframes apAbre{from{opacity:0;transform:scale(.18);border-radius:40px;filter:blur(2px)}to{opacity:1;transform:none;filter:none}}
 @media (prefers-reduced-motion:reduce){.apw,.capp.abre{animation:none}}
+.hj-op small{font-weight:700;opacity:.85}
+.gsec{font-family:var(--f-display);color:#E9C27E;margin:18px 0 8px;font-size:1.1em}
+.gpres{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
+.gpr{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.gpr span{flex:1;min-width:0}
+.gpr.cambiado{border-color:#F0C979}
+.gpre{width:86px;padding:8px;font:inherit;font-weight:700;text-align:right;border-radius:10px;border:1px solid var(--line);background:#170D07;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -686,6 +693,19 @@ const OPCIONES_ITEM = {   // excepciones a las del grupo
   re17: [{t:"", uno:true, o:["Fría","Del tiempo"]}, O_LLEVAR], re18: [{t:"", uno:true, o:["Fría","Del tiempo"]}, O_LLEVAR],
   cb11: []};
 const opcionesDe = id => OPCIONES_ITEM[id] || OPCIONES_GRUPO[GRUPO_DE[id]] || [];
+// lo que cuesta de más cada opción (Jamal: café con hielo +0,10 €, extras del bocadillo +1 €, vinos y copas nada)
+const EXTRAS_BASE = {"Cafetería|Con hielo":0.10, "Carajillos|Con hielo":0.10, "Bocadillos|Con queso":1, "Bocadillos|Con tomate":1};
+// precios que el encargado cambia en Gestión > Precios (tabla esencia_precios): "ce1" = producto, "x:Grupo|Opción" = extra
+let PRECIOS = ls.get("esencia_precios", {});
+const PRECIO_CARTA = {};   // el precio escrito en el código, para volver a él
+const ponPrecios = () => ALL_ITEMS.forEach(i => { if (!(i.id in PRECIO_CARTA)) PRECIO_CARTA[i.id] = i.p; i.p = PRECIOS[i.id] ?? PRECIO_CARTA[i.id]; });
+const extraDe = (id, o) => { const k = GRUPO_DE[id]+"|"+o; return Number(PRECIOS["x:"+k] ?? EXTRAS_BASE[k] ?? 0); };
+const precioLinea = k => { const {id, i, o} = lineaCesta(k); return Math.round((i.p + o.reduce((a,x)=>a+extraDe(id,x),0))*100)/100; };
+async function cargaPrecios(){
+  try { const n = await Store.precios(); if (JSON.stringify(n) === JSON.stringify(PRECIOS)) return;
+        PRECIOS = n; ls.set("esencia_precios", PRECIOS); ponPrecios();
+        if (!qs.has("panel") && !qs.has("gestion") && !qs.has("fichajes") && !qs.has("qr")) cliente(); } catch {}
+}
 // en la cesta cada línea es "id" o "id|opción·opción"
 const lineaCesta = k => { const [id, o=""] = k.split("|"); return {id, i:findItem(id), o:o?o.split("·"):[]}; };
 const conOpciones = (n, o) => o.length ? `${n} (${o.join(", ")})` : n;
@@ -937,6 +957,15 @@ const Store = {
     if (sb){ const {error} = await sb.rpc("esencia_deuda",{p_pin:admin.pin, p_nombre:nombre, p_importe:importe, p_concepto:concepto||null}); if (error) throw error; return; }
     ls.set("esencia_demo_deudas", [...ls.get("esencia_demo_deudas", []), {id:Date.now(), nombre, importe, concepto:concepto||null, created_at:new Date().toISOString(), quien:admin.nombre}]);
   },
+  async precios(){
+    if (sb){ const {data,error} = await sb.from("esencia_precios").select("clave,precio"); if (error) throw error;
+             return Object.fromEntries(data.map(r=>[r.clave, Number(r.precio)])); }
+    return ls.get("esencia_demo_precios", {});
+  },
+  async preciosGuardar(admin, lista){ // [{clave, precio}] ; precio null = volver al de la carta
+    if (sb){ const {error} = await sb.rpc("esencia_precios_guardar",{p_pin:admin.pin, p_lista:lista}); if (error) throw error; return; }
+    const d = ls.get("esencia_demo_precios", {}); lista.forEach(x=>{ if (x.precio===null) delete d[x.clave]; else d[x.clave] = x.precio; }); ls.set("esencia_demo_precios", d);
+  },
   async fotosLista(){
     if (sb){ const {data,error} = await sb.from("esencia_fotos").select("producto,updated_at"); if (error) throw error; return data; }
     const d = ls.get("esencia_demo_fotos", {}); return Object.entries(d).map(([producto,f])=>({producto, updated_at:f.t}));
@@ -1006,7 +1035,7 @@ let abrirDesde = null;   // centro del icono tocado, para el efecto de abrir la 
 let filasMesa = [];
 const guardaYo = () => { ls.set(KEY, yo); if (yo.nombre) ls.set("esencia_nombre", yo.nombre); };
 const totalUds = () => Object.values(cesta).reduce((a,b)=>a+b,0);
-const totalEur = () => Object.entries(cesta).reduce((a,[k,q])=>a+lineaCesta(k).i.p*q,0);
+const totalEur = () => Object.entries(cesta).reduce((a,[k,q])=>a+precioLinea(k)*q,0);
 const udsDe = id => Object.entries(cesta).reduce((a,[k,q])=>a+(lineaCesta(k).id===id?q:0),0);
 
 function header(){
@@ -1170,7 +1199,7 @@ function cliente(){
     h += `<button class="back" id="volverCarta">${ICON.back} Seguir pidiendo</button>
       <p class="hello" style="margin-top:4px">Tu pedido, ${esc(yo.nombre)}</p>
       <div class="sum">${Object.entries(cesta).map(([k,q])=>{const {i,o}=lineaCesta(k);return `<div class="row lc"><span><b>${q} ×</b> ${esc(label(i))}${o.length?`<span class="opcs">${o.map(x=>`<em>${esc(x)}</em>`).join("")}</span>`:""}</span>
-        <span class="lcd"><span>${eur(i.p*q)}</span><span class="lcb"><button data-ml="${esc(k)}" aria-label="Quitar uno">−</button><button data-al="${esc(k)}" aria-label="Añadir otro">+</button></span></span></div>`}).join("")}
+        <span class="lcd"><span>${eur(precioLinea(k)*q)}</span><span class="lcb"><button data-ml="${esc(k)}" aria-label="Quitar uno">−</button><button data-al="${esc(k)}" aria-label="Añadir otro">+</button></span></span></div>`}).join("")}
       <div class="row total"><span>Total de este pedido</span><span>${eur(totalEur())}</span></div></div>
       <label class="lbl" for="nota">¿Algo que debamos saber? (opcional)</label>
       <textarea id="nota" maxlength="200" placeholder="Ej: sin hielo, sin gluten, la caña muy fría…">${esc(ls.get("esencia_nota",""))}</textarea>
@@ -1224,7 +1253,7 @@ function bindCliente(){
   }
   on("enviar", async e => {
     const btn=e.currentTarget; btn.disabled=true; btn.textContent="Enviando…";
-    const items = Object.entries(cesta).map(([k,q])=>{const {i,o}=lineaCesta(k);return {n:conOpciones(label(i),o),q,p:i.p}});
+    const items = Object.entries(cesta).map(([k,q])=>{const {i,o}=lineaCesta(k);return {n:conOpciones(label(i),o),q,p:precioLinea(k)}});
     const nota = (document.getElementById("nota")?.value||"").trim().slice(0,200);
     try { const r = await Store.add({mesa, tipo:"pedido", cliente:yo.nombre, dispositivo:DISPOSITIVO, items, nota, total:Math.round(totalEur()*100)/100});
           const hist = MIO(); Object.entries(cesta).forEach(([k,q])=>{ const id=lineaCesta(k).id; hist[id]=(hist[id]||0)+q; }); ls.set("esencia_historial", hist);
@@ -1250,14 +1279,15 @@ function elegirOpciones(id){
   caja.innerHTML = `<div class="mbox" role="dialog" aria-modal="true" aria-label="${esc(label(i))}">
     <div class="hj-cab">${i.m?`<span class="mk">${esc(i.m)}</span>`:""}<b class="hj-n">${esc(i.n)}</b>${i.d?`<small>${esc(i.d)}</small>`:""}<b class="hj-p">${eur(i.p)}</b></div>
     <p class="sub">¿Cómo lo quieres? Si no marcas nada, va como siempre.</p>
-    ${filas.map((f,fi)=>`<div class="hj-fila">${f.t?`<span class="hj-t">${esc(f.t)}</span>`:""}<div class="hj-ops">${f.o.map(o=>`<button type="button" class="hj-op" data-f="${fi}" data-o="${esc(o)}" aria-pressed="false">${esc(o)}</button>`).join("")}</div></div>`).join("")}
-    <button class="act pay" id="hjOk">Añadir al pedido</button><button class="act no" id="hjNo">Cancelar</button></div>`;
+    ${filas.map((f,fi)=>`<div class="hj-fila">${f.t?`<span class="hj-t">${esc(f.t)}</span>`:""}<div class="hj-ops">${f.o.map(o=>`<button type="button" class="hj-op" data-f="${fi}" data-o="${esc(o)}" aria-pressed="false"><span>${esc(o)}</span>${extraDe(id,o)?` <small>+${eur(extraDe(id,o))}</small>`:""}</button>`).join("")}</div></div>`).join("")}
+    <button class="act pay" id="hjOk"><span>Añadir al pedido</span> · <b id="hjTot">${eur(i.p)}</b></button><button class="act no" id="hjNo">Cancelar</button></div>`;
   document.body.appendChild(caja);
   caja.onclick = e => { if (e.target === caja) caja.remove(); };
   caja.querySelector("#hjNo").onclick = () => caja.remove();
   caja.querySelectorAll(".hj-op").forEach(b => b.onclick = () => { const o = b.dataset.o, f = filas[b.dataset.f];
     if (sel.has(o)) sel.delete(o); else { if (f.uno) f.o.forEach(x=>sel.delete(x)); sel.add(o); }
-    caja.querySelectorAll(".hj-op").forEach(x => { const on = sel.has(x.dataset.o); x.classList.toggle("on", on); x.setAttribute("aria-pressed", on); }); });
+    caja.querySelectorAll(".hj-op").forEach(x => { const on = sel.has(x.dataset.o); x.classList.toggle("on", on); x.setAttribute("aria-pressed", on); });
+    caja.querySelector("#hjTot").textContent = eur(i.p + [...sel].reduce((a,x)=>a+extraDe(id,x),0)); });
   caja.querySelector("#hjOk").onclick = () => {
     const o = filas.flatMap(f=>f.o).filter(x=>sel.has(x)), k = o.length ? id+"|"+o.join("·") : id;
     cesta[k] = (cesta[k]||0)+1; caja.remove(); cliente(); toast("Añadido al pedido"); };
@@ -1767,7 +1797,7 @@ async function gestion(){
   $app.innerHTML = (DEMO?`<div class="demo noprint">MODO PRUEBA · Lo que apuntes solo se guarda en este navegador.</div>`:"") +
     `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Gestión</small></div>
      <a class="svc off noprint" href="${location.pathname}?panel" style="text-decoration:none">Volver al panel</a></div></header>
-    <main class="wrap gest"><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["carta","Carta y QR"]]
+    <main class="wrap gest"><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["precios","Precios"],["carta","Carta y QR"]]
       .map(([k,t])=>`<button class="tab" data-g="${k}" aria-selected="${gTab===k}">${t}</button>`).join("")}</div>
     <div id="gCuerpo">Cargando…</div></main>`;
   $app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ gTab = b.dataset.g; gInv = false;
@@ -1778,8 +1808,9 @@ async function pintaGestion(){
   const box = document.getElementById("gCuerpo"); if (!box) return;
   box.textContent = "Cargando…";
   if (gTab==="camareros") return pantallaPins(box);
-  try { box.innerHTML = await {cuentas:gCuentas, pedidos:gPedidos, deudores:gDeudores, stock:gStock, fichajes:gFichajes, carta:gCarta}[gTab](); }
-  catch(err) { box.innerHTML = /PGRST202|esencia_gestion|function/i.test((err?.code||"")+(err?.message||""))
+  try { box.innerHTML = await {cuentas:gCuentas, pedidos:gPedidos, deudores:gDeudores, stock:gStock, fichajes:gFichajes, precios:gPrecios, carta:gCarta}[gTab](); }
+  catch(err) { if (gTab==="precios") { box.innerHTML = `<p class="empty">Falta pegar el SQL de precios en Supabase.</p>`; return; }
+    box.innerHTML = /PGRST202|esencia_gestion|function/i.test((err?.code||"")+(err?.message||""))
       ? `<p class="empty">Falta pegar el SQL de gestión en Supabase.</p>` : `<p class="empty">Sin conexión con el servidor.</p>`; return; }
   gEnlaces(box);
 }
@@ -1921,12 +1952,36 @@ async function gFichajes(){
     <a class="ghost" href="${location.pathname}?fichajes" style="display:inline-block;color:var(--ink);text-decoration:none">Ver el registro de jornada completo</a>`;
 }
 
+async function gPrecios(){
+  PRECIOS = await Store.precios(); ls.set("esencia_precios", PRECIOS); ponPrecios();
+  const campo = (clave, v, base) => `<input class="gpre" type="number" inputmode="decimal" min="0" max="999" step="0.05" data-clave="${esc(clave)}" data-base="${base}" value="${Number(v).toFixed(2)}" aria-label="Precio">`;
+  const prods = SECCIONES.map(sec => `<h3 class="gsec">${esc(sec.k)}</h3><div class="gpres">${sec.grupos.map(g=>GRUPOS.find(x=>x.g===g)).filter(Boolean).flatMap(g=>g.items)
+      .map(i=>`<label class="gpr ${PRECIOS[i.id]!==undefined?"cambiado":""}"><span>${esc(label(i))}</span>${campo(i.id, i.p, PRECIO_CARTA[i.id])} €</label>`).join("")}</div>`).join("");
+  const ext = Object.entries(OPCIONES_GRUPO).map(([g, filas]) => { const ops = [...new Set(filas.flatMap(f=>f.o))];
+      return `<h3 class="gsec">${esc(g)}</h3><div class="gpres">${ops.map(o=>{ const k = g+"|"+o, v = PRECIOS["x:"+k] ?? EXTRAS_BASE[k] ?? 0;
+        return `<label class="gpr ${PRECIOS["x:"+k]!==undefined?"cambiado":""}"><span>${esc(o)}</span>+ ${campo("x:"+k, v, EXTRAS_BASE[k] ?? 0)} €</label>`; }).join("")}</div>`; }).join("");
+  return `<p class="sub">Cambia el número y pulsa <b>Guardar precios</b>. Los pedidos nuevos ya salen con el precio nuevo. Los extras a 0 son gratis.</p>
+    <button class="act pay" id="gPreOk">Guardar precios</button>
+    <h2 class="ch">Productos</h2>${prods}<h2 class="ch">Extras de las opciones</h2>${ext}
+    <button class="act pay" id="gPreOk2">Guardar precios</button>`;
+}
 async function gCarta(){
   return `<div class="glinks"><a class="ghost" href="${location.pathname}?qr">QR de las mesas<small>Descargar o imprimir el QR de cada mesa</small></a>
     <a class="ghost" href="${location.pathname}?fotos">Fotos de la carta<small>Poner o cambiar la foto de cada producto</small></a></div>`;
 }
 function gEnlaces(box){
   const $ = q => box.querySelector(q);
+  box.querySelectorAll("#gPreOk,#gPreOk2").forEach(b => b.onclick = async () => {
+    const lista = [];
+    box.querySelectorAll(".gpre").forEach(inp => { const v = Math.round(Number(String(inp.value).replace(",","."))*100)/100;
+      if (inp.value === "" || !(v >= 0) || v > 999) return;
+      const base = Number(inp.dataset.base), antes = PRECIOS[inp.dataset.clave];
+      const nuevo = Math.abs(v - base) < 0.001 ? null : v;
+      if ((antes ?? null) !== nuevo) lista.push({clave: inp.dataset.clave, precio: nuevo}); });
+    if (!lista.length) return toast("No has cambiado ningún precio");
+    b.disabled = true;
+    try { await Store.preciosGuardar(trab, lista); toast("Precios guardados"); pintaGestion(); }
+    catch(err) { b.disabled = false; toast(/PGRST202|esencia_precios|function/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de precios en Supabase" : "No se han podido guardar los precios"); } });
   if ($("#gPer")) $("#gPer").onchange = e => { gPer = e.target.value; pintaGestion(); };
   if ($("#gBusca")) $("#gBusca").oninput = e => { gBusca = e.target.value; $("#gLista").innerHTML = gListaPedidos(); };
   if ($("#gCsv")) $("#gCsv").onclick = gCsvPedidos;
@@ -2013,6 +2068,15 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Precios":"价格",
+  "Guardar precios":"保存价格",
+  "Productos":"商品",
+  "Extras de las opciones":"选项加价",
+  "Precio":"价格",
+  "Precios guardados":"价格已保存",
+  "No has cambiado ningún precio":"你没有改任何价格",
+  "Falta pegar el SQL de precios en Supabase":"还需要在 Supabase 运行价格的 SQL",
+  "No se han podido guardar los precios":"价格没能保存",
   "Añadido al pedido":"已加入订单",
   "Toca una sección para ver lo que hay dentro.":"点一个分类看看里面有什么。",
   "La carta":"菜单",
@@ -2315,6 +2379,15 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Precios":"Preus",
+  "Guardar precios":"Desar preus",
+  "Productos":"Productes",
+  "Extras de las opciones":"Extres de les opcions",
+  "Precio":"Preu",
+  "Precios guardados":"Preus desats",
+  "No has cambiado ningún precio":"No has canviat cap preu",
+  "Falta pegar el SQL de precios en Supabase":"Falta enganxar l'SQL de preus a Supabase",
+  "No se han podido guardar los precios":"No s'han pogut desar els preus",
   "Añadido al pedido":"Afegit a la comanda",
   "Toca una sección para ver lo que hay dentro.":"Toca una secció per veure què hi ha a dins.",
   "La carta":"La carta",
@@ -2654,6 +2727,7 @@ if (PREVIEW){
   document.body.prepend(pv);
   pv.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{ location.hash=b.dataset.v; location.reload(); });
 }
+ponPrecios(); cargaPrecios();
 if (qs.has("panel")) { if (trab) entrarPanel(); else panel(); Store.subscribe(()=>{ if (trab && pestana!=="fichajes") pintar(); }, 10000); }
 else if (qs.has("gestion")) gestion();
 else if (qs.has("fichajes")) informe();
