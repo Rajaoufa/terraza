@@ -1266,7 +1266,7 @@ function pantallaApodos(m){
     try { for (const i of caja.querySelectorAll("[data-ap]")){ const v = i.value.trim().replace(/\s+/g," ").slice(0,30);
             if (v !== (APODOS[i.dataset.ap]||"")) await Store.ponerApodo(trab, i.dataset.ap, v); }
           caja.remove(); toast("Apodo guardado"); pintar(); }
-    catch { e.target.disabled = false; toast("No se ha podido guardar el apodo"); } };
+    catch(err) { e.target.disabled = false; toast(/PGRST202|esencia_poner_apodo|function/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de apodos en Supabase" : "No se ha podido guardar el apodo"); } };
 }
 function botonBloq(r){
   if (!r.dispositivo) return "";
@@ -1471,6 +1471,7 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Falta pegar el SQL de apodos en Supabase":"还需要在 Supabase 运行昵称的 SQL",
   "Pon el nombre con el que conocéis al cliente. Lo veréis todos los camareros, siempre que pida desde ese móvil. El cliente sigue viendo el suyo.":"填写你们认识这位客人的名字。只要他用这部手机点单，所有服务员都会看到。客人仍然看到自己的名字。",
   "Apodo":"昵称",
   "Guardar":"保存",
@@ -1620,6 +1621,7 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Falta pegar el SQL de apodos en Supabase":"Falta enganxar l'SQL de malnoms a Supabase",
   "Pon el nombre con el que conocéis al cliente. Lo veréis todos los camareros, siempre que pida desde ese móvil. El cliente sigue viendo el suyo.":"Posa el nom amb què coneixeu el client. El veureu tots els cambrers, sempre que demani des d'aquest mòbil. El client continua veient el seu.",
   "Apodo":"Malnom",
   "Guardar":"Desar",
