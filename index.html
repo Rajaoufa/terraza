@@ -547,7 +547,7 @@ const ICON = {
   pin:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>`,
   tick:`<svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>`
 };
-if (ls.get("esencia_big", false)) document.documentElement.classList.add("big");
+document.documentElement.classList.remove("big");
 if (CONFIG.FONDO) document.documentElement.style.setProperty("--foto", `url("${encodeURI(CONFIG.FONDO)}")`);
 else document.documentElement.style.setProperty("--foto", "none");
 function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3200); }
@@ -746,7 +746,7 @@ const totalEur = () => Object.entries(cesta).reduce((a,[id,q])=>a+findItem(id).p
 function header(){
   return `<header class="top"><div class="wrap">
     <div class="logo">${esc(CONFIG.NOMBRE)}<small>Terraza</small></div>
-    <div class="hr"><button class="tsize" id="tsize" aria-label="Cambiar tamaño de letra">A+</button>
+    <div class="hr">
       ${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:""}</div></div>
     ${CONFIG.LUGAR?`<div class="wrap lugar"><span>${ICON.pin}${esc(CONFIG.LUGAR)}</span></div>`:""}</header>`;
 }
@@ -1201,7 +1201,7 @@ async function pintar(){
   } else if (pestana==="bloqueados"){
     h += bloqs.length ? `<div class="grid">${bloqs.map(b=>`<div class="hist"><span><b>${esc(b.cliente||"Sin nombre")}</b><br><span class="t">Mesa ${esc(b.mesa||"?")} · bloqueado ${b.created_at?hace(b.created_at):""}</span></span>
         <button class="act no" data-desbloq="${esc(b.dispositivo)}">Desbloquear</button></div>`).join("")}</div>`
-      : `<p class="empty">No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Bloquear este móvil” en su aviso.</p>`;
+      : `<p class="empty">No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Rechazar y bloquear contacto” en su aviso.</p>`;
   } else {
     let cob = []; try { cob = (await Store.cobradas()).map(conApodo); } catch { toast("Sin conexión con el servidor"); }
     const porCierre = {}; cob.forEach(r=>{ const k=r.mesa+"|"+r.cerrado_at; (porCierre[k]=porCierre[k]||[]).push(r); });
@@ -1270,7 +1270,7 @@ function botonBloq(r){
   if (!r.dispositivo) return "";
   if (String(bloqueando)===String(r.id)) return `<div class="ask"><b>¿Bloquear el móvil de ${esc(r.cliente||"este cliente")}? Se anulará este aviso y no podrá pedir ni llamar más desde la app.</b>
     <div class="two"><button class="act pay" data-sibloq="${esc(r.id)}">Sí, bloquear</button><button class="act no" data-nobloq>No</button></div></div>`;
-  return `<button class="act lnk" data-bloq="${esc(r.id)}">Es una broma: bloquear este móvil</button>`;
+  return `<button class="act lnk" data-bloq="${esc(r.id)}">Rechazar y bloquear contacto</button>`;
 }
 function tarjetaMesa(m, rs){
   const pend = rs.filter(r=>r.estado==="nuevo");
@@ -1548,12 +1548,12 @@ const ZH = {
   "Registro de jornada":"工时记录","QR de las mesas":"桌子二维码","Fotos de la carta":"菜单照片","Cambiar de trabajador":"切换员工",
   "No se ha podido fichar. Revisa la conexión y prueba otra vez.":"没能打卡。请检查网络后再试。",
   "Cobradas (7 días)":"已结账（7 天）","Mis fichajes":"我的打卡","No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.":"没有桌子点单。客人扫码点单后会显示在这里。",
-  "Desbloquear":"解除屏蔽","No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Bloquear este móvil” en su aviso.":"没有被屏蔽的手机。如果有人恶作剧点单或呼叫，在通知里点“屏蔽这部手机”。",
+  "Desbloquear":"解除屏蔽","No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Rechazar y bloquear contacto” en su aviso.":"没有被屏蔽的手机。如果有人恶作剧点单或呼叫，在通知里点“拒绝并屏蔽联系人”。",
   "Lo cobrado":"已收款","Solo llamadas, sin pedidos.":"只有呼叫，没有点单。","No se ha cobrado ninguna mesa en los últimos 7 días.":"最近 7 天没有结账的桌子。",
   "Avisos activados. Te llegarán aunque el móvil esté bloqueado.":"通知已开启。手机锁屏也能收到。","No se han podido activar los avisos.":"没能开启通知。",
   "No se ha guardado. Prueba otra vez.":"没有保存，请再试。","Móvil bloqueado. Ya no podrá pedir ni llamar desde la app.":"手机已屏蔽。它不能再在应用里点单或呼叫。",
   "No se ha podido bloquear. Prueba otra vez.":"没能屏蔽，请再试。","Móvil desbloqueado":"手机已解除屏蔽","No se ha podido desbloquear. Prueba otra vez.":"没能解除屏蔽，请再试。",
-  "No se ha podido cerrar. Prueba otra vez.":"没能关闭，请再试。","Sí, bloquear":"是，屏蔽","No":"否","Es una broma: bloquear este móvil":"恶作剧：屏蔽这部手机",
+  "No se ha podido cerrar. Prueba otra vez.":"没能关闭，请再试。","Sí, bloquear":"是，屏蔽","No":"否","Rechazar y bloquear contacto":"拒绝并屏蔽联系人",
   "Un cliente":"一位客人","Voy para allá":"我马上过去","Pedido nuevo":"新订单","Pedido nuevo ·":"新订单","Consumo de la mesa":"本桌消费","Sí, cerrar mesa":"是，关闭这桌",
   "Cobrar y cerrar mesa":"结账并关闭这桌","este cliente":"这位客人",
   "Recibe los avisos con el móvil bloqueado":"手机锁屏也能收到通知","Te llegará una notificación cada vez que una mesa llame o pida, aunque tengas la pantalla apagada.":"每次有桌子呼叫或点单都会通知你，即使屏幕关着。",
@@ -1619,13 +1619,13 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
-  "Falta pegar el SQL de apodos en Supabase":"Falta enganxar l'SQL de malnoms a Supabase",
+  "Falta pegar el SQL de apodos en Supabase":"Falta enganxar l'SQL de sobrenoms a Supabase",
   "Pon el nombre con el que conocéis al cliente. Lo veréis todos los camareros, siempre que pida desde ese móvil. El cliente sigue viendo el suyo.":"Posa el nom amb què coneixeu el client. El veureu tots els cambrers, sempre que demani des d'aquest mòbil. El client continua veient el seu.",
-  "Apodo":"Malnom",
+  "Apodo":"Sobrenom",
   "Guardar":"Desar",
-  "Apodo guardado":"Malnom desat",
-  "No se ha podido guardar el apodo":"No s'ha pogut desar el malnom",
-  "✏️ Apodo":"✏️ Malnom",
+  "Apodo guardado":"Sobrenom desat",
+  "No se ha podido guardar el apodo":"No s'ha pogut desar el sobrenom",
+  "✏️ Apodo":"✏️ Sobrenom",
   "Nadie ha pedido desde un móvil en esta mesa.":"Ningú no ha demanat des d'un mòbil en aquesta taula.",
   "Pendiente de pagar":"Pendent de pagar",
   "Tus cuentas pendientes":"Els teus comptes pendents",
@@ -1692,12 +1692,12 @@ const CA = {
   "Registro de jornada":"Registre de jornada","QR de las mesas":"QR de les taules","Fotos de la carta":"Fotos de la carta","Cambiar de trabajador":"Canviar de treballador",
   "No se ha podido fichar. Revisa la conexión y prueba otra vez.":"No s'ha pogut fitxar. Revisa la connexió i torna-ho a provar.",
   "Cobradas (7 días)":"Cobrades (7 dies)","Mis fichajes":"Els meus fitxatges","No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.":"No hi ha taules amb comandes. Quan un client escanegi el QR i demani, apareixerà aquí.",
-  "Desbloquear":"Desbloquejar","No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Bloquear este móvil” en su aviso.":"No hi ha cap mòbil bloquejat. Si algú demana o crida de broma, toca “Bloquejar aquest mòbil” al seu avís.",
+  "Desbloquear":"Desbloquejar","No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Rechazar y bloquear contacto” en su aviso.":"No hi ha cap mòbil bloquejat. Si algú demana o crida de broma, toca “Rebutjar i bloquejar contacte” al seu avís.",
   "Lo cobrado":"El cobrat","Solo llamadas, sin pedidos.":"Només crides, sense comandes.","No se ha cobrado ninguna mesa en los últimos 7 días.":"No s'ha cobrat cap taula els últims 7 dies.",
   "Avisos activados. Te llegarán aunque el móvil esté bloqueado.":"Avisos activats. T'arribaran encara que el mòbil estigui bloquejat.","No se han podido activar los avisos.":"No s'han pogut activar els avisos.",
   "No se ha guardado. Prueba otra vez.":"No s'ha desat. Torna-ho a provar.","Móvil bloqueado. Ya no podrá pedir ni llamar desde la app.":"Mòbil bloquejat. Ja no podrà demanar ni cridar des de l'app.",
   "No se ha podido bloquear. Prueba otra vez.":"No s'ha pogut bloquejar. Torna-ho a provar.","Móvil desbloqueado":"Mòbil desbloquejat","No se ha podido desbloquear. Prueba otra vez.":"No s'ha pogut desbloquejar. Torna-ho a provar.",
-  "No se ha podido cerrar. Prueba otra vez.":"No s'ha pogut tancar. Torna-ho a provar.","Sí, bloquear":"Sí, bloquejar","No":"No","Es una broma: bloquear este móvil":"És una broma: bloquejar aquest mòbil",
+  "No se ha podido cerrar. Prueba otra vez.":"No s'ha pogut tancar. Torna-ho a provar.","Sí, bloquear":"Sí, bloquejar","No":"No","Rechazar y bloquear contacto":"Rebutjar i bloquejar contacte",
   "Un cliente":"Un client","Voy para allá":"Hi vaig","Pedido nuevo":"Comanda nova","Pedido nuevo ·":"Comanda nova","Consumo de la mesa":"Consum de la taula","Sí, cerrar mesa":"Sí, tancar la taula",
   "Cobrar y cerrar mesa":"Cobrar i tancar la taula","este cliente":"aquest client",
   "Recibe los avisos con el móvil bloqueado":"Rep els avisos amb el mòbil bloquejat","Te llegará una notificación cada vez que una mesa llame o pida, aunque tengas la pantalla apagada.":"T'arribarà una notificació cada vegada que una taula cridi o demani, encara que tinguis la pantalla apagada.",
@@ -1724,7 +1724,7 @@ const CA_RE = [
   [/^Lo de siempre, (.+)$/, m=>`El de sempre, ${m[1]}`],
   [/^(.+) quitado de la lista$/, m=>`${m[1]} tret de la llista`],
   [/^(.+) añadido\. La primera vez que toque su nombre elegirá su PIN\.$/, m=>`${m[1]} afegit. La primera vegada que toqui el seu nom triarà el seu PIN.`],
-  [/^Apodos · Mesa (.+)$/, m=>`Malnoms · Taula ${m[1]}`],
+  [/^Apodos · Mesa (.+)$/, m=>`Sobrenoms · Taula ${m[1]}`],
   [/^Mesas abiertas \((\d+)\)$/, m=>`Taules obertes (${m[1]})`],
   [/^Móviles bloqueados \((\d+)\)$/, m=>`Mòbils bloquejats (${m[1]})`],
   [/^Ver mi pedido \((\d+)\)$/, m=>`Veure la meva comanda (${m[1]})`],
