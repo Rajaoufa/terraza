@@ -533,6 +533,7 @@ body{font-variant-numeric:lining-nums}
 .el-p small{font-weight:400;color:var(--muted);font-size:.85em}
 .el-no{background:rgba(255,255,255,.06);color:var(--muted)}
 .arranque .enlinea{justify-content:center;max-width:520px;margin:0 auto 18px}
+.av-si{color:#7BD88F;font-weight:800}
 </style>
 </head>
 <body>
@@ -1070,6 +1071,15 @@ const Store = {
     const ult = {}; demoFich().forEach(f=>{ ult[f.trabajador_id] = f; });
     return Object.values(ult).filter(f=>f.tipo==="entrada" && Date.now()-new Date(f.momento) < 16*3600e3).map(f=>({nombre:f.nombre, desde:f.momento}));
   },
+  async pushEstado(admin){   // por camarero: móviles con avisos, si trabaja ahora y cuándo los activó
+    if (sb){ const {data,error} = await sb.rpc("esencia_push_estado",{p_pin:admin.pin}); if (error) throw error; return data; }
+    const ult = {}; demoFich().forEach(f=>{ ult[f.trabajador_id] = f; });
+    return demoTrab().map(t=>({nombre:t.nombre, moviles:0, ultimo:null, trabajando:ult[t.id]?.tipo==="entrada"}));
+  },
+  async pushProbar(admin){
+    if (sb){ const {data,error} = await sb.rpc("esencia_push_probar",{p_pin:admin.pin}); if (error) throw error; return data; }
+    return 0;
+  },
   async trabajadores(admin){
     if (sb){ const {data,error} = await sb.rpc("esencia_trabajadores",{p_pin:admin.pin}); if (error) throw error; return data; }
     return demoTrab().map(({id,nombre})=>({id,nombre}));
@@ -1459,6 +1469,7 @@ document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState
 const PUSH_OK = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && location.protocol === "https:";
 const IOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const b64u = s => { const p = "=".repeat((4 - s.length % 4) % 4); const r = atob((s + p).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from(r, c=>c.charCodeAt(0)); };
+let AVISOS_FALLO = false;   // tenía permiso pero no se pudo guardar el móvil para avisar
 async function activarAvisos(pedir){
   if (!PUSH_OK || !sb || !trab || !CONFIG.VAPID_PUBLICA) return false;
   try {
@@ -1468,15 +1479,16 @@ async function activarAvisos(pedir){
     const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64u(CONFIG.VAPID_PUBLICA)});
     const j = sub.toJSON();
     const {error} = await sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:j.endpoint, p_p256dh:j.keys.p256dh, p_auth:j.keys.auth});
-    return !error;
-  } catch { return false; }
+    AVISOS_FALLO = !!error; return !error;
+  } catch { if (Notification.permission === "granted") AVISOS_FALLO = true; return false; }
 }
 function bloqueAvisos(){
   if (!sb || !CONFIG.VAPID_PUBLICA) return "";
   if (IOS && !EN_APP) return `<div class="inst noprint"><img src="icons/icon-192.png" alt="" width="48" height="48"><div><b>Avisos con el móvil bloqueado</b>
     <p>En iPhone solo llegan si instalas el panel: toca <b>Compartir</b> y luego <b>“Añadir a pantalla de inicio”</b>, y ábrelo desde el icono.</p></div></div>`;
   if (!PUSH_OK) return "";
-  if (Notification.permission === "granted") return "";
+  if (Notification.permission === "granted") return AVISOS_FALLO ? `<div class="inst noprint"><div><b>Los avisos no se han activado en este móvil</b>
+    <p>Sin esto no te llegan las notificaciones. Pulsa para volver a intentarlo.</p><button class="act pay" id="actAvisos">Activar avisos</button></div></div>` : "";
   if (Notification.permission === "denied") return `<div class="inst noprint"><div><b>Los avisos están bloqueados en este móvil</b>
     <p>Para recibirlos con el móvil bloqueado, permite las notificaciones de esta app en los ajustes del móvil.</p></div></div>`;
   return `<div class="inst noprint"><img src="icons/icon-192.png" alt="" width="48" height="48"><div><b>Recibe los avisos con el móvil bloqueado</b>
@@ -1978,7 +1990,7 @@ async function gestion(){
   $app.innerHTML = (DEMO?`<div class="demo noprint">MODO PRUEBA · Lo que apuntes solo se guarda en este navegador.</div>`:"") +
     `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Gestión</small></div>
      <a class="svc off noprint" href="${location.pathname}?panel" style="text-decoration:none">Volver al panel</a></div></header>
-    <main class="wrap gest"><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["precios","Precios"],["carta","Carta y QR"]]
+    <main class="wrap gest"><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["precios","Precios"],["avisos","Avisos"],["carta","Carta y QR"]]
       .map(([k,t])=>`<button class="tab" data-g="${k}" aria-selected="${gTab===k}">${t}</button>`).join("")}</div>
     <div id="gCuerpo">Cargando…</div></main>`;
   $app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ gTab = b.dataset.g; gInv = false;
@@ -1989,8 +2001,9 @@ async function pintaGestion(){
   const box = document.getElementById("gCuerpo"); if (!box) return;
   box.textContent = "Cargando…";
   if (gTab==="camareros") return pantallaPins(box);
-  try { box.innerHTML = await {cuentas:gCuentas, pedidos:gPedidos, deudores:gDeudores, stock:gStock, fichajes:gFichajes, precios:gPrecios, carta:gCarta}[gTab](); }
-  catch(err) { if (gTab==="precios") { box.innerHTML = `<p class="empty">Falta pegar el SQL de precios en Supabase.</p>`; return; }
+  try { box.innerHTML = await {cuentas:gCuentas, pedidos:gPedidos, deudores:gDeudores, stock:gStock, fichajes:gFichajes, precios:gPrecios, avisos:gAvisos, carta:gCarta}[gTab](); }
+  catch(err) { if (gTab==="avisos") { box.innerHTML = `<p class="empty">Falta pegar el SQL de avisos en Supabase.</p>`; return; }
+    if (gTab==="precios") { box.innerHTML = `<p class="empty">Falta pegar el SQL de precios en Supabase.</p>`; return; }
     box.innerHTML = /PGRST202|esencia_gestion|function/i.test((err?.code||"")+(err?.message||""))
       ? `<p class="empty">Falta pegar el SQL de gestión en Supabase.</p>` : `<p class="empty">Sin conexión con el servidor.</p>`; return; }
   gEnlaces(box);
@@ -2133,6 +2146,14 @@ async function gFichajes(){
     <a class="ghost" href="${location.pathname}?fichajes" style="display:inline-block;color:var(--ink);text-decoration:none">Ver el registro de jornada completo</a>`;
 }
 
+async function gAvisos(){
+  const lista = await Store.pushEstado(trab);
+  return `<p class="sub">Cada camarero tiene que activar los avisos <b>en su propio móvil</b>: abrir la app de camareros, fichar la entrada y pulsar <b>Activar avisos</b>. En iPhone, antes hay que instalarla (Compartir → “Añadir a pantalla de inicio”). Los avisos solo llegan a quien ha fichado la entrada.</p>
+    <div class="tscroll"><table class="jt"><thead><tr><th>Camarero</th><th>Avisos</th><th>Ahora</th><th>Activados</th></tr></thead><tbody>
+    ${lista.map(f=>`<tr><td><b>${esc(f.nombre)}</b></td><td>${f.moviles?`<span class="av-si">✓ Sí</span>${f.moviles>1?` <small>(${f.moviles} móviles)</small>`:""}`:`<span class="falta">No</span>`}</td>
+      <td>${f.trabajando?"Trabajando":"—"}</td><td>${f.ultimo?esc(fechaHora(f.ultimo)):"—"}</td></tr>`).join("")}</tbody></table></div>
+    <button class="act pay" id="gAvPrueba">Enviar aviso de prueba a todos</button>`;
+}
 async function gPrecios(){
   PRECIOS = await Store.precios(); ls.set("esencia_precios", PRECIOS); ponPrecios();
   const campo = (clave, v, base) => `<input class="gpre" type="number" inputmode="decimal" min="0" max="999" step="0.05" data-clave="${esc(clave)}" data-base="${base}" value="${Number(v).toFixed(2)}" aria-label="Precio">`;
@@ -2152,6 +2173,10 @@ async function gCarta(){
 }
 function gEnlaces(box){
   const $ = q => box.querySelector(q);
+  if ($("#gAvPrueba")) $("#gAvPrueba").onclick = async e => { const b = e.currentTarget; b.disabled = true;
+    try { const n = await Store.pushProbar(trab); toast(n ? `Aviso de prueba enviado a ${n} móviles` : "Nadie tiene los avisos activados todavía"); }
+    catch(err) { toast(/PGRST202|esencia_push|function/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de avisos en Supabase" : "No se ha podido enviar el aviso de prueba"); }
+    b.disabled = false; };
   box.querySelectorAll("#gPreOk,#gPreOk2").forEach(b => b.onclick = async () => {
     const lista = [];
     box.querySelectorAll(".gpre").forEach(inp => { const v = Math.round(Number(String(inp.value).replace(",","."))*100)/100;
@@ -2249,6 +2274,17 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Avisos":"通知",
+  "Camarero":"服务员",
+  "Activados":"开启时间",
+  "✓ Sí":"✓ 是",
+  "Enviar aviso de prueba a todos":"给所有人发测试通知",
+  "Nadie tiene los avisos activados todavía":"还没有人开启通知",
+  "Falta pegar el SQL de avisos en Supabase":"还需要在 Supabase 运行通知的 SQL",
+  "Falta pegar el SQL de avisos en Supabase.":"还需要在 Supabase 运行通知的 SQL。",
+  "No se ha podido enviar el aviso de prueba":"测试通知没能发送",
+  "Los avisos no se han activado en este móvil":"这部手机的通知没有开启",
+  "Sin esto no te llegan las notificaciones. Pulsa para volver a intentarlo.":"不开启就收不到通知。点击重试。",
   "Trabajando ahora":"正在上班",
   "Nadie":"没有人",
   "Comanda anotada en la barra":"已记在吧台",
@@ -2543,6 +2579,8 @@ const ZH = {
   "No se ha podido crear el QR. Revisa la conexión.":"没能生成二维码。请检查网络。","Solo el encargado puede poner fotos.":"只有负责人能添加照片。"
 };
 const ZH_RE = [
+  [/^Aviso de prueba enviado a (\d+) móviles$/, m=>`测试通知已发送到 ${m[1]} 部手机`],
+  [/^\((\d+) móviles\)$/, m=>`(${m[1]} 部手机)`],
   [/^¿Ha pagado (.+) \((.+)\)\?$/, m=>`${m[1]}已经付了吗（${m[2]}）？`],
   [/^(.+) ha pagado$/, m=>`${m[1]}已付款`],
   [/^Anotar comanda · Mesa (.+)$/, m=>`记下点单 · ${m[1]}号桌`],
@@ -2597,6 +2635,17 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Avisos":"Avisos",
+  "Camarero":"Cambrer",
+  "Activados":"Activats",
+  "✓ Sí":"✓ Sí",
+  "Enviar aviso de prueba a todos":"Enviar avís de prova a tothom",
+  "Nadie tiene los avisos activados todavía":"Encara ningú té els avisos activats",
+  "Falta pegar el SQL de avisos en Supabase":"Falta enganxar l'SQL d'avisos a Supabase",
+  "Falta pegar el SQL de avisos en Supabase.":"Falta enganxar l'SQL d'avisos a Supabase.",
+  "No se ha podido enviar el aviso de prueba":"No s'ha pogut enviar l'avís de prova",
+  "Los avisos no se han activado en este móvil":"Els avisos no s'han activat en aquest mòbil",
+  "Sin esto no te llegan las notificaciones. Pulsa para volver a intentarlo.":"Sense això no et arriben les notificacions. Prem per tornar-ho a provar.",
   "Trabajando ahora":"Treballant ara",
   "Nadie":"Ningú",
   "Comanda anotada en la barra":"Comanda apuntada a la barra",
@@ -2883,6 +2932,8 @@ const CA = {
   "No se ha podido crear el QR. Revisa la conexión.":"No s'ha pogut crear el QR. Revisa la connexió.","Solo el encargado puede poner fotos.":"Només l'encarregat pot posar fotos."
 };
 const CA_RE = [
+  [/^Aviso de prueba enviado a (\d+) móviles$/, m=>`Avís de prova enviat a ${m[1]} mòbils`],
+  [/^\((\d+) móviles\)$/, m=>`(${m[1]} mòbils)`],
   [/^¿Ha pagado (.+) \((.+)\)\?$/, m=>`Ha pagat ${m[1]} (${m[2]})?`],
   [/^(.+) ha pagado$/, m=>`${m[1]} ha pagat`],
   [/^Anotar comanda · Mesa (.+)$/, m=>`Apuntar comanda · Taula ${m[1]}`],
