@@ -1,5 +1,5 @@
 // Esencia: guarda la app para que abra rápido. Siempre intenta la versión nueva primero.
-const CACHE = "esencia-v45";
+const CACHE = "esencia-v46";
 const BASE = ["./", "./camareros/", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "fondo-dibujo.svg", "barrio.svg"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(BASE)).catch(()=>{})); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
