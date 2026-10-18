@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>BAR ESSENCIA</title>
-<meta name="theme-color" content="#1E4A3D">
+<meta name="theme-color" content="#24150D">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BAR ESSENCIA">
 <script>/* solo el panel de camareros se instala como app; los clientes entran por el QR */
 if (/\/camareros\/?$/.test(location.pathname)||/[?&#]panel/.test(location.href)) { const l=document.createElement("link"); l.rel="manifest"; l.href="manifest-panel.webmanifest"; document.head.appendChild(l); }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Playfair+Display:wght@600;700;800&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
@@ -405,6 +405,58 @@ body.staff .wrap{max-width:1200px}
 @media print{body.solo .qrc:not(.imp){display:none}body.solo .qrs{display:block}body.solo .qrc{max-width:320px;margin:0 auto}}
 @media print{.noprint,.bg{display:none!important}body{background:#fff}.wrap{padding:0}main.wrap{box-shadow:none;margin:0;border-radius:0;min-height:0}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+/* ===== Toda la app en madera oscura y dorado, como la carta (Jamal, 2026-10-18) ===== */
+:root:not(#_){
+  --bg:#1D120B; --card:#2A1A10; --ink:#F5E9D3; --muted:#CDB89A; --line:rgba(217,168,91,.28); --soft:#36220F;
+  --brand:#C99A52; --brand-ink:#1D120B; --link:#F0C979; --accent:#E3A848; --accent-ink:#2A140A;
+  --ok:#4FAF73; --ok-soft:#1E3324; --alert:#E8664E; --alert-soft:#45201A; --warn-soft:#3E2C12;
+  --f-display:"Playfair Display",Georgia,"Times New Roman",serif; color-scheme:dark;
+  --madera:repeating-linear-gradient(90deg,rgba(0,0,0,.22) 0 2px,transparent 2px 140px),
+    repeating-linear-gradient(0deg,rgba(255,220,170,.025) 0 2px,rgba(0,0,0,.06) 2px 5px,transparent 5px 11px),
+    linear-gradient(180deg,#3B2416 0,#24150D 45%,#170D07 100%);
+}
+body,body:not(.plain),body.staff:not(.plain),body.compact:not(.plain){background:var(--madera) fixed!important;min-height:100vh}
+/* el Pont del Diable sigue arriba, en tonos cálidos, fundido con la madera */
+.bg{background-color:#2A190F;filter:sepia(.3) saturate(1.05)}
+.bg::after{content:"";position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(rgba(36,21,13,0),#24150D)}
+.lugar span{background:rgba(29,18,11,.62)}
+main.wrap{background:linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97));border:1px solid rgba(217,168,91,.3);border-bottom:0;box-shadow:0 -10px 34px rgba(0,0,0,.45)}
+body.oscura main.wrap{border:0}
+.top .logo{color:#F5E9D3;letter-spacing:.01em}
+.top .logo small{color:#E9C27E;opacity:1;font-weight:700}
+.hello,.wk,.done h2,.mine h3{color:#F8EBD2}
+.mesa{background:linear-gradient(180deg,#F0C979,#B98340);color:#2A140A}
+/* botones grandes del cliente */
+.bb.call{background:linear-gradient(180deg,#F0C979,#C38A3C);color:#2A140A;box-shadow:0 8px 20px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.4)}
+.bb.menu{background:linear-gradient(110deg,#0F5552,#0A3332);color:#F5E9D3;border:1.5px solid rgba(233,194,126,.55);box-shadow:0 0 18px rgba(64,200,190,.25),0 8px 20px rgba(0,0,0,.45)}
+/* botones y pestañas en dorado */
+.act.pay,.cta{background:linear-gradient(180deg,#F0C979,#C38A3C);color:#2A140A}
+.act.go{background:linear-gradient(180deg,#F2B85A,#C98A2E);color:#2A140A}
+.act.no{background:rgba(255,255,255,.08);color:var(--ink);border:1px solid var(--line)}
+.tab{border-color:rgba(217,168,91,.55);color:var(--ink)}
+.tab[aria-selected="true"]{background:linear-gradient(180deg,#F0C979,#C38A3C);color:#2A140A;border-color:#E9C27E}
+.ghost{border-color:rgba(217,168,91,.55);color:var(--ink)}
+.mc,.hist,.mine,.jt,.kpis div,.sum{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)),var(--card);border-color:var(--line)}
+.mc.hot{border-color:var(--alert);box-shadow:0 0 0 2px var(--alert),0 0 22px rgba(232,102,78,.25)}
+.jt th{background:var(--soft);color:#E9C27E}
+.kpis b{color:#F0C979}
+.mbox{background:#24150D;border:1px solid rgba(217,168,91,.4);box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.fbar input,.fbar select,textarea,.pick input,.alta input{background:#170D07;border-color:var(--line);color:var(--ink)}
+.toast{background:#F5E9D3;color:#1D120B}
+body{font-variant-numeric:lining-nums}
+.qrc{border-color:#C99A52;box-shadow:0 8px 22px rgba(0,0,0,.4)}.qrc .act.no{background:#F1E6D4;color:#2A140A;border-color:#C99A52}
+@media (min-width:760px){
+  /* camareros y gestión: la hoja centrada sobre la madera */
+  body.staff:not(.plain) main.wrap{width:min(1100px,calc(100vw - 48px))!important;min-width:0;margin:-28px auto 24px!important;border-radius:28px;border-bottom:1px solid rgba(217,168,91,.3)}
+  body.staff.muchas:not(.plain) main.wrap{width:min(1800px,calc(100vw - 48px))!important}
+  body.staff:not(.plain){min-height:100vh}
+}
+@media print{
+  :root:not(#_){--bg:#fff;--card:#fff;--ink:#000;--muted:#444;--line:#999;--soft:#eee}
+  body,body:not(.plain),body.staff:not(.plain){background:#fff!important}
+  main.wrap{background:#fff!important;border:0;box-shadow:none}
+  .jt th{color:#000}
+}
 </style>
 </head>
 <body>
