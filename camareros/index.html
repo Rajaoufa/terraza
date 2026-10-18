@@ -536,6 +536,13 @@ body{font-variant-numeric:lining-nums}
 .el-no{background:rgba(255,255,255,.06);color:var(--muted)}
 .arranque .enlinea{justify-content:center;max-width:520px;margin:0 auto 18px}
 .av-si{color:#7BD88F;font-weight:800}
+.gente-mesa{padding:6px 16px 4px;display:grid;gap:8px}
+.gm{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.gm-h{display:flex;justify-content:space-between;gap:8px}.gm-h span{color:#F0C979;font-weight:800}
+.lleva{list-style:none;margin:4px 0 0;padding:0;font-size:.95em;flex-basis:100%}
+.lleva li{display:flex;gap:6px;padding:3px 0;border-top:1px dashed rgba(255,255,255,.08)}
+.lleva li span{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.bg-p{flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -1813,6 +1820,11 @@ function anotarComanda(m, disp, llamada, nombreNuevo){
   };
   pinta();
 }
+function llevaDe(peds){
+  const q = {};
+  peds.forEach(r=>(r.items||[]).forEach(i=>{ const k = i.n+"|"+(Number(i.p)||0); q[k] = q[k]||{n:i.n, p:Number(i.p)||0, q:0}; q[k].q += Number(i.q)||0; }));
+  return `<ul class="lleva">${Object.values(q).map(i=>`<li><b>${i.q}×</b> ${esc(i.n)}<span>${eur(i.q*i.p)}</span></li>`).join("")}</ul>`;
+}
 function tarjetaMesa(m, rs){
   const pend = rs.filter(r=>r.estado==="nuevo");
   const peds = rs.filter(r=>r.tipo==="pedido");
@@ -1831,15 +1843,17 @@ function tarjetaMesa(m, rs){
          <ul>${(r.items||[]).map(i=>`<li><b>${Number(i.q)||0}×</b> ${esc(i.n)}</li>`).join("")}</ul>
          ${r.nota?`<div class="nota">${esc(r.nota)}</div>`:""}
          <button class="act ok" data-acc="${esc(r.id)}">Recibido</button>${botonBloq(r)}</div>`).join("")}
+    ${m!=="Barra" && peds.length ? `<div class="gente-mesa">${(()=>{ const g={}; peds.forEach(r=>{ const k=r.cliente||"Sin nombre"; (g[k]=g[k]||[]).push(r); });
+        return Object.entries(g).map(([n,ps])=>`<div class="gm"><div class="gm-h"><b>${esc(n)}</b><span>${eur(ps.reduce((a,r)=>a+Number(r.total||0),0))}</span></div>${llevaDe(ps)}</div>`).join(""); })()}</div>` : ""}
     ${Object.keys(cons).length?`<details class="cons" data-k="cons-${esc(m)}"><summary><span class="cap">Consumo de la mesa</span><b>${eur(total)}</b></summary>
       ${Object.entries(cons).map(([n,c])=>`<div class="row"><span><b>${c.q}×</b> ${esc(n)}<small>${eur(c.p)} c/u</small></span><span>${eur(c.q*c.p)}</span></div>`).join("")}
       <div class="row total"><span>Total (${Object.values(cons).reduce((a,c)=>a+c.q,0)} prod.)</span><span>${eur(total)}</span></div>
       ${(()=>{ const q={}; peds.forEach(r=>{ const k=r.cliente||"Sin nombre"; q[k]=(q[k]||0)+Number(r.total||0); });
         return Object.keys(q).length>1?`<div class="quien">${Object.entries(q).map(([n,t])=>`<span>${esc(n)}: <b>${eur(t)}</b></span>`).join("")}</div>`:""; })()}</details>`:""}
-    ${m==="Barra" ? `<div class="barra-gente">${(()=>{ const q={}; peds.forEach(r=>{ const k=r.puso||r.cliente||"Sin nombre"; q[k]=q[k]||{t:0, ver:r.cliente||k}; q[k].t+=Number(r.total||0); });
+    ${m==="Barra" ? `<div class="barra-gente">${(()=>{ const q={}; peds.forEach(r=>{ const k=r.puso||r.cliente||"Sin nombre"; q[k]=q[k]||{t:0, ver:r.cliente||k, ps:[]}; q[k].t+=Number(r.total||0); q[k].ps.push(r); });
         return Object.entries(q).map(([n,x])=> cobrando==="Barra|"+n
           ? `<div class="ask"><b>¿Ha pagado ${esc(x.ver)} (${eur(x.t)})?</b><div class="two"><button class="act pay" data-cerrarc="${esc("Barra|"+n)}">Sí, ha pagado</button><button class="act no" data-nocobrar>No</button></div></div>`
-          : `<div class="bg-p"><span><b>${esc(x.ver)}</b> · ${eur(x.t)}</span><button class="act pay" data-cobrar="${esc("Barra|"+n)}">Cobrar</button></div>`).join(""); })()}</div>
+          : `<div class="bg-p"><span><b>${esc(x.ver)}</b> · ${eur(x.t)}</span><button class="act pay" data-cobrar="${esc("Barra|"+n)}">Cobrar</button>${llevaDe(x.ps)}</div>`).join(""); })()}</div>
       <div class="foot"><button class="act go" data-nueva="Barra">📝 Anotar en barra</button></div>` : `
     <div class="foot">${cobrando===m
       ? `<div class="ask"><b>¿Ya está cobrada la mesa ${esc(m)}${total?` (${eur(total)})`:""}?</b>
