@@ -271,6 +271,8 @@ body.staff .wrap{max-width:1200px}
 .offacts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
 .mbox .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .mbox .alta{display:flex;gap:8px;margin-top:14px}.mbox .alta input{flex:1;min-width:0}
+.who .apodo-b{display:inline;width:auto;padding:0 0 0 6px;font-size:.9em}.who small{color:var(--muted)}
+.mbox .apodo input{width:50%;min-width:120px;padding:10px 12px;font:inherit;border:1px solid #c9cfc6;border-radius:10px}
 .offacts.herr{margin-top:28px;padding-top:18px;border-top:1px solid rgba(0,0,0,.08)}
 .offacts .ghost{margin:0;color:var(--ink);text-decoration:none;display:inline-block}
 /* registro de jornada */
@@ -663,6 +665,15 @@ const Store = {
   async trabBaja(admin, id){
     if (sb){ const {error} = await sb.rpc("esencia_trab_baja",{p_pin:admin.pin, p_id:id}); if (error) throw error; return; }
     ls.set("esencia_demo_trab", demoTrab().filter(t=>t.id!==id || t.id===admin.id));
+  },
+  // apodos: el nombre con el que los camareros conocen a cada móvil de cliente (el cliente no lo ve)
+  async apodos(trab){
+    if (sb){ const {data,error} = await sb.rpc("esencia_apodos",{p_pin:trab.pin}); if (error) throw error; return data; }
+    return Object.entries(ls.get("esencia_demo_apodos", {})).map(([dispositivo,apodo])=>({dispositivo, apodo}));
+  },
+  async ponerApodo(trab, dispositivo, apodo){
+    if (sb){ const {error} = await sb.rpc("esencia_poner_apodo",{p_pin:trab.pin, p_dispositivo:dispositivo, p_apodo:apodo}); if (error) throw error; return; }
+    const a = ls.get("esencia_demo_apodos", {}); if (apodo) a[dispositivo] = apodo; else delete a[dispositivo]; ls.set("esencia_demo_apodos", a); bc && bc.postMessage("x");
   },
   async fotosLista(){
     if (sb){ const {data,error} = await sb.from("esencia_fotos").select("producto,updated_at"); if (error) throw error; return data; }
@@ -1163,6 +1174,8 @@ async function pintar(){
     return;
   }
   try { filas = (await Store.list()).filter(r=>r.estado!=="anulado"); bloqs = await Store.bloqueados(); } catch { toast("Sin conexión con el servidor"); return; }
+  try { APODOS = Object.fromEntries((await Store.apodos(trab)).map(a=>[a.dispositivo, a.apodo])); } catch {}
+  filas = filas.map(conApodo); bloqs = bloqs.map(conApodo);
   // sonido solo para lo nuevo que no habíamos visto
   const nuevos = filas.filter(r=>r.estado==="nuevo"&&!r.cerrado);
   if (vistos){ const n = nuevos.filter(r=>!vistos.has(r.id));
@@ -1192,7 +1205,7 @@ async function pintar(){
         <button class="act no" data-desbloq="${esc(b.dispositivo)}">Desbloquear</button></div>`).join("")}</div>`
       : `<p class="empty">No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Bloquear este móvil” en su aviso.</p>`;
   } else {
-    let cob = []; try { cob = await Store.cobradas(); } catch { toast("Sin conexión con el servidor"); }
+    let cob = []; try { cob = (await Store.cobradas()).map(conApodo); } catch { toast("Sin conexión con el servidor"); }
     const porCierre = {}; cob.forEach(r=>{ const k=r.mesa+"|"+r.cerrado_at; (porCierre[k]=porCierre[k]||[]).push(r); });
     const lista = Object.entries(porCierre).sort((x,y)=>y[0].split("|")[1].localeCompare(x[0].split("|")[1]));
     const dia = iso => new Date(iso).toLocaleDateString(LOC,{weekday:"long",day:"numeric",month:"long"});
@@ -1229,6 +1242,7 @@ async function pintar(){
   cuerpo.querySelectorAll("[data-desbloq]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
     try{ await Store.desbloquear(b.dataset.desbloq); toast("Móvil desbloqueado"); pintar(); }
     catch{ b.disabled=false; toast("No se ha podido desbloquear. Prueba otra vez."); } });
+  cuerpo.querySelectorAll("[data-apodo]").forEach(b=>b.onclick=()=>pantallaApodos(b.dataset.apodo));
   cuerpo.querySelectorAll("[data-cobrar]").forEach(b=>b.onclick=()=>{ cobrando=b.dataset.cobrar; pintar(); });
   cuerpo.querySelectorAll("[data-nocobrar]").forEach(b=>b.onclick=()=>{ cobrando=null; pintar(); });
   cuerpo.querySelectorAll("[data-cerrar]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
@@ -1236,6 +1250,24 @@ async function pintar(){
     catch{ b.disabled=false; toast("No se ha podido cerrar. Prueba otra vez."); } });
 }
 
+// en el panel cada cliente sale con su apodo (si un camarero se lo ha puesto); r.puso = el nombre que escribió el cliente
+let APODOS = {};
+const conApodo = r => r.dispositivo && APODOS[r.dispositivo] ? {...r, puso:r.cliente, cliente:APODOS[r.dispositivo]} : r;
+function pantallaApodos(m){
+  const vistos = {}; filas.filter(r=>!r.cerrado && r.mesa===m && r.dispositivo).forEach(r=>{ vistos[r.dispositivo] = r.puso || r.cliente || ""; });
+  document.querySelector(".modal")?.remove();
+  const caja = document.createElement("div"); caja.className = "modal";
+  caja.innerHTML = `<div class="mbox"><b>Apodos · Mesa ${esc(m)}</b><p class="sub">Pon el nombre con el que conocéis al cliente. Lo veréis todos los camareros, siempre que pida desde ese móvil. El cliente sigue viendo el suyo.</p>
+    ${Object.entries(vistos).map(([d,n])=>`<div class="hist apodo"><span>${esc(n||"Sin nombre")}</span><input data-ap="${esc(d)}" maxlength="30" placeholder="Apodo" aria-label="Apodo" value="${esc(APODOS[d]||"")}"></div>`).join("") || `<p class="t">Nadie ha pedido desde un móvil en esta mesa.</p>`}
+    <div class="two" style="margin-top:12px"><button class="act pay" id="apSi">Guardar</button><button class="act no" id="apNo">Cerrar</button></div></div>`;
+  document.body.appendChild(caja);
+  caja.querySelector("#apNo").onclick = ()=>caja.remove();
+  caja.querySelector("#apSi").onclick = async e => { e.target.disabled = true;
+    try { for (const i of caja.querySelectorAll("[data-ap]")){ const v = i.value.trim().replace(/\s+/g," ").slice(0,30);
+            if (v !== (APODOS[i.dataset.ap]||"")) await Store.ponerApodo(trab, i.dataset.ap, v); }
+          caja.remove(); toast("Apodo guardado"); pintar(); }
+    catch { e.target.disabled = false; toast("No se ha podido guardar el apodo"); } };
+}
 function botonBloq(r){
   if (!r.dispositivo) return "";
   if (String(bloqueando)===String(r.id)) return `<div class="ask"><b>¿Bloquear el móvil de ${esc(r.cliente||"este cliente")}? Se anulará este aviso y no podrá pedir ni llamar más desde la app.</b>
@@ -1245,14 +1277,14 @@ function botonBloq(r){
 function tarjetaMesa(m, rs){
   const pend = rs.filter(r=>r.estado==="nuevo");
   const peds = rs.filter(r=>r.tipo==="pedido");
-  const nombres = [...new Set(rs.map(r=>r.cliente).filter(Boolean))];
+  const nombres = [...new Map(rs.filter(r=>r.cliente).map(r=>[r.cliente, r.puso && r.puso!==r.cliente ? `${esc(r.cliente)} <small>(${esc(r.puso)})</small>` : esc(r.cliente)])).values()];
   const total = peds.reduce((a,r)=>a+Number(r.total||0),0);
   const cons = {};
   peds.forEach(r=>(r.items||[]).forEach(i=>{ const k=i.n; cons[k]=cons[k]||{q:0,p:Number(i.p)||0}; cons[k].q+=Number(i.q)||0; }));
   const desde = rs[0]?.created_at;
   return `<article class="mc ${pend.length?"hot":""}">
     <div class="h"><b>Mesa ${esc(m)}</b><span class="t">Abierta ${desde?hora(desde):""}</span></div>
-    ${nombres.length?`<div class="who">${nombres.map(esc).join(" · ")}</div>`:""}
+    ${nombres.length?`<div class="who">${nombres.join(" · ")} <button class="act lnk apodo-b" data-apodo="${esc(m)}">✏️ Apodo</button></div>`:""}
     ${pend.map(r=> r.tipo==="camarero"
       ? `<div class="ev call"><div class="l"><span>${esc(r.cliente||"Un cliente")} llama al camarero</span><span class="t">${hace(r.created_at)}</span></div>
          <button class="act go" data-acc="${esc(r.id)}">Voy para allá</button>${botonBloq(r)}</div>`
@@ -1439,6 +1471,13 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Pon el nombre con el que conocéis al cliente. Lo veréis todos los camareros, siempre que pida desde ese móvil. El cliente sigue viendo el suyo.":"填写你们认识这位客人的名字。只要他用这部手机点单，所有服务员都会看到。客人仍然看到自己的名字。",
+  "Apodo":"昵称",
+  "Guardar":"保存",
+  "Apodo guardado":"昵称已保存",
+  "No se ha podido guardar el apodo":"没能保存昵称",
+  "✏️ Apodo":"✏️ 昵称",
+  "Nadie ha pedido desde un móvil en esta mesa.":"这张桌子还没有人用手机点单。",
   "Pendiente de pagar":"待付款",
   "Tus cuentas pendientes":"你未付的账单",
   "Añade o quita nombres. Si alguien olvida su PIN, bórralo: la próxima vez que toque su nombre elegirá uno nuevo.":"添加或删除名字。如果有人忘记密码，删除它：下次点自己名字时会设置新密码。",
@@ -1545,6 +1584,7 @@ const ZH_RE = [
   [/^Lo de siempre, (.+)$/, m=>`${m[1]}，老样子`],
   [/^(.+) quitado de la lista$/, m=>`${m[1]} 已从名单删除`],
   [/^(.+) añadido\. La primera vez que toque su nombre elegirá su PIN\.$/, m=>`已添加 ${m[1]}。第一次点名字时会设置密码。`],
+  [/^Apodos · Mesa (.+)$/, m=>`昵称 · ${m[1]} 号桌`],
   [/^Mesas abiertas \((\d+)\)$/, m=>`开着的桌子（${m[1]}）`],
   [/^Móviles bloqueados \((\d+)\)$/, m=>`被屏蔽的手机（${m[1]}）`],
   [/^Ver mi pedido \((\d+)\)$/, m=>`查看我的订单（${m[1]}）`],
@@ -1580,6 +1620,13 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Pon el nombre con el que conocéis al cliente. Lo veréis todos los camareros, siempre que pida desde ese móvil. El cliente sigue viendo el suyo.":"Posa el nom amb què coneixeu el client. El veureu tots els cambrers, sempre que demani des d'aquest mòbil. El client continua veient el seu.",
+  "Apodo":"Malnom",
+  "Guardar":"Desar",
+  "Apodo guardado":"Malnom desat",
+  "No se ha podido guardar el apodo":"No s'ha pogut desar el malnom",
+  "✏️ Apodo":"✏️ Malnom",
+  "Nadie ha pedido desde un móvil en esta mesa.":"Ningú no ha demanat des d'un mòbil en aquesta taula.",
   "Pendiente de pagar":"Pendent de pagar",
   "Tus cuentas pendientes":"Els teus comptes pendents",
   "Añade o quita nombres. Si alguien olvida su PIN, bórralo: la próxima vez que toque su nombre elegirá uno nuevo.":"Afegeix o treu noms. Si algú oblida el seu PIN, esborra'l: la pròxima vegada que toqui el seu nom en triarà un de nou.",
@@ -1677,6 +1724,7 @@ const CA_RE = [
   [/^Lo de siempre, (.+)$/, m=>`El de sempre, ${m[1]}`],
   [/^(.+) quitado de la lista$/, m=>`${m[1]} tret de la llista`],
   [/^(.+) añadido\. La primera vez que toque su nombre elegirá su PIN\.$/, m=>`${m[1]} afegit. La primera vegada que toqui el seu nom triarà el seu PIN.`],
+  [/^Apodos · Mesa (.+)$/, m=>`Malnoms · Taula ${m[1]}`],
   [/^Mesas abiertas \((\d+)\)$/, m=>`Taules obertes (${m[1]})`],
   [/^Móviles bloqueados \((\d+)\)$/, m=>`Mòbils bloquejats (${m[1]})`],
   [/^Ver mi pedido \((\d+)\)$/, m=>`Veure la meva comanda (${m[1]})`],
