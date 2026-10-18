@@ -752,7 +752,7 @@ function leeFoto(file){
 function subirFoto(k){
   document.querySelector(".modal")?.remove();
   const caja = document.createElement("div"); caja.className = "modal";
-  caja.innerHTML = `<div class="mbox"><b>Foto para ${esc(k.startsWith("cat-")?k.slice(4):label(findItem(k)||{n:k}))}</b>
+  caja.innerHTML = `<div class="mbox"><b>Foto para ${esc(k==="cat-Favoritas"?"Bebida favorita":k.startsWith("cat-")?k.slice(4):label(findItem(k)||{n:k}))}</b>
     <label class="act pay fsel">📷 Hacer una foto<input type="file" accept="image/*" capture="environment"></label>
     <label class="act go fsel">🖼️ Elegir de la galería<input type="file" accept="image/*"></label>
     <button class="act no" id="fNo">Cancelar</button></div>`;
@@ -1042,7 +1042,7 @@ const udsDe = id => Object.entries(cesta).reduce((a,[k,q])=>a+(lineaCesta(k).id=
 
 function header(){
   if (vista==="carta" || vista==="resumen"){
-    const sec = vista==="resumen" ? "Tu pedido" : catSel==="★" ? "Favoritas" : catSel || "La carta";
+    const sec = vista==="resumen" ? "Tu pedido" : catSel==="★" ? "Bebida favorita" : catSel || "La carta";
     return `<header class="top ctop"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>${esc(sec)}</small></div>
       ${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:""}</div></header>`;
   }
@@ -1168,7 +1168,7 @@ function cliente(){
   if (vista==="carta"){
     const sec = catSel ? SECCIONES.find(x=>x.k===catSel) : null;
     if (MODO_FOTOS) h += `<button class="back" id="volver">${ICON.back} Volver al panel</button><p class="sub">Toca 📷 en un producto o una pestaña para hacerle una foto o elegirla de la galería.</p>`;
-    const TODAS = [{k:"★", t:"Favoritas"}, ...SECCIONES.map(x=>({k:x.k, t:x.k}))];
+    const TODAS = [{k:"★", t:"Bebida favorita"}, ...SECCIONES.map(x=>({k:x.k, t:x.k}))];
     const fk = x => "cat-"+(x.k==="★"?"Favoritas":x.k);
     const icono = x => fotoSubida(fk(x)) ? `${fotoSubida(fk(x))}<i class="ct-vel"></i><em class="ct-hueco"></em>` : ICON_SECC[x.k==="★"?"":x.k]||"";
     if (!catSel){
@@ -2117,7 +2117,7 @@ const ZH = {
   "🖼️ Elegir de la galería":"🖼️ 从相册选择",
   "No se ha podido leer esa foto. Prueba con otra.":"无法读取这张照片，请换一张。",
   "Falta pegar el SQL de fotos en Supabase":"还需要在 Supabase 运行照片的 SQL",
-  "Favoritas":"最爱",
+  "Bebida favorita":"最爱饮品",
   "+ Añadir":"+ 添加",
   "Menú":"菜单",
   "Mis pedidos":"我的订单",
@@ -2428,7 +2428,7 @@ const CA = {
   "🖼️ Elegir de la galería":"🖼️ Triar de la galeria",
   "No se ha podido leer esa foto. Prueba con otra.":"No s'ha pogut llegir aquesta foto. Prova amb una altra.",
   "Falta pegar el SQL de fotos en Supabase":"Falta enganxar l'SQL de fotos a Supabase",
-  "Favoritas":"Preferides",
+  "Bebida favorita":"Beguda preferida",
   "+ Añadir":"+ Afegir",
   "Menú":"Menú",
   "Mis pedidos":"Les meves comandes",
