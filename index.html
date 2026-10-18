@@ -504,6 +504,9 @@ body{font-variant-numeric:lining-nums}
 .gpr span{flex:1;min-width:0}
 .gpr.cambiado{border-color:#F0C979}
 .gpre{width:86px;padding:8px;font:inherit;font-weight:700;text-align:right;border-radius:10px;border:1px solid var(--line);background:#170D07;color:var(--ink)}
+.recorte{position:relative;width:min(100%,360px);aspect-ratio:1;margin:0 auto;overflow:hidden;border-radius:18px;border:2px solid #F0C979;background:#000;touch-action:none;cursor:grab}
+.recorte img{position:absolute;left:0;top:0;max-width:none;user-select:none;pointer-events:none}
+.rzoom{display:flex;align-items:center;gap:10px;justify-content:center}.rzoom input{flex:1;max-width:280px;accent-color:#F0C979}
 </style>
 </head>
 <body>
@@ -745,6 +748,43 @@ function leeFoto(file){
       URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", .72)); };
     img.onerror = () => { URL.revokeObjectURL(url); mal(new Error("foto")); }; img.src = url; });
 }
+// recortar la foto antes de guardarla (Jamal): cuadrado, se mueve con el dedo y se amplía pellizcando o con la barra
+function recortaFoto(file){
+  return new Promise((ok, mal) => { const img = new Image(), url = URL.createObjectURL(file);
+    img.onerror = () => { URL.revokeObjectURL(url); mal(new Error("foto")); };
+    img.onload = () => {
+      const caja = document.createElement("div"); caja.className = "modal";
+      caja.innerHTML = `<div class="mbox"><b>Recorta la foto</b><p class="sub">Mueve la foto con el dedo. Para acercar, pellizca o usa la barra.</p>
+        <div class="recorte"><img alt="" draggable="false"></div>
+        <label class="rzoom">➖<input type="range" min="1" max="4" step="0.01" value="1" aria-label="Acercar">➕</label>
+        <button class="act pay" id="rOk">Usar esta foto</button><button class="act no" id="rNo">Cancelar</button></div>`;
+      document.body.appendChild(caja);
+      const marco = caja.querySelector(".recorte"), im = marco.querySelector("img"), barra = caja.querySelector("input[type=range]");
+      im.src = url;
+      const L = () => marco.clientWidth, base = () => L()/Math.min(img.width, img.height);
+      let z = 1, x = 0, y = 0;   // z: aumento sobre "cubrir"; x,y: esquina de la foto dentro del marco (px)
+      const pinta = () => { const s = base()*z, w = img.width*s, h = img.height*s;
+        x = Math.min(0, Math.max(L()-w, x)); y = Math.min(0, Math.max(L()-h, y));
+        im.style.width = w+"px"; im.style.height = h+"px"; im.style.transform = `translate(${x}px,${y}px)`; };
+      const zoom = (nz, cx = L()/2, cy = L()/2) => { nz = Math.min(4, Math.max(1, nz)); const r = nz/z;
+        x = cx - (cx - x)*r; y = cy - (cy - y)*r; z = nz; barra.value = z; pinta(); };
+      requestAnimationFrame(() => { const s = base(); x = (L()-img.width*s)/2; y = (L()-img.height*s)/2; pinta(); });
+      const dedos = new Map(); let antes = null;
+      marco.onpointerdown = e => { marco.setPointerCapture(e.pointerId); dedos.set(e.pointerId, {x:e.clientX, y:e.clientY}); antes = null; };
+      marco.onpointermove = e => { if (!dedos.has(e.pointerId)) return; const p0 = dedos.get(e.pointerId); dedos.set(e.pointerId, {x:e.clientX, y:e.clientY});
+        if (dedos.size === 1) { x += e.clientX - p0.x; y += e.clientY - p0.y; pinta(); return; }
+        const [a, b] = [...dedos.values()], d = Math.hypot(a.x-b.x, a.y-b.y), r = marco.getBoundingClientRect();
+        if (antes) zoom(z*d/antes, (a.x+b.x)/2 - r.left, (a.y+b.y)/2 - r.top); antes = d; };
+      marco.onpointerup = marco.onpointercancel = e => { dedos.delete(e.pointerId); antes = null; };
+      marco.onwheel = e => { e.preventDefault(); const r = marco.getBoundingClientRect(); zoom(z*(e.deltaY<0?1.1:1/1.1), e.clientX-r.left, e.clientY-r.top); };
+      barra.oninput = () => zoom(Number(barra.value));
+      const fin = v => { caja.remove(); URL.revokeObjectURL(url); ok(v); };
+      caja.querySelector("#rNo").onclick = () => fin(null);
+      caja.querySelector("#rOk").onclick = () => { const s = base()*z, c = document.createElement("canvas"); c.width = c.height = 480;
+        c.getContext("2d").drawImage(img, -x/s, -y/s, L()/s, L()/s, 0, 0, 480, 480); fin(c.toDataURL("image/jpeg", .75)); };
+    };
+    img.src = url; });
+}
 // elegir cámara o galería: cada botón es un campo de archivo de verdad, dentro de la página (en Android
 // un campo suelto a veces no abre nada o se pierde la foto al volver de la cámara)
 function subirFoto(k){
@@ -758,7 +798,8 @@ function subirFoto(k){
   caja.querySelector("#fNo").onclick = () => caja.remove();
   caja.querySelectorAll("input[type=file]").forEach(inp => inp.onchange = async () => { const f = inp.files[0]; if (!f) return;
     caja.remove(); toast("Subiendo foto…");
-    let d; try { d = await leeFoto(f); } catch { return toast("No se ha podido leer esa foto. Prueba con otra."); }
+    let d; try { d = await recortaFoto(f); } catch { return toast("No se ha podido leer esa foto. Prueba con otra."); }
+    if (!d) return;
     try { const t = await Store.ponerFoto(ls.get("esencia_trab", null), k, d);
           FOTOS[k] = {t, d}; ls.set("esencia_fotos", FOTOS); cliente(); toast("Foto guardada"); }
     catch(err) { toast(/PGRST202|esencia_poner_foto|function|esencia_fotos/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de fotos en Supabase" : "No se ha podido guardar la foto"); } });
@@ -2069,6 +2110,10 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "Recorta la foto":"裁剪照片",
+  "Mueve la foto con el dedo. Para acercar, pellizca o usa la barra.":"用手指移动照片。双指捏合或拖动滑块来放大。",
+  "Usar esta foto":"用这张照片",
+  "Acercar":"放大",
   "Precios":"价格",
   "Guardar precios":"保存价格",
   "Productos":"商品",
@@ -2380,6 +2425,10 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "Recorta la foto":"Retalla la foto",
+  "Mueve la foto con el dedo. Para acercar, pellizca o usa la barra.":"Mou la foto amb el dit. Per apropar, pessiga o fes servir la barra.",
+  "Usar esta foto":"Fer servir aquesta foto",
+  "Acercar":"Apropar",
   "Precios":"Preus",
   "Guardar precios":"Desar preus",
   "Productos":"Productes",
