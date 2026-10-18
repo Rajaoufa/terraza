@@ -518,6 +518,7 @@ body{font-variant-numeric:lining-nums}
 .an-it span{flex:1}.an-it b{color:#F0C979}.an-it i{font-style:normal;font-weight:900;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#F0C979,#C38A3C);color:#2A140A}
 .an-sum{margin:0}
 .ev.call{flex-wrap:wrap}
+.scan-num{display:flex;gap:8px;width:min(90vw,420px)}.scan-num input{flex:1;padding:12px;font:inherit;border-radius:12px;border:1px solid #fff6;background:#111;color:#fff}.scan-num .act{min-width:70px}
 </style>
 </head>
 <body>
@@ -1370,13 +1371,19 @@ addEventListener("appinstalled", ()=>{ avisoInstalar = null; ls.set("esencia_noi
 async function escanearQR(){
   let stream;
   const caja = document.createElement("div"); caja.className = "scan";
-  caja.innerHTML = `<video playsinline muted></video><p>Apunta al código QR de tu mesa</p><button class="ghost" id="scanNo">Cancelar</button>`;
+  caja.innerHTML = `<video playsinline muted></video><p>Apunta al código QR de tu mesa</p>
+    <form class="scan-num"><input inputmode="numeric" maxlength="6" placeholder="o escribe el número de mesa" aria-label="Número de mesa"><button class="act pay">Ir</button></form>
+    <button class="ghost" id="scanNo">Cancelar</button>`;
   document.body.appendChild(caja);
   const cerrar = ()=>{ stream && stream.getTracks().forEach(t=>t.stop()); caja.remove(); };
+  // a la carta de la mesa (desde /camareros/ la base es "../", así que sale de la app de camareros)
+  const irMesa = m => { cerrar(); location.href = new URL("./?mesa=" + encodeURIComponent(m), document.baseURI).href; };
   caja.querySelector("#scanNo").onclick = cerrar;
+  caja.querySelector(".scan-num").onsubmit = e => { e.preventDefault(); const m = caja.querySelector(".scan-num input").value.trim(); if (/^[0-9A-Za-z-]{1,6}$/.test(m)) irMesa(m); };
   try {
     stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
     const v = caja.querySelector("video"); v.srcObject = stream; await v.play();
+    if (!("BarcodeDetector" in window)) { caja.querySelector("p").textContent = "Este móvil no lee QR desde aquí. Escribe el número de la mesa o usa la cámara del móvil."; return; }
     const det = new BarcodeDetector({formats:["qr_code"]});
     const mira = async ()=>{
       if (!caja.isConnected) return;
@@ -1384,12 +1391,12 @@ async function escanearQR(){
         for (const c of r){ let m = null;
           try { m = new URL(c.rawValue, location.href).searchParams.get("mesa"); } catch {}
           if (!m && /^[0-9A-Za-z-]{1,6}$/.test(c.rawValue)) m = c.rawValue;
-          if (m){ cerrar(); location.search = "?mesa=" + encodeURIComponent(m); return; } }
+          if (m){ irMesa(m); return; } }
       } catch {}
       setTimeout(mira, 300);
     };
     mira();
-  } catch { cerrar(); toast("No se ha podido abrir la cámara. Escribe el número de la mesa."); }
+  } catch { if (caja.isConnected) caja.querySelector("p").textContent = "No se ha podido abrir la cámara. Escribe el número de la mesa."; }
 }
 
 { let x0=null, y0=null;
@@ -1570,10 +1577,11 @@ async function pintar(){
       <p class="arr-quien">${esc(trab.nombre)}</p>
       <button class="pulsador" id="pulsador" aria-label="Empezar la jornada"><span>Empezar</span></button>
       <p class="arr-txt">Pulsa para fichar la entrada y empezar a recibir avisos.</p>
-      <div class="arr-mini"><button data-p="fichajes">Mis fichajes</button>${trab.admin?`<a href="${location.pathname}?gestion">Gestión</a>`:""}<button id="salirTrab">Cambiar de trabajador</button></div></div></div>`;
+      <div class="arr-mini"><button data-p="fichajes">Mis fichajes</button>${trab.admin?`<a href="${location.pathname}?gestion">Gestión</a>`:""}<button id="leerQR">📷 Leer QR de mesa</button><button id="salirTrab">Cambiar de trabajador</button></div></div></div>`;
     document.getElementById("pulsador").onclick = e => cambiarServicio(e.currentTarget);
     cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
     document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
+  { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; }
     return;
   }
   try { filas = (await Store.list()).filter(r=>r.estado!=="anulado"); bloqs = await Store.bloqueados(); } catch { toast("Sin conexión con el servidor"); return; }
@@ -1622,13 +1630,14 @@ async function pintar(){
   }
   // también de servicio: las herramientas del encargado y cambiar de trabajador, abajo del todo
   h += `<div class="offacts herr">${trab.admin?`<a class="ghost" href="${location.pathname}?gestion">Gestión</a>`:""}
-    <button class="ghost" id="salirTrab">Cambiar de trabajador</button></div>`;
+    <button class="ghost" id="leerQR">📷 Leer QR de mesa</button><button class="ghost" id="salirTrab">Cambiar de trabajador</button></div>`;
   const abiertos = new Set([...cuerpo.querySelectorAll("details[open][data-k]")].map(d=>d.dataset.k));
   cuerpo.innerHTML = h;
   cuerpo.querySelectorAll("details[data-k]").forEach(d=>{ if (abiertos.has(d.dataset.k)) d.open = true; });
 
   cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
   document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
+  { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; }
   const aa = document.getElementById("actAvisos");
   if (aa) aa.onclick = async ()=>{ aa.disabled = true; const ok = await activarAvisos(true);
     toast(ok ? "Avisos activados. Te llegarán aunque el móvil esté bloqueado." : "No se han podido activar los avisos."); pintar(); };
@@ -2166,6 +2175,12 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "📷 Leer QR de mesa":"📷 扫桌子二维码",
+  "o escribe el número de mesa":"或输入桌号",
+  "Número de mesa":"桌号",
+  "Ir":"去",
+  "Este móvil no lee QR desde aquí. Escribe el número de la mesa o usa la cámara del móvil.":"这部手机在这里扫不了二维码。请输入桌号，或用手机相机扫。",
+  "No se ha podido abrir la cámara. Escribe el número de la mesa.":"打不开相机。请输入桌号。",
   "📝 Anotar comanda":"📝 记下点单",
   "Anotar en la cuenta":"记到账单上",
   "Para":"给",
@@ -2491,6 +2506,12 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "📷 Leer QR de mesa":"📷 Llegir QR de taula",
+  "o escribe el número de mesa":"o escriu el número de taula",
+  "Número de mesa":"Número de taula",
+  "Ir":"Anar",
+  "Este móvil no lee QR desde aquí. Escribe el número de la mesa o usa la cámara del móvil.":"Aquest mòbil no llegeix QR des d'aquí. Escriu el número de la taula o fes servir la càmera del mòbil.",
+  "No se ha podido abrir la cámara. Escribe el número de la mesa.":"No s'ha pogut obrir la càmera. Escriu el número de la taula.",
   "📝 Anotar comanda":"📝 Apuntar comanda",
   "Anotar en la cuenta":"Apuntar al compte",
   "Para":"Per a",
