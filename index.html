@@ -1580,6 +1580,7 @@ function sonar(tipo){
   if (!enServicio) return;
   try {
     audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    if (audioCtx.state !== "running") audioCtx.resume();
     const notas = tipo==="camarero" ? [[660,0],[880,.22]] : [[988,0],[988,.16],[1318,.32]];
     notas.forEach(([f,t])=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain();
       o.type="triangle"; o.frequency.value=f; o.connect(g); g.connect(audioCtx.destination);
@@ -1591,7 +1592,15 @@ async function pantallaEncendida(on){
   try { if (on && "wakeLock" in navigator) wake = await navigator.wakeLock.request("screen"); else if (wake) { await wake.release(); wake=null; } } catch {}
 }
 // los navegadores solo dejan sonar tras tocar la pantalla: el primer toque desbloquea el audio
-document.addEventListener("pointerdown", ()=>{ try{ audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); audioCtx.resume(); }catch{} }, {once:true});
+// iPhone: que suene aunque el interruptor de silencio esté puesto (iOS 17+), y volver a activar el audio en cada toque
+// porque iOS lo apaga al bloquear el móvil o cambiar de app
+try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
+const despiertaAudio = () => { try {
+  audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+  if (audioCtx.state !== "running") { audioCtx.resume();
+    const b = audioCtx.createBuffer(1, 1, 22050), src = audioCtx.createBufferSource(); src.buffer = b; src.connect(audioCtx.destination); src.start(0); }
+} catch {} };
+["pointerdown","touchend","keydown"].forEach(ev => document.addEventListener(ev, despiertaAudio, {passive:true}));
 document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState==="visible" && enServicio && qs.has("panel")) pantallaEncendida(true); });
 
 /* ---------- Avisos con el móvil bloqueado (notificaciones push) ---------- */
