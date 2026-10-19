@@ -1686,17 +1686,30 @@ const b64u = s => { const p = "=".repeat((4 - s.length % 4) % 4); const r = atob
 let AVISOS_FALLO = false;   // tenía permiso pero no se pudo guardar el móvil para avisar
 // OneSignal (Jamal, 2026-10-19): el móvil queda apuntado con el id del trabajador y Supabase pide a OneSignal que avise
 let osListo = null;
+let OS_PASO = "", OS_LOG = [];   // en qué paso va OneSignal y sus últimos avisos, para saber dónde se atasca (iPad)
 function cargaOneSignal(){
+  if (!OS_LOG.on) { OS_LOG.on = true;
+    for (const k of ["warn", "error"]) { const orig = console[k].bind(console);
+      console[k] = (...a) => { try { const t = a.map(x => x instanceof Error ? x.message : typeof x === "string" ? x : JSON.stringify(x)).join(" ");
+        if (/onesignal|service ?worker|push|permission/i.test(t)) { OS_LOG.push(t.slice(0, 120)); if (OS_LOG.length > 3) OS_LOG.shift(); } } catch {} orig(...a); }; }
+    window.addEventListener("unhandledrejection", e => { const t = String(e.reason?.message || e.reason || ""); if (t) { OS_LOG.push(t.slice(0, 120)); if (OS_LOG.length > 3) OS_LOG.shift(); } });
+  }
   if (!osListo) osListo = new Promise((ok, mal) => {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     OneSignalDeferred.push(async OS => { try {
+      OS_PASO = "arrancando";
+      try { OS.Debug.setLogLevel("warn"); } catch {}
       const sw = new URL("sw.js", document.baseURI).pathname;
       await OS.init({ appId: CONFIG.ONESIGNAL_APP, serviceWorkerPath: sw.slice(1), serviceWorkerParam: { scope: sw.replace(/sw\.js$/, "") } });
-      ok(OS); } catch (e) { mal(e); } });
-    const s = document.createElement("script"); s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"; s.defer = true;
-    s.onerror = () => mal(new Error("OneSignal no carga")); document.head.appendChild(s);
+      OS_PASO = "listo"; ok(OS); } catch (e) { mal(e); } });
+    if (!document.getElementById("osSdk")) {
+      OS_PASO = "descargando";
+      const s = document.createElement("script"); s.id = "osSdk"; s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"; s.defer = true;
+      s.onload = () => { if (OS_PASO === "descargando") OS_PASO = "descargado, sin arrancar"; };
+      s.onerror = () => { s.remove(); mal(new Error("OneSignal no se descarga")); }; document.head.appendChild(s);
+    }
   });
-  osListo.catch(() => { osListo = null; });   // si falla, el siguiente intento vuelve a cargarlo
+  osListo.catch(() => { osListo = null; });   // si falla, el siguiente intento vuelve a probar
   return osListo;
 }
 let AVISOS_ERROR = "";   // por qué no se activaron (se enseña al pulsar Activar avisos)
@@ -1715,7 +1728,7 @@ async function activarOneSignal(pedir){
       if (vieja) await vieja.unsubscribe();
       ls.set("esencia_os_limpio", true);
     }
-    const OS = await conTiempo(cargaOneSignal(), 25, "OneSignal (cargar)");
+    const OS = await conTiempo(cargaOneSignal(), 45, "OneSignal").catch(e => { throw new Error(`${e.message} · paso: ${OS_PASO || "?"}${OS_LOG.length ? " · " + OS_LOG.join(" | ") : ""}`); });
     await conTiempo(OS.login("trab-" + trab.id), 20, "OneSignal (entrar)");
     if (!OS.User.PushSubscription.optedIn) await conTiempo(OS.User.PushSubscription.optIn(), 20, "OneSignal (suscribir)");
     let id = OS.User.PushSubscription.id;
@@ -1725,7 +1738,7 @@ async function activarOneSignal(pedir){
     const {error} = await conTiempo(sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:"https://onesignal.com/s/" + id, p_p256dh:"onesignal", p_auth:"onesignal"}), 15, "Supabase");
     if (error) AVISOS_ERROR = "Supabase: " + (error.message || error.code); else ls.set("esencia_avisos_ok", trab.id);
     AVISOS_FALLO = !!error; return !error;
-  } catch (e) { AVISOS_ERROR = String(e?.message || e || "error sin texto").slice(0, 160); console.warn("OneSignal", e);
+  } catch (e) { AVISOS_ERROR = String(e?.message || e || "error sin texto").slice(0, 300); console.warn("OneSignal", e);
     if (Notification.permission === "granted") AVISOS_FALLO = true; return false; }
 }
 function osSalir(){ ls.set("esencia_avisos_ok", null); if (osListo) osListo.then(OS => OS.logout()).catch(()=>{}); }
