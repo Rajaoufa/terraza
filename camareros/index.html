@@ -2445,7 +2445,7 @@ async function gAvisos(){
     <div class="tscroll"><table class="jt"><thead><tr><th>Camarero</th><th>Avisos</th><th>Ahora</th><th>Activados</th></tr></thead><tbody>
     ${lista.map(f=>`<tr><td><b>${esc(f.nombre)}</b></td><td>${f.moviles?`<span class="av-si">✓ Sí</span>${f.moviles>1?` <small>(${f.moviles} móviles)</small>`:""}`:`<span class="falta">No</span>`}</td>
       <td>${f.trabajando?"Trabajando":"—"}</td><td>${f.ultimo?esc(fechaHora(f.ultimo)):"—"}</td></tr>`).join("")}</tbody></table></div>
-    <button class="act pay" id="gAvPrueba">Enviar aviso de prueba a todos</button>
+    <button class="act pay" id="gAvPrueba">Enviarme un aviso de prueba</button>
     <button class="act go" id="gAvSon">🔊 Elegir los sonidos de los camareros</button>`;
 }
 async function gPrecios(){
@@ -2504,7 +2504,7 @@ function gEnlaces(box){
     guardaProd([{id:"n"+Date.now().toString(36), grupo:f.dataset.grupo, n, m:null, d:null, p:pr, oculto:false, ops:[]}], `${n} añadido a la carta`); });
   if ($("#gAvSon")) $("#gAvSon").onclick = pantallaSonido;
   if ($("#gAvPrueba")) $("#gAvPrueba").onclick = async e => { const b = e.currentTarget; b.disabled = true;
-    try { const n = await Store.pushProbar(trab); toast(n ? `Aviso de prueba enviado a ${n} móviles` : "Nadie tiene los avisos activados todavía"); }
+    try { const n = await Store.pushProbar(trab); toast(n ? (n===1 ? "Aviso de prueba enviado a tu aparato" : `Aviso de prueba enviado a tus ${n} aparatos`) : "Todavía no tienes los avisos activados en ningún aparato"); }
     catch(err) { toast(/PGRST202|esencia_push|function/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de avisos en Supabase" : "No se ha podido enviar el aviso de prueba"); }
     b.disabled = false; };
   box.querySelectorAll("#gPreOk,#gPreOk2").forEach(b => b.onclick = async () => {
@@ -2680,7 +2680,7 @@ const ZH = {
   "Camarero":"服务员",
   "Activados":"开启时间",
   "✓ Sí":"✓ 是",
-  "Enviar aviso de prueba a todos":"给所有人发测试通知",
+  "Enviarme un aviso de prueba":"给我发一条测试通知",
   "Nadie tiene los avisos activados todavía":"还没有人开启通知",
   "Falta pegar el SQL de avisos en Supabase":"还需要在 Supabase 运行通知的 SQL",
   "Falta pegar el SQL de avisos en Supabase.":"还需要在 Supabase 运行通知的 SQL。",
@@ -3117,7 +3117,7 @@ const CA = {
   "Camarero":"Cambrer",
   "Activados":"Activats",
   "✓ Sí":"✓ Sí",
-  "Enviar aviso de prueba a todos":"Enviar avís de prova a tothom",
+  "Enviarme un aviso de prueba":"Envia'm un avís de prova",
   "Nadie tiene los avisos activados todavía":"Encara ningú té els avisos activats",
   "Falta pegar el SQL de avisos en Supabase":"Falta enganxar l'SQL d'avisos a Supabase",
   "Falta pegar el SQL de avisos en Supabase.":"Falta enganxar l'SQL d'avisos a Supabase.",
