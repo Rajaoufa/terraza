@@ -953,7 +953,7 @@ const ICON = {
 document.documentElement.classList.remove("big");
 if (CONFIG.FONDO) document.documentElement.style.setProperty("--foto", `url("${encodeURI(CONFIG.FONDO)}")`);
 else document.documentElement.style.setProperty("--foto", "none");
-function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3200); }
+function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), msg.length>70 ? 9000 : 3200); }
 
 /* ---------- Almacén: Supabase o modo prueba (mismo navegador) ---------- */
 const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_KEY;
@@ -1686,20 +1686,31 @@ function cargaOneSignal(){
   });
   return osListo;
 }
+let AVISOS_ERROR = "";   // por qué no se activaron (se enseña al pulsar Activar avisos)
 async function activarOneSignal(pedir){
+  AVISOS_ERROR = "";
   try {
+    // el móvil tenía la suscripción vieja (sin OneSignal) con otra clave: hay que quitarla o OneSignal no puede apuntarlo
+    if (!ls.get("esencia_os_limpio", false)) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      const vieja = reg && await reg.pushManager.getSubscription();
+      if (vieja) await vieja.unsubscribe();
+      ls.set("esencia_os_limpio", true);
+    }
     const OS = await cargaOneSignal();
     await OS.login("trab-" + trab.id);
     if (Notification.permission === "default" && pedir) await OS.Notifications.requestPermission();
     if (Notification.permission !== "granted") return false;
     if (!OS.User.PushSubscription.optedIn) await OS.User.PushSubscription.optIn();
     let id = OS.User.PushSubscription.id;
-    for (let n = 0; !id && n < 20; n++) { await new Promise(r => setTimeout(r, 500)); id = OS.User.PushSubscription.id; }
-    if (!id) throw new Error("sin suscripción");
+    for (let n = 0; !id && n < 60; n++) { await new Promise(r => setTimeout(r, 500)); id = OS.User.PushSubscription.id; }
+    if (!id) throw new Error("OneSignal no ha dado la suscripción");
     // se apunta también en Supabase para que Gestión > Avisos sepa quién tiene los avisos activados
     const {error} = await sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:"https://onesignal.com/s/" + id, p_p256dh:"onesignal", p_auth:"onesignal"});
+    if (error) AVISOS_ERROR = "Supabase: " + (error.message || error.code);
     AVISOS_FALLO = !!error; return !error;
-  } catch { if (Notification.permission === "granted") AVISOS_FALLO = true; return false; }
+  } catch (e) { AVISOS_ERROR = String(e?.message || e || "").slice(0, 160); console.warn("OneSignal", e);
+    if (Notification.permission === "granted") AVISOS_FALLO = true; return false; }
 }
 function osSalir(){ if (osListo) osListo.then(OS => OS.logout()).catch(()=>{}); }
 async function activarAvisos(pedir){
@@ -1917,7 +1928,7 @@ async function pintar(){
   { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; const v = document.getElementById("verSonido"); if (v) v.onclick = pantallaSonido; }
   const aa = document.getElementById("actAvisos");
   if (aa) aa.onclick = async ()=>{ aa.disabled = true; const ok = await activarAvisos(true);
-    toast(ok ? "Avisos activados. Te llegarán aunque el móvil esté bloqueado." : "No se han podido activar los avisos."); pintar(); };
+    toast(ok ? "Avisos activados. Te llegarán aunque el móvil esté bloqueado." : "No se han podido activar los avisos." + (AVISOS_ERROR ? " (" + AVISOS_ERROR + ")" : "")); pintar(); };
   cuerpo.querySelectorAll("[data-acc]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
     const id = isNaN(b.dataset.acc)?b.dataset.acc:Number(b.dataset.acc);
     try{ await Store.accept(id); pintar(); }catch{ b.disabled=false; toast("No se ha guardado. Prueba otra vez."); } });
