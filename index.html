@@ -470,6 +470,7 @@ body{font-variant-numeric:lining-nums}
 .hj-cab small{grid-column:1;color:var(--muted)}
 .hj-fila{display:grid;gap:6px}
 .hj-t{font-size:.8em;font-weight:700;color:#E9C27E;text-transform:uppercase;letter-spacing:.08em}
+.son-fijo{display:inline-block;margin-top:6px;padding:8px 14px;border-radius:999px;background:rgba(233,194,126,.15);color:#F3E6CF}
 .hj-ops{display:flex;flex-wrap:wrap;gap:8px}
 .hj-op{font:inherit;font-weight:700;min-height:46px;padding:10px 16px;border-radius:999px;border:1.5px solid rgba(217,168,91,.55);background:rgba(255,255,255,.05);color:var(--ink);cursor:pointer}
 .hj-op.on{background:linear-gradient(180deg,#F0C979,#C38A3C);color:#2A140A;border-color:#E9C27E}
@@ -1608,20 +1609,23 @@ const SONIDOS = {
   bocina:  {n:"Bocina",     w:"sawtooth", llamada:[[330,0,.5],[330,.6,.5]], pedido:[[392,0,.3],[523,.35,.45]]},
   pitido:  {n:"Pitido",     w:"square",   llamada:[[1500,0,.1],[1500,.2,.1],[1500,.4,.1]], pedido:[[1800,0,.08],[1800,.15,.08]]}};
 let SON = Object.assign({tipo:"timbre", vol:100, veces:2}, ls.get("esencia_sonido", {}));
-// un sonido para cuando llama una mesa y otro para cuando llega un pedido (Jamal)
-SON.tipoL = SON.tipoL || SON.tipo; SON.tipoP = SON.tipoP || SON.tipo;
+// un sonido para cuando llama una mesa y otro para cuando llega un pedido. Los elige el encargado para todos (Jamal);
+// se guardan como _sonL, _sonP (nº del sonido) y _sonV (veces) en esencia_precios. El volumen es de cada móvil.
+const SON_K = Object.keys(SONIDOS);
+const sonDe = tipo => SON_K[Number(PRECIOS[tipo==="camarero" ? "_sonL" : "_sonP"]) - 1] || "timbre";
+const vecesSon = () => Number(PRECIOS["_sonV"]) || 2;
 function sonar(tipo, probar){
   if (!enServicio && !probar) return;
   try {
     audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
     if (audioCtx.state !== "running") audioCtx.resume();
-    const so = SONIDOS[tipo==="camarero" ? SON.tipoL : SON.tipoP] || SONIDOS.timbre, notas = tipo==="camarero" ? so.llamada : so.pedido;
+    const so = SONIDOS[sonDe(tipo)] || SONIDOS.timbre, notas = tipo==="camarero" ? so.llamada : so.pedido;
     const largo = Math.max(...notas.map(([,t,d])=>t+d)) + .25;
     // un compresor sube el volumen percibido sin que se rompa el sonido (en iPhone suena flojo)
     const comp = audioCtx.createDynamicsCompressor(); comp.threshold.value = -30; comp.knee.value = 0; comp.ratio.value = 12; comp.attack.value = 0; comp.release.value = .1;
     const master = audioCtx.createGain(); master.gain.value = Math.max(.05, SON.vol/100) * 2.2;
     comp.connect(master); master.connect(audioCtx.destination);
-    for (let v = 0; v < (SON.veces||1); v++) notas.forEach(([f,t,d])=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    for (let v = 0, veces = vecesSon(); v < veces; v++) notas.forEach(([f,t,d])=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain();
       o.type = so.w; o.frequency.value = f; o.connect(g); g.connect(comp);
       const s = audioCtx.currentTime + v*largo + t; g.gain.setValueAtTime(.0001,s); g.gain.exponentialRampToValueAtTime(.9,s+.01);
       g.gain.setValueAtTime(.9,s+d*.7); g.gain.exponentialRampToValueAtTime(.001,s+d); o.start(s); o.stop(s+d+.02); });
@@ -1631,20 +1635,26 @@ function sonar(tipo, probar){
 function pantallaSonido(){
   document.querySelector(".modal.hoja")?.remove();
   const caja = document.createElement("div"); caja.className = "modal hoja";
+  const jefe = !!trab?.admin;
+  const fila = (t, tipo, attr) => `<div class="hj-fila"><span class="hj-t">${t}</span>${jefe
+    ? `<div class="hj-ops">${SON_K.map(k=>`<button type="button" class="hj-op ${sonDe(tipo)===k?"on":""}" data-${attr}="${k}">${esc(SONIDOS[k].n)}</button>`).join("")}</div>`
+    : `<b class="son-fijo">${esc(SONIDOS[sonDe(tipo)].n)}</b>`}</div>`;
   const pinta = () => { caja.innerHTML = `<div class="mbox" role="dialog" aria-modal="true"><div class="hj-cab"><b class="hj-n">🔊 Sonido de los avisos</b></div>
-    <p class="sub">Elige un sonido para cada aviso y el volumen de este móvil. Suena cuando tienes el panel abierto.</p>
-    <div class="hj-fila"><span class="hj-t">🛎️ Cuando llama una mesa</span><div class="hj-ops">${Object.entries(SONIDOS).map(([k,x])=>`<button type="button" class="hj-op ${SON.tipoL===k?"on":""}" data-sonl="${k}">${esc(x.n)}</button>`).join("")}</div></div>
-    <div class="hj-fila"><span class="hj-t">🧾 Cuando llega un pedido</span><div class="hj-ops">${Object.entries(SONIDOS).map(([k,x])=>`<button type="button" class="hj-op ${SON.tipoP===k?"on":""}" data-sonp="${k}">${esc(x.n)}</button>`).join("")}</div></div>
-    <div class="hj-fila"><span class="hj-t">Volumen · <b id="sVolT">${SON.vol}%</b></span><input type="range" class="rzoom" id="sVol" min="10" max="100" step="5" value="${SON.vol}" aria-label="Volumen"></div>
-    <div class="hj-fila"><span class="hj-t">Repetir</span><div class="hj-ops">${[1,2,3].map(n=>`<button type="button" class="hj-op ${SON.veces===n?"on":""}" data-veces="${n}">${n===1?"1 vez":n+" veces"}</button>`).join("")}</div></div>
+    <p class="sub">${jefe ? "Los sonidos que elijas aquí suenan en los móviles de todos los camareros." : "Los sonidos los elige el encargado. Tú puedes cambiar el volumen de tu móvil."}</p>
+    ${fila("🛎️ Cuando llama una mesa", "camarero", "sonl")}${fila("🧾 Cuando llega un pedido", "pedido", "sonp")}
+    ${jefe ? `<div class="hj-fila"><span class="hj-t">Repetir</span><div class="hj-ops">${[1,2,3].map(n=>`<button type="button" class="hj-op ${vecesSon()===n?"on":""}" data-veces="${n}">${n===1?"1 vez":n+" veces"}</button>`).join("")}</div></div>` : ""}
+    <div class="hj-fila"><span class="hj-t">Volumen de este móvil · <b id="sVolT">${SON.vol}%</b></span><input type="range" class="rzoom" id="sVol" min="10" max="100" step="5" value="${SON.vol}" aria-label="Volumen"></div>
     <div class="two"><button class="act go" id="sProbL">▶ Probar llamada</button><button class="act go" id="sProbP">▶ Probar pedido</button></div>
     <p class="sub">Para que suene más: sube el volumen del móvil con los botones del lateral. En iPhone, con la app cerrada el aviso usa el sonido del iPhone: Ajustes → Sonidos y vibraciones → sube "Tono y avisos".</p>
     <button class="act pay" id="sOk">Listo</button></div>`;
-    const guarda = () => ls.set("esencia_sonido", SON);
-    caja.querySelectorAll("[data-sonl]").forEach(b => b.onclick = () => { SON.tipoL = b.dataset.sonl; guarda(); pinta(); sonar("camarero", true); });
-    caja.querySelectorAll("[data-sonp]").forEach(b => b.onclick = () => { SON.tipoP = b.dataset.sonp; guarda(); pinta(); sonar("pedido", true); });
-    caja.querySelectorAll("[data-veces]").forEach(b => b.onclick = () => { SON.veces = +b.dataset.veces; guarda(); pinta(); });
-    const r = caja.querySelector("#sVol"); r.oninput = () => { SON.vol = +r.value; caja.querySelector("#sVolT").textContent = SON.vol+"%"; guarda(); };
+    const guardaTodos = async (clave, valor, tipo) => {
+      const antes = PRECIOS[clave]; PRECIOS = {...PRECIOS, [clave]: valor}; pinta(); if (tipo) sonar(tipo, true);
+      try { await Store.preciosGuardar(trab, [{clave, precio: valor}]); PRECIOS = await Store.precios(); ls.set("esencia_precios", PRECIOS); toast("Guardado para todos los camareros"); }
+      catch { PRECIOS = {...PRECIOS, [clave]: antes}; pinta(); toast("No se ha podido guardar. Prueba otra vez."); } };
+    caja.querySelectorAll("[data-sonl]").forEach(b => b.onclick = () => guardaTodos("_sonL", SON_K.indexOf(b.dataset.sonl) + 1, "camarero"));
+    caja.querySelectorAll("[data-sonp]").forEach(b => b.onclick = () => guardaTodos("_sonP", SON_K.indexOf(b.dataset.sonp) + 1, "pedido"));
+    caja.querySelectorAll("[data-veces]").forEach(b => b.onclick = () => guardaTodos("_sonV", +b.dataset.veces));
+    const r = caja.querySelector("#sVol"); r.oninput = () => { SON.vol = +r.value; caja.querySelector("#sVolT").textContent = SON.vol+"%"; ls.set("esencia_sonido", SON); };
     r.onchange = () => sonar("pedido", true);
     caja.querySelector("#sProbL").onclick = () => sonar("camarero", true);
     caja.querySelector("#sProbP").onclick = () => sonar("pedido", true);
@@ -1700,7 +1710,7 @@ async function activarOneSignal(pedir){
     const OS = await cargaOneSignal();
     await OS.login("trab-" + trab.id);
     if (Notification.permission === "default" && pedir) await OS.Notifications.requestPermission();
-    if (Notification.permission !== "granted") return false;
+    if (Notification.permission !== "granted") { AVISOS_ERROR = "sin permiso de notificaciones"; return false; }
     if (!OS.User.PushSubscription.optedIn) await OS.User.PushSubscription.optIn();
     let id = OS.User.PushSubscription.id;
     for (let n = 0; !id && n < 60; n++) { await new Promise(r => setTimeout(r, 500)); id = OS.User.PushSubscription.id; }
@@ -1709,7 +1719,7 @@ async function activarOneSignal(pedir){
     const {error} = await sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:"https://onesignal.com/s/" + id, p_p256dh:"onesignal", p_auth:"onesignal"});
     if (error) AVISOS_ERROR = "Supabase: " + (error.message || error.code);
     AVISOS_FALLO = !!error; return !error;
-  } catch (e) { AVISOS_ERROR = String(e?.message || e || "").slice(0, 160); console.warn("OneSignal", e);
+  } catch (e) { AVISOS_ERROR = String(e?.message || e || "error sin texto").slice(0, 160); console.warn("OneSignal", e);
     if (Notification.permission === "granted") AVISOS_FALLO = true; return false; }
 }
 function osSalir(){ if (osListo) osListo.then(OS => OS.logout()).catch(()=>{}); }
@@ -2433,7 +2443,8 @@ async function gAvisos(){
     <div class="tscroll"><table class="jt"><thead><tr><th>Camarero</th><th>Avisos</th><th>Ahora</th><th>Activados</th></tr></thead><tbody>
     ${lista.map(f=>`<tr><td><b>${esc(f.nombre)}</b></td><td>${f.moviles?`<span class="av-si">✓ Sí</span>${f.moviles>1?` <small>(${f.moviles} móviles)</small>`:""}`:`<span class="falta">No</span>`}</td>
       <td>${f.trabajando?"Trabajando":"—"}</td><td>${f.ultimo?esc(fechaHora(f.ultimo)):"—"}</td></tr>`).join("")}</tbody></table></div>
-    <button class="act pay" id="gAvPrueba">Enviar aviso de prueba a todos</button>`;
+    <button class="act pay" id="gAvPrueba">Enviar aviso de prueba a todos</button>
+    <button class="act go" id="gAvSon">🔊 Elegir los sonidos de los camareros</button>`;
 }
 async function gPrecios(){
   PRECIOS = await Store.precios(); ls.set("esencia_precios", PRECIOS); ponPrecios();
@@ -2489,6 +2500,7 @@ function gEnlaces(box){
     if (!n || !(pr >= 0) || pr > 999) return toast("Pon el nombre y el precio");
     f.querySelector("button").disabled = true;
     guardaProd([{id:"n"+Date.now().toString(36), grupo:f.dataset.grupo, n, m:null, d:null, p:pr, oculto:false, ops:[]}], `${n} añadido a la carta`); });
+  if ($("#gAvSon")) $("#gAvSon").onclick = pantallaSonido;
   if ($("#gAvPrueba")) $("#gAvPrueba").onclick = async e => { const b = e.currentTarget; b.disabled = true;
     try { const n = await Store.pushProbar(trab); toast(n ? `Aviso de prueba enviado a ${n} móviles` : "Nadie tiene los avisos activados todavía"); }
     catch(err) { toast(/PGRST202|esencia_push|function/i.test((err?.code||"")+(err?.message||"")) ? "Falta pegar el SQL de avisos en Supabase" : "No se ha podido enviar el aviso de prueba"); }
@@ -2598,6 +2610,10 @@ const ZH = {
   "🔊 Sonido de los avisos":"🔊 通知声音",
   "Elige un sonido para cada aviso y el volumen de este móvil. Suena cuando tienes el panel abierto.":"为每种通知选择声音，并设置这部手机的音量。打开面板时会响。",
   "🛎️ Cuando llama una mesa":"🛎️ 有桌呼叫时",
+  "Los sonidos que elijas aquí suenan en los móviles de todos los camareros.":"这里选的声音会在所有服务员的手机上响。",
+  "Los sonidos los elige el encargado. Tú puedes cambiar el volumen de tu móvil.":"声音由经理选择。你可以调整自己手机的音量。",
+  "Guardado para todos los camareros":"已为所有服务员保存",
+  "🔊 Elegir los sonidos de los camareros":"🔊 选择服务员的声音",
   "🧾 Cuando llega un pedido":"🧾 有新订单时",
   "Sonido":"声音",
   "Volumen":"音量",
@@ -3031,6 +3047,10 @@ const CA = {
   "🔊 Sonido de los avisos":"🔊 So dels avisos",
   "Elige un sonido para cada aviso y el volumen de este móvil. Suena cuando tienes el panel abierto.":"Tria un so per a cada avís i el volum d'aquest mòbil. Sona quan tens el panell obert.",
   "🛎️ Cuando llama una mesa":"🛎️ Quan truca una taula",
+  "Los sonidos que elijas aquí suenan en los móviles de todos los camareros.":"Els sons que triïs aquí sonen als mòbils de tots els cambrers.",
+  "Los sonidos los elige el encargado. Tú puedes cambiar el volumen de tu móvil.":"Els sons els tria l'encarregat. Tu pots canviar el volum del teu mòbil.",
+  "Guardado para todos los camareros":"Desat per a tots els cambrers",
+  "🔊 Elegir los sonidos de los camareros":"🔊 Triar els sons dels cambrers",
   "🧾 Cuando llega un pedido":"🧾 Quan arriba una comanda",
   "Sonido":"So",
   "Volumen":"Volum",
