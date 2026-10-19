@@ -1696,29 +1696,33 @@ function cargaOneSignal(){
     const s = document.createElement("script"); s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"; s.defer = true;
     s.onerror = () => mal(new Error("OneSignal no carga")); document.head.appendChild(s);
   });
+  osListo.catch(() => { osListo = null; });   // si falla, el siguiente intento vuelve a cargarlo
   return osListo;
 }
 let AVISOS_ERROR = "";   // por qué no se activaron (se enseña al pulsar Activar avisos)
+// cada paso con tiempo máximo: si algo se queda colgado (pasó en un iPad), se dice cuál
+const conTiempo = (p, s, que) => Promise.race([p, new Promise((_, mal) => setTimeout(() => mal(new Error(que + " no responde")), s * 1000))]);
 async function activarOneSignal(pedir){
   AVISOS_ERROR = "";
   try {
+    // el permiso se pide lo primero, justo al tocar el botón: en iPhone/iPad, si se pide después de esperar a otra cosa, no sale la pregunta
+    if (Notification.permission === "default" && pedir) await conTiempo(Notification.requestPermission(), 60, "La pregunta de permiso");
+    if (Notification.permission !== "granted") { AVISOS_ERROR = "sin permiso de notificaciones"; return false; }
     // el móvil tenía la suscripción vieja (sin OneSignal) con otra clave: hay que quitarla o OneSignal no puede apuntarlo
     if (!ls.get("esencia_os_limpio", false)) {
-      const reg = await navigator.serviceWorker.getRegistration();
+      const reg = await conTiempo(navigator.serviceWorker.getRegistration(), 10, "El service worker");
       const vieja = reg && await reg.pushManager.getSubscription();
       if (vieja) await vieja.unsubscribe();
       ls.set("esencia_os_limpio", true);
     }
-    const OS = await cargaOneSignal();
-    await OS.login("trab-" + trab.id);
-    if (Notification.permission === "default" && pedir) await OS.Notifications.requestPermission();
-    if (Notification.permission !== "granted") { AVISOS_ERROR = "sin permiso de notificaciones"; return false; }
-    if (!OS.User.PushSubscription.optedIn) await OS.User.PushSubscription.optIn();
+    const OS = await conTiempo(cargaOneSignal(), 25, "OneSignal (cargar)");
+    await conTiempo(OS.login("trab-" + trab.id), 20, "OneSignal (entrar)");
+    if (!OS.User.PushSubscription.optedIn) await conTiempo(OS.User.PushSubscription.optIn(), 20, "OneSignal (suscribir)");
     let id = OS.User.PushSubscription.id;
-    for (let n = 0; !id && n < 60; n++) { await new Promise(r => setTimeout(r, 500)); id = OS.User.PushSubscription.id; }
+    for (let n = 0; !id && n < 40; n++) { await new Promise(r => setTimeout(r, 500)); id = OS.User.PushSubscription.id; }
     if (!id) throw new Error("OneSignal no ha dado la suscripción");
     // se apunta también en Supabase para que Gestión > Avisos sepa quién tiene los avisos activados
-    const {error} = await sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:"https://onesignal.com/s/" + id, p_p256dh:"onesignal", p_auth:"onesignal"});
+    const {error} = await conTiempo(sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:"https://onesignal.com/s/" + id, p_p256dh:"onesignal", p_auth:"onesignal"}), 15, "Supabase");
     if (error) AVISOS_ERROR = "Supabase: " + (error.message || error.code); else ls.set("esencia_avisos_ok", trab.id);
     AVISOS_FALLO = !!error; return !error;
   } catch (e) { AVISOS_ERROR = String(e?.message || e || "error sin texto").slice(0, 160); console.warn("OneSignal", e);
