@@ -564,6 +564,8 @@ body{font-variant-numeric:lining-nums}
 .ob-in{max-width:420px;text-align:center;color:#F8EBD2}
 .ob-in h2{font-family:var(--f-display);font-size:1.9em;margin:18px 0 8px;color:#F0C979}
 .ob-in p{font-size:1.1em;color:#E2CFB2;margin:0}
+.obras.avisos .ob-in p{margin:0 0 14px}.obras.avisos .act{width:100%;font-size:1.15em}
+.av-err{color:#FFB4A0!important}.av-no{margin-top:18px;background:none;border:0;color:#B9A27E;text-decoration:underline;font:inherit;font-size:.9em;cursor:pointer}
 .valla{width:min(320px,86vw);height:auto}
 .valla .luz{animation:parpadeo 1s infinite}.valla .l2{animation-delay:.5s}
 @keyframes parpadeo{0%,49%{opacity:1}50%,100%{opacity:.25}}
@@ -1719,12 +1721,12 @@ async function activarOneSignal(pedir){
     if (!id) throw new Error("OneSignal no ha dado la suscripción");
     // se apunta también en Supabase para que Gestión > Avisos sepa quién tiene los avisos activados
     const {error} = await sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:"https://onesignal.com/s/" + id, p_p256dh:"onesignal", p_auth:"onesignal"});
-    if (error) AVISOS_ERROR = "Supabase: " + (error.message || error.code);
+    if (error) AVISOS_ERROR = "Supabase: " + (error.message || error.code); else ls.set("esencia_avisos_ok", trab.id);
     AVISOS_FALLO = !!error; return !error;
   } catch (e) { AVISOS_ERROR = String(e?.message || e || "error sin texto").slice(0, 160); console.warn("OneSignal", e);
     if (Notification.permission === "granted") AVISOS_FALLO = true; return false; }
 }
-function osSalir(){ if (osListo) osListo.then(OS => OS.logout()).catch(()=>{}); }
+function osSalir(){ ls.set("esencia_avisos_ok", null); if (osListo) osListo.then(OS => OS.logout()).catch(()=>{}); }
 async function activarAvisos(pedir){
   if (PUSH_OK && sb && trab && CONFIG.ONESIGNAL_APP) return activarOneSignal(pedir);
   if (!PUSH_OK || !sb || !trab || !CONFIG.VAPID_PUBLICA) return false;
@@ -1737,6 +1739,33 @@ async function activarAvisos(pedir){
     const {error} = await sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:j.endpoint, p_p256dh:j.keys.p256dh, p_auth:j.keys.auth});
     AVISOS_FALLO = !!error; return !error;
   } catch { if (Notification.permission === "granted") AVISOS_FALLO = true; return false; }
+}
+// Jamal: al fichar, el camarero no puede seguir hasta activar los avisos en su móvil
+let sinAvisos = false;   // pulsó "Seguir sin avisos": se le vuelve a pedir la próxima vez que abra la app
+function pideAvisos(){
+  const ya = document.querySelector(".obras.avisos");
+  const falta = enServicio && trab && !trab.admin && !sinAvisos && sb && CONFIG.ONESIGNAL_APP
+    && !(ls.get("esencia_avisos_ok", null) === trab.id && window.Notification?.permission === "granted");
+  if (!falta) { ya?.remove(); return; }
+  if (ya) return;   // ya está en pantalla (el panel se repinta cada pocos segundos)
+  const caja = document.createElement("div"); caja.className = "obras avisos noprint";
+  const pinta = (error) => {
+    let cuerpo;
+    if (IOS && !EN_APP) cuerpo = `<p>En iPhone los avisos solo llegan con la app instalada: toca <b>Compartir</b>, luego <b>“Añadir a pantalla de inicio”</b>, y ábrela desde el icono.</p>`;
+    else if (!PUSH_OK) cuerpo = `<p>Este navegador no puede recibir avisos. Abre la app con Chrome o Safari.</p>`;
+    else if (Notification.permission === "denied") cuerpo = `<p>Las notificaciones están bloqueadas. Ve a los ajustes del móvil (o al candado 🔒 junto a la dirección), permite las notificaciones de esta app y pulsa Reintentar.</p>
+      <button class="act pay" id="avSi">Reintentar</button>`;
+    else cuerpo = `<p>Para trabajar tienes que activar los avisos en este móvil. Así te llega cada pedido y cada llamada aunque tengas la pantalla apagada.</p>
+      ${error ? `<p class="av-err">No se han podido activar (${esc(error)}). Prueba otra vez.</p>` : ""}
+      <button class="act pay" id="avSi">🔔 Activar avisos</button>`;
+    caja.innerHTML = `<div class="ob-in"><div style="font-size:64px">🔔</div><h2>Activa los avisos</h2>${cuerpo}
+      <button class="av-no" id="avNo">Seguir sin avisos (no te llegarán)</button></div>`;
+    const si = caja.querySelector("#avSi");
+    if (si) si.onclick = async () => { si.disabled = true; si.textContent = "Activando…";
+      if (await activarAvisos(true)) { caja.remove(); toast("Avisos activados. Te llegarán aunque el móvil esté bloqueado."); pintar(); } else pinta(AVISOS_ERROR || "sin permiso"); };
+    caja.querySelector("#avNo").onclick = () => { sinAvisos = true; caja.remove(); };
+  };
+  pinta(""); document.body.appendChild(caja);
 }
 function bloqueAvisos(){
   if (!sb || !(CONFIG.VAPID_PUBLICA || CONFIG.ONESIGNAL_APP)) return "";
@@ -1932,7 +1961,7 @@ async function pintar(){
   h += `<div class="offacts herr">${trab.admin?`<a class="ghost" href="${location.pathname}?gestion">Gestión</a>`:""}
     <button class="ghost" id="leerQR">📷 Leer QR de mesa</button><button class="ghost" id="verSonido">🔊 Sonido</button><button class="ghost" id="salirTrab">Cambiar de trabajador</button></div>`;
   const abiertos = new Set([...cuerpo.querySelectorAll("details[open][data-k]")].map(d=>d.dataset.k));
-  cuerpo.innerHTML = h;
+  cuerpo.innerHTML = h; pideAvisos();
   cuerpo.querySelectorAll("details[data-k]").forEach(d=>{ if (abiertos.has(d.dataset.k)) d.open = true; });
 
   cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
