@@ -1762,7 +1762,8 @@ let sinAvisos = false;   // pulsó "Seguir sin avisos": se le vuelve a pedir la 
 function pideAvisos(){
   const ya = document.querySelector(".obras.avisos");
   const falta = enServicio && trab && !trab.admin && !sinAvisos && sb && CONFIG.ONESIGNAL_APP
-    && !(ls.get("esencia_avisos_ok", null) === trab.id && window.Notification?.permission === "granted");
+    && PUSH_OK && (window.Notification?.permission !== "granted" || (AVISOS_FALLO && ls.get("esencia_avisos_ok", null) !== trab.id));
+  // con permiso ya dado, la app activa los avisos sola al abrir: la pantalla solo sale si falta el permiso o si eso ha fallado
   if (!falta) { ya?.remove(); return; }
   if (ya) return;   // ya está en pantalla (el panel se repinta cada pocos segundos)
   const caja = document.createElement("div"); caja.className = "obras avisos noprint";
@@ -1789,7 +1790,7 @@ function bloqueAvisos(){
   if (IOS && !EN_APP) return `<div class="inst noprint"><img src="icons/icon-192.png" alt="" width="48" height="48"><div><b>Avisos con el móvil bloqueado</b>
     <p>En iPhone solo llegan si instalas el panel: toca <b>Compartir</b> y luego <b>“Añadir a pantalla de inicio”</b>, y ábrelo desde el icono.</p></div></div>`;
   if (!PUSH_OK) return "";
-  if (Notification.permission === "granted") return AVISOS_FALLO ? `<div class="inst noprint"><div><b>Los avisos no se han activado en este móvil</b>
+  if (Notification.permission === "granted") return AVISOS_FALLO && ls.get("esencia_avisos_ok", null) !== trab?.id ? `<div class="inst noprint"><div><b>Los avisos no se han activado en este móvil</b>
     <p>Sin esto no te llegan las notificaciones. Pulsa para volver a intentarlo.</p><button class="act pay" id="actAvisos">Activar avisos</button></div></div>` : "";
   if (Notification.permission === "denied") return `<div class="inst noprint"><div><b>Los avisos están bloqueados en este móvil</b>
     <p>Para recibirlos con el móvil bloqueado, permite las notificaciones de esta app en los ajustes del móvil.</p></div></div>`;
