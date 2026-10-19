@@ -1246,8 +1246,30 @@ async function refrescaMias(){
     yo.ids = []; guardaYo(); misFilas = []; ls.set("esencia_mesa", null);
     if (["inicio","enviado","avisado"].includes(vista)) { vista = "cerrada"; }
   }
-  if (["inicio","enviado","avisado","cerrada"].includes(vista)) cliente();
+  const ep = pedidoActual(), clave = ep ? ep.id+":"+ep.e : "";
+  if (ep && ep.e==="camino" && estadoVisto && estadoVisto !== clave && estadoVisto.startsWith(ep.id+":")) {
+    try { navigator.vibrate && navigator.vibrate([200,100,200]); } catch {}
+    try { audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.frequency.value=880; o.connect(g); g.connect(audioCtx.destination);
+          const t=audioCtx.currentTime; g.gain.setValueAtTime(.3,t); g.gain.exponentialRampToValueAtTime(.001,t+.4); o.start(t); o.stop(t+.42); } catch {}
+  }
+  const cambio = clave !== estadoVisto; estadoVisto = clave;
+  if (["inicio","enviado","avisado","cerrada"].includes(vista) || (cambio && vista==="carta")) cliente();
 }
+// estado del último pedido de este móvil: el cliente ve si el camarero ya lo ha aceptado (Jamal)
+function pedidoActual(){
+  const p = misFilas.filter(r=>r.tipo==="pedido"&&!r.cerrado).sort((a,b)=>b.created_at.localeCompare(a.created_at))[0];
+  if (!p) return null;
+  if (p.estado==="nuevo") return {id:p.id, e:"espera"};
+  if (p.aceptado_at && Date.now()-new Date(p.aceptado_at) < 15*60e3) return {id:p.id, e:"camino"};
+  return null;
+}
+function bloquePedido(){
+  const p = pedidoActual(); if (!p) return "";
+  return p.e==="espera"
+    ? `<div class="status wait" role="status"><span class="dot"></span>Pedido enviado. Esperando a que el camarero lo acepte…</div>`
+    : `<div class="status go" role="status"><span class="dot"></span>✅ El camarero ha aceptado tu pedido. ¡Va en camino!</div>`;
+}
+let estadoVisto = null;   // para avisar (vibrar y sonar) una sola vez cuando lo aceptan
 function llamadaActual(){
   const c = misFilas.filter(r=>r.tipo==="camarero"&&!r.cerrado).sort((a,b)=>b.created_at.localeCompare(a.created_at))[0];
   if (!c) return null;
@@ -1365,6 +1387,7 @@ function cliente(){
   if (vista==="carta"){
     const sec = catSel ? SECCIONES.find(x=>x.k===catSel) : null;
     if (MODO_FOTOS) h += `<button class="back" id="volver">${ICON.back} Volver al panel</button><p class="sub">Toca 📷 en un producto o una pestaña para hacerle una foto o elegirla de la galería.</p>`;
+    if (!MODO_FOTOS) h += bloquePedido();
     const TODAS = [{k:"★", t:"Bebida favorita"}, ...SECCIONES.map(x=>({k:x.k, t:x.k}))];
     const fk = x => "cat-"+(x.k==="★"?"Favoritas":x.k);
     const icono = x => fotoSubida(fk(x)) ? `${fotoSubida(fk(x))}<i class="ct-vel"></i><em class="ct-hueco"></em>` : ICON_SECC[x.k==="★"?"":x.k]||"";
@@ -1416,13 +1439,13 @@ function cliente(){
   }
   if (vista==="enviado" || vista==="avisado" || vista==="cerrada"){
     const txt = {
-      enviado:["¡Pedido enviado!", `Te lo llevamos a la mesa ${esc(mesa)}.`],
+      enviado: pedidoActual()?.e==="camino" ? ["¡Pedido aceptado!", `El camarero ya lo tiene. Te lo llevamos a la mesa ${esc(mesa)}.`] : ["¡Pedido enviado!", `Te avisamos aquí cuando el camarero lo acepte.`],
       avisado:["Camarero avisado", `Te avisamos aquí cuando venga hacia la mesa ${esc(mesa)}.`],
       cerrada: ultimoPago ? ["Pagado", `Mesa ${esc(ultimoPago.mesa)} · ${esc(fechaHora(ultimoPago.at))}. Gracias por venir a ${esc(CONFIG.NOMBRE)}. Lo tendrás aquí guardado una semana.`]
                           : ["Cuenta cerrada", "Gracias por venir a "+esc(CONFIG.NOMBRE)+". ¡Hasta pronto!"]
     }[vista];
     h += `<div class="done"><div class="tick">${ICON.tick}</div><h2>${txt[0]}</h2><p class="sub">${txt[1]}</p>
-      ${vista==="avisado"?bloqueEstado():""}${vista==="cerrada"&&ultimoPago?`<div style="text-align:left">${cuentaPagada(ultimoPago)}</div>`:""}
+      ${vista==="avisado"?bloqueEstado():""}${vista==="enviado"?bloquePedido():""}${vista==="cerrada"&&ultimoPago?`<div style="text-align:left">${cuentaPagada(ultimoPago)}</div>`:""}
       <button class="ghost" id="inicio">Volver al inicio</button></div>${bloqueInstalar()}`;
   }
   h += `</main>`;
@@ -2517,6 +2540,10 @@ const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", nu
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
   "🔊 Sonido":"🔊 声音",
+  "Pedido enviado. Esperando a que el camarero lo acepte…":"订单已发送。等待服务员接单…",
+  "✅ El camarero ha aceptado tu pedido. ¡Va en camino!":"✅ 服务员已接受你的订单。马上送到！",
+  "¡Pedido aceptado!":"订单已接受！",
+  "Te avisamos aquí cuando el camarero lo acepte.":"服务员接单后会在这里通知你。",
   "🔊 Sonido de los avisos":"🔊 通知声音",
   "Elige el sonido y el volumen de este móvil. Suena cuando tienes el panel abierto.":"选择这部手机的声音和音量。打开面板时会响。",
   "Sonido":"声音",
@@ -2912,6 +2939,7 @@ const ZH_RE = [
   [/^Ver mi pedido \((\d+)\)$/, m=>`查看我的订单（${m[1]}）`],
   [/^Tu pedido, (.+)$/, m=>`${m[1]} 的订单`],
   [/^Te lo llevamos a la mesa (.+)\.$/, m=>`我们会送到 ${m[1]} 号桌。`],
+  [/^El camarero ya lo tiene\. Te lo llevamos a la mesa (.+)\.$/, m=>`服务员已经收到。我们会送到 ${m[1]} 号桌。`],
   [/^Te avisamos aquí cuando venga hacia la mesa (.+)\.$/, m=>`服务员去 ${m[1]} 号桌时会在这里通知你。`],
   [/^Mesa (.+?) · (.+)\. Gracias por venir a (.+)\. Lo tendrás aquí guardado una semana\.$/, m=>`${m[1]} 号桌 · ${m[2]}。感谢光临 ${m[3]}。账单会在这里保存一周。`],
   [/^Gracias por venir a (.+)\. ¡Hasta pronto!$/, m=>`感谢光临 ${m[1]}。欢迎再来！`],
@@ -2943,6 +2971,10 @@ const ZH_RE = [
 ];
 const CA = {
   "🔊 Sonido":"🔊 So",
+  "Pedido enviado. Esperando a que el camarero lo acepte…":"Comanda enviada. Esperant que el cambrer l'accepti…",
+  "✅ El camarero ha aceptado tu pedido. ¡Va en camino!":"✅ El cambrer ha acceptat la teva comanda. Ja ve!",
+  "¡Pedido aceptado!":"Comanda acceptada!",
+  "Te avisamos aquí cuando el camarero lo acepte.":"T'avisem aquí quan el cambrer l'accepti.",
   "🔊 Sonido de los avisos":"🔊 So dels avisos",
   "Elige el sonido y el volumen de este móvil. Suena cuando tienes el panel abierto.":"Tria el so i el volum d'aquest mòbil. Sona quan tens el panell obert.",
   "Sonido":"So",
@@ -3329,6 +3361,7 @@ const CA_RE = [
   [/^Ver mi pedido \((\d+)\)$/, m=>`Veure la meva comanda (${m[1]})`],
   [/^Tu pedido, (.+)$/, m=>`La teva comanda, ${m[1]}`],
   [/^Te lo llevamos a la mesa (.+)\.$/, m=>`Te la portem a la taula ${m[1]}.`],
+  [/^El camarero ya lo tiene\. Te lo llevamos a la mesa (.+)\.$/, m=>`El cambrer ja la té. Te la portem a la taula ${m[1]}.`],
   [/^Te avisamos aquí cuando venga hacia la mesa (.+)\.$/, m=>`T'avisem aquí quan vingui cap a la taula ${m[1]}.`],
   [/^Mesa (.+?) · (.+)\. Gracias por venir a (.+)\. Lo tendrás aquí guardado una semana\.$/, m=>`Taula ${m[1]} · ${m[2]}. Gràcies per venir a ${m[3]}. Ho tindràs desat aquí una setmana.`],
   [/^Gracias por venir a (.+)\. ¡Hasta pronto!$/, m=>`Gràcies per venir a ${m[1]}. Fins aviat!`],
