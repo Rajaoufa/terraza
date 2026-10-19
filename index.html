@@ -1576,17 +1576,53 @@ let enServicio = ls.get("esencia_servicio", false);
 const noEsAdmin = x => !/^admin$/i.test(String(x?.nombre||"").trim());
 let pestana = "abiertas", filas = [], bloqs = [], vistos = null, cobrando = null, bloqueando = null, audioCtx = null, wake = null;
 
-function sonar(tipo){
-  if (!enServicio) return;
+// sonidos del panel: cada camarero elige el suyo y el volumen en "🔊 Sonido" (se guarda en su móvil)
+const SONIDOS = {
+  campana: {n:"Campanilla", w:"triangle", llamada:[[660,0,.2],[880,.22,.25]], pedido:[[988,0,.14],[988,.16,.14],[1318,.32,.3]]},
+  timbre:  {n:"Timbre",     w:"square",   llamada:[[784,0,.35],[622,.38,.45]], pedido:[[784,0,.18],[988,.2,.18],[1175,.4,.35]]},
+  alarma:  {n:"Alarma",     w:"sawtooth", llamada:[[880,0,.12],[660,.14,.12],[880,.28,.12],[660,.42,.12],[880,.56,.2]], pedido:[[1046,0,.1],[1046,.14,.1],[1046,.28,.1],[1046,.42,.25]]},
+  bocina:  {n:"Bocina",     w:"sawtooth", llamada:[[330,0,.5],[330,.6,.5]], pedido:[[392,0,.3],[523,.35,.45]]},
+  pitido:  {n:"Pitido",     w:"square",   llamada:[[1500,0,.1],[1500,.2,.1],[1500,.4,.1]], pedido:[[1800,0,.08],[1800,.15,.08]]}};
+let SON = Object.assign({tipo:"timbre", vol:100, veces:2}, ls.get("esencia_sonido", {}));
+function sonar(tipo, probar){
+  if (!enServicio && !probar) return;
   try {
     audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
     if (audioCtx.state !== "running") audioCtx.resume();
-    const notas = tipo==="camarero" ? [[660,0],[880,.22]] : [[988,0],[988,.16],[1318,.32]];
-    notas.forEach(([f,t])=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.type="triangle"; o.frequency.value=f; o.connect(g); g.connect(audioCtx.destination);
-      const s=audioCtx.currentTime+t; g.gain.setValueAtTime(.35,s); g.gain.exponentialRampToValueAtTime(.001,s+.2); o.start(s); o.stop(s+.21); });
-    navigator.vibrate && navigator.vibrate(tipo==="camarero"?[200,100,200]:[120,80,120,80,120]);
+    const so = SONIDOS[SON.tipo] || SONIDOS.timbre, notas = tipo==="camarero" ? so.llamada : so.pedido;
+    const largo = Math.max(...notas.map(([,t,d])=>t+d)) + .25;
+    // un compresor sube el volumen percibido sin que se rompa el sonido (en iPhone suena flojo)
+    const comp = audioCtx.createDynamicsCompressor(); comp.threshold.value = -30; comp.knee.value = 0; comp.ratio.value = 12; comp.attack.value = 0; comp.release.value = .1;
+    const master = audioCtx.createGain(); master.gain.value = Math.max(.05, SON.vol/100) * 2.2;
+    comp.connect(master); master.connect(audioCtx.destination);
+    for (let v = 0; v < (SON.veces||1); v++) notas.forEach(([f,t,d])=>{ const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type = so.w; o.frequency.value = f; o.connect(g); g.connect(comp);
+      const s = audioCtx.currentTime + v*largo + t; g.gain.setValueAtTime(.0001,s); g.gain.exponentialRampToValueAtTime(.9,s+.01);
+      g.gain.setValueAtTime(.9,s+d*.7); g.gain.exponentialRampToValueAtTime(.001,s+d); o.start(s); o.stop(s+d+.02); });
+    navigator.vibrate && navigator.vibrate(tipo==="camarero"?[300,120,300,120,300]:[150,80,150,80,150]);
   } catch {}
+}
+function pantallaSonido(){
+  document.querySelector(".modal.hoja")?.remove();
+  const caja = document.createElement("div"); caja.className = "modal hoja";
+  const pinta = () => { caja.innerHTML = `<div class="mbox" role="dialog" aria-modal="true"><div class="hj-cab"><b class="hj-n">🔊 Sonido de los avisos</b></div>
+    <p class="sub">Elige el sonido y el volumen de este móvil. Suena cuando tienes el panel abierto.</p>
+    <div class="hj-fila"><span class="hj-t">Sonido</span><div class="hj-ops">${Object.entries(SONIDOS).map(([k,x])=>`<button type="button" class="hj-op ${SON.tipo===k?"on":""}" data-son="${k}">${esc(x.n)}</button>`).join("")}</div></div>
+    <div class="hj-fila"><span class="hj-t">Volumen · <b id="sVolT">${SON.vol}%</b></span><input type="range" class="rzoom" id="sVol" min="10" max="100" step="5" value="${SON.vol}" aria-label="Volumen"></div>
+    <div class="hj-fila"><span class="hj-t">Repetir</span><div class="hj-ops">${[1,2,3].map(n=>`<button type="button" class="hj-op ${SON.veces===n?"on":""}" data-veces="${n}">${n===1?"1 vez":n+" veces"}</button>`).join("")}</div></div>
+    <div class="two"><button class="act go" id="sProbL">▶ Probar llamada</button><button class="act go" id="sProbP">▶ Probar pedido</button></div>
+    <p class="sub">Para que suene más: sube el volumen del móvil con los botones del lateral. En iPhone, con la app cerrada el aviso usa el sonido del iPhone: Ajustes → Sonidos y vibraciones → sube "Tono y avisos".</p>
+    <button class="act pay" id="sOk">Listo</button></div>`;
+    const guarda = () => ls.set("esencia_sonido", SON);
+    caja.querySelectorAll("[data-son]").forEach(b => b.onclick = () => { SON.tipo = b.dataset.son; guarda(); pinta(); sonar("camarero", true); });
+    caja.querySelectorAll("[data-veces]").forEach(b => b.onclick = () => { SON.veces = +b.dataset.veces; guarda(); pinta(); });
+    const r = caja.querySelector("#sVol"); r.oninput = () => { SON.vol = +r.value; caja.querySelector("#sVolT").textContent = SON.vol+"%"; guarda(); };
+    r.onchange = () => sonar("pedido", true);
+    caja.querySelector("#sProbL").onclick = () => sonar("camarero", true);
+    caja.querySelector("#sProbP").onclick = () => sonar("pedido", true);
+    caja.querySelector("#sOk").onclick = () => caja.remove(); };
+  pinta(); document.body.appendChild(caja);
+  caja.addEventListener("click", e => { if (e.target === caja) caja.remove(); });
 }
 async function pantallaEncendida(on){
   try { if (on && "wakeLock" in navigator) wake = await navigator.wakeLock.request("screen"); else if (wake) { await wake.release(); wake=null; } } catch {}
@@ -1758,11 +1794,11 @@ async function pintar(){
       ${tiraEnLinea()}<p class="arr-quien">${esc(trab.nombre)}</p>
       <button class="pulsador" id="pulsador" aria-label="Empezar la jornada"><span>Empezar</span></button>
       <p class="arr-txt">Pulsa para fichar la entrada y empezar a recibir avisos.</p>
-      <div class="arr-mini"><button data-p="fichajes">Mis fichajes</button>${trab.admin?`<a href="${location.pathname}?gestion">Gestión</a>`:""}<button id="leerQR">📷 Leer QR de mesa</button><button id="salirTrab">Cambiar de trabajador</button></div></div></div>`;
+      <div class="arr-mini"><button data-p="fichajes">Mis fichajes</button>${trab.admin?`<a href="${location.pathname}?gestion">Gestión</a>`:""}<button id="leerQR">📷 Leer QR de mesa</button><button id="verSonido">🔊 Sonido</button><button id="salirTrab">Cambiar de trabajador</button></div></div></div>`;
     document.getElementById("pulsador").onclick = e => cambiarServicio(e.currentTarget);
     cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
     document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
-  { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; }
+  { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; const v = document.getElementById("verSonido"); if (v) v.onclick = pantallaSonido; }
     return;
   }
   try { filas = (await Store.list()).filter(r=>r.estado!=="anulado"); bloqs = await Store.bloqueados(); } catch { toast("Sin conexión con el servidor"); return; }
@@ -1812,14 +1848,14 @@ async function pintar(){
   }
   // también de servicio: las herramientas del encargado y cambiar de trabajador, abajo del todo
   h += `<div class="offacts herr">${trab.admin?`<a class="ghost" href="${location.pathname}?gestion">Gestión</a>`:""}
-    <button class="ghost" id="leerQR">📷 Leer QR de mesa</button><button class="ghost" id="salirTrab">Cambiar de trabajador</button></div>`;
+    <button class="ghost" id="leerQR">📷 Leer QR de mesa</button><button class="ghost" id="verSonido">🔊 Sonido</button><button class="ghost" id="salirTrab">Cambiar de trabajador</button></div>`;
   const abiertos = new Set([...cuerpo.querySelectorAll("details[open][data-k]")].map(d=>d.dataset.k));
   cuerpo.innerHTML = h;
   cuerpo.querySelectorAll("details[data-k]").forEach(d=>{ if (abiertos.has(d.dataset.k)) d.open = true; });
 
   cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
   document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
-  { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; }
+  { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; const v = document.getElementById("verSonido"); if (v) v.onclick = pantallaSonido; }
   const aa = document.getElementById("actAvisos");
   if (aa) aa.onclick = async ()=>{ aa.disabled = true; const ok = await activarAvisos(true);
     toast(ok ? "Avisos activados. Te llegarán aunque el móvil esté bloqueado." : "No se han podido activar los avisos."); pintar(); };
@@ -2480,6 +2516,24 @@ function descargaQR(n){
 const LANG = (l => ["zh","ca"].includes(l) ? l : "es")(ls.get("esencia_lang", null) || (navigator.language||"es").slice(0,2).toLowerCase());
 const LOC = {zh:"zh-CN", ca:"ca-ES"}[LANG] || "es-ES";
 const ZH = {
+  "🔊 Sonido":"🔊 声音",
+  "🔊 Sonido de los avisos":"🔊 通知声音",
+  "Elige el sonido y el volumen de este móvil. Suena cuando tienes el panel abierto.":"选择这部手机的声音和音量。打开面板时会响。",
+  "Sonido":"声音",
+  "Volumen":"音量",
+  "Repetir":"重复",
+  "1 vez":"1次",
+  "2 veces":"2次",
+  "3 veces":"3次",
+  "▶ Probar llamada":"▶ 试听呼叫",
+  "▶ Probar pedido":"▶ 试听点单",
+  "Listo":"好了",
+  "Campanilla":"铃铛",
+  "Timbre":"门铃",
+  "Alarma":"警报",
+  "Bocina":"喇叭",
+  "Pitido":"哔哔声",
+  "Para que suene más: sube el volumen del móvil con los botones del lateral. En iPhone, con la app cerrada el aviso usa el sonido del iPhone: Ajustes → Sonidos y vibraciones → sube \"Tono y avisos\".":"想更响：用手机侧面的按键调高音量。iPhone 在应用关闭时用系统声音：设置 → 声音与触感 → 调高“铃声和提醒”。",
   "Otra cosa":"别的东西",
   "Aquí saldrá lo que más pidas":"这里会显示你最常点的",
   "App en construcción":"应用正在建设中",
@@ -2888,6 +2942,24 @@ const ZH_RE = [
   [/^(\p{Extended_Pictographic}\S*) (.+)$/u, m=>{ const t = ZH[m[2]]; return t ? `${m[1]} ${t}` : null; }]
 ];
 const CA = {
+  "🔊 Sonido":"🔊 So",
+  "🔊 Sonido de los avisos":"🔊 So dels avisos",
+  "Elige el sonido y el volumen de este móvil. Suena cuando tienes el panel abierto.":"Tria el so i el volum d'aquest mòbil. Sona quan tens el panell obert.",
+  "Sonido":"So",
+  "Volumen":"Volum",
+  "Repetir":"Repetir",
+  "1 vez":"1 vegada",
+  "2 veces":"2 vegades",
+  "3 veces":"3 vegades",
+  "▶ Probar llamada":"▶ Provar trucada",
+  "▶ Probar pedido":"▶ Provar comanda",
+  "Listo":"Fet",
+  "Campanilla":"Campaneta",
+  "Timbre":"Timbre",
+  "Alarma":"Alarma",
+  "Bocina":"Botzina",
+  "Pitido":"Xiulet",
+  "Para que suene más: sube el volumen del móvil con los botones del lateral. En iPhone, con la app cerrada el aviso usa el sonido del iPhone: Ajustes → Sonidos y vibraciones → sube \"Tono y avisos\".":"Perquè soni més: puja el volum del mòbil amb els botons del lateral. A l'iPhone, amb l'app tancada l'avís fa servir el so de l'iPhone: Configuració → Sons i vibracions → puja \"To i avisos\".",
   "Otra cosa":"Una altra cosa",
   "Aquí saldrá lo que más pidas":"Aquí sortirà el que més demanis",
   "App en construcción":"App en construcció",
