@@ -1697,7 +1697,7 @@ function cargaOneSignal(){
   if (!OS_LOG.on) { OS_LOG.on = true;
     for (const k of ["warn", "error"]) { const orig = console[k].bind(console);
       console[k] = (...a) => { try { const t = a.map(x => x instanceof Error ? x.message : typeof x === "string" ? x : JSON.stringify(x)).join(" ");
-        if (/onesignal|service ?worker|push|permission/i.test(t)) { OS_LOG.push(t.slice(0, 120)); if (OS_LOG.length > 3) OS_LOG.shift(); } } catch {} orig(...a); }; }
+        if (!t.startsWith("[esencia]") && /onesignal|service ?worker|push|permission/i.test(t)) { OS_LOG.push(t.slice(0, 120)); if (OS_LOG.length > 3) OS_LOG.shift(); } } catch {} orig(...a); }; }
     window.addEventListener("unhandledrejection", e => { const t = String(e.reason?.message || e.reason || ""); if (t) { OS_LOG.push(t.slice(0, 120)); if (OS_LOG.length > 3) OS_LOG.shift(); } });
   }
   if (!osListo) osListo = new Promise((ok, mal) => {
@@ -1734,7 +1734,10 @@ async function activarOneSignal(pedir){
       if (vieja) await vieja.unsubscribe();
       ls.set("esencia_os_limpio", true);
     }
-    const OS = await conTiempo(cargaOneSignal(), 45, "OneSignal").catch(e => { throw new Error(`${e.message} · paso: ${OS_PASO || "?"}${OS_LOG.length ? " · " + OS_LOG.join(" | ") : ""}`); });
+    const OS = await conTiempo(cargaOneSignal(), 45, "OneSignal").catch(async e => {
+      let swi = ""; try { const rs = await conTiempo(navigator.serviceWorker.getRegistrations(), 5, "sw");
+        swi = ` · sw: ${rs.map(x => new URL(x.scope).pathname + (x.active ? "" : "(sin activar)")).join(",") || "ninguno"}${navigator.serviceWorker.controller ? "" : " sin control"}`; } catch {}
+      throw new Error(`${e.message} · paso: ${OS_PASO || "?"}${swi}${OS_LOG.length ? " · " + OS_LOG.join(" | ") : ""}`); });
     await conTiempo(OS.login("trab-" + trab.id), 20, "OneSignal (entrar)");
     if (!OS.User.PushSubscription.optedIn) await conTiempo(OS.User.PushSubscription.optIn(), 20, "OneSignal (suscribir)");
     let id = OS.User.PushSubscription.id;
@@ -1744,7 +1747,7 @@ async function activarOneSignal(pedir){
     const {error} = await conTiempo(sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:"https://onesignal.com/s/" + id, p_p256dh:"onesignal", p_auth:"onesignal"}), 15, "Supabase");
     if (error) AVISOS_ERROR = "Supabase: " + (error.message || error.code); else ls.set("esencia_avisos_ok", trab.id);
     AVISOS_FALLO = !!error; return !error;
-  } catch (e) { AVISOS_ERROR = String(e?.message || e || "error sin texto").slice(0, 300); console.warn("OneSignal", e);
+  } catch (e) { AVISOS_ERROR = String(e?.message || e || "error sin texto").slice(0, 300); console.warn("[esencia] OneSignal", e?.message || e);
     if (Notification.permission === "granted") AVISOS_FALLO = true; return false; }
 }
 function osSalir(){ ls.set("esencia_avisos_ok", null); if (osListo) osListo.then(OS => OS.logout()).catch(()=>{}); }
@@ -1784,6 +1787,7 @@ function pideAvisos(){
       <button class="av-no" id="avNo">Seguir sin avisos (no te llegarán)</button></div>`;
     const si = caja.querySelector("#avSi");
     if (si) si.onclick = async () => { si.disabled = true; si.textContent = "Activando…";
+      if (osListo && OS_PASO === "arrancando") return location.reload();
       if (await activarAvisos(true)) { caja.remove(); toast("Avisos activados. Te llegarán aunque el móvil esté bloqueado."); pintar(); } else pinta(AVISOS_ERROR || "sin permiso"); };
     caja.querySelector("#avNo").onclick = () => { sinAvisos = true; caja.remove(); };
   };
@@ -1887,7 +1891,12 @@ async function cargaEstado(){ // el estado sale del último fichaje guardado, no
   try { const f = await Store.misFichajes(trab, new Date(Date.now()-40*3600e3).toISOString(), new Date(Date.now()+60e3).toISOString());
         enServicio = f.length ? f[f.length-1].tipo==="entrada" : false; ls.set("esencia_servicio", enServicio); } catch {}
 }
-async function entrarPanel(){ await cargaEstado(); panel(); pintar(); pantallaEncendida(enServicio); activarAvisos(false); }
+async function entrarPanel(){ await cargaEstado(); panel(); pintar(); pantallaEncendida(enServicio);
+  // en el iPad OneSignal a veces se queda colgado arrancando: se recarga la app una vez sola, que arranca limpia
+  if (!(await activarAvisos(false)) && OS_PASO === "arrancando") {
+    let ya = true; try { ya = !!sessionStorage.getItem("esencia_os_recarga"); sessionStorage.setItem("esencia_os_recarga", "1"); } catch {}
+    if (!ya) location.reload();
+  } }
 
 function panel(){
   document.body.classList.add("staff");
