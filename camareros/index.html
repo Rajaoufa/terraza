@@ -603,6 +603,7 @@ const CONFIG = {
   TRABAJADORES_PRUEBA: [ {id:1, nombre:"Admin", pin:"1234", admin:true}, {id:2, nombre:"Ana", pin:"0000", admin:false},
     {id:3, nombre:"Susana", pin:"", admin:false}, {id:4, nombre:"Antonio", pin:"", admin:false}, {id:5, nombre:"Luis", pin:"", admin:false}, {id:6, nombre:"Sara", pin:"", admin:false} ],
   MESAS: 16,                 // nº de mesas para generar los QR
+  ONESIGNAL_APP: "",        // App ID de OneSignal (público). Si está puesto, los avisos van por OneSignal
   VAPID_PUBLICA: "BEIE4Gc_uNxebH9mcZqLJp9ISJvwUkWlc6y98yzQ3ZBUYjgZI5AIsd9TQuVrzFmVd15rKO78uJ8g0Re9XCcklWo",   // avisos con el móvil bloqueado (clave pública)
   FONDO: "fondo.jpg",        // foto de fondo (junto a este archivo). Vacío = dibujo del puente
   LUGAR: "Barrio Buenos Aires · Martorell"
@@ -1341,7 +1342,7 @@ function aplicaObras(){
   if (staff && !ls.get("esencia_trab", null)) return;   // en la pantalla del PIN se deja entrar (el encargado tiene que poder)
   document.body.insertAdjacentHTML("beforeend", pantallaObras(staff));
   const b = document.getElementById("obSalir");
-  if (b) b.onclick = () => { trab = null; ls.set("esencia_trab", null); document.querySelector(".obras")?.remove(); panel(); };
+  if (b) b.onclick = () => { osSalir(); trab = null; ls.set("esencia_trab", null); document.querySelector(".obras")?.remove(); panel(); };
 }
 let precioVisto = 0;   // el panel vuelve a mirar si hay cartel de obras cada minuto
 function cliente(){
@@ -1669,7 +1670,38 @@ const PUSH_OK = "serviceWorker" in navigator && "PushManager" in window && "Noti
 const IOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const b64u = s => { const p = "=".repeat((4 - s.length % 4) % 4); const r = atob((s + p).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from(r, c=>c.charCodeAt(0)); };
 let AVISOS_FALLO = false;   // tenía permiso pero no se pudo guardar el móvil para avisar
+// OneSignal (Jamal, 2026-10-19): el móvil queda apuntado con el id del trabajador y Supabase pide a OneSignal que avise
+let osListo = null;
+function cargaOneSignal(){
+  if (!osListo) osListo = new Promise((ok, mal) => {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async OS => { try {
+      const sw = new URL("sw.js", document.baseURI).pathname;
+      await OS.init({ appId: CONFIG.ONESIGNAL_APP, serviceWorkerPath: sw.slice(1), serviceWorkerParam: { scope: sw.replace(/sw\.js$/, "") } });
+      ok(OS); } catch (e) { mal(e); } });
+    const s = document.createElement("script"); s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"; s.defer = true;
+    s.onerror = () => mal(new Error("OneSignal no carga")); document.head.appendChild(s);
+  });
+  return osListo;
+}
+async function activarOneSignal(pedir){
+  try {
+    const OS = await cargaOneSignal();
+    await OS.login("trab-" + trab.id);
+    if (Notification.permission === "default" && pedir) await OS.Notifications.requestPermission();
+    if (Notification.permission !== "granted") return false;
+    if (!OS.User.PushSubscription.optedIn) await OS.User.PushSubscription.optIn();
+    let id = OS.User.PushSubscription.id;
+    for (let n = 0; !id && n < 20; n++) { await new Promise(r => setTimeout(r, 500)); id = OS.User.PushSubscription.id; }
+    if (!id) throw new Error("sin suscripción");
+    // se apunta también en Supabase para que Gestión > Avisos sepa quién tiene los avisos activados
+    const {error} = await sb.rpc("esencia_push_guardar", {p_pin:trab.pin, p_endpoint:"https://onesignal.com/s/" + id, p_p256dh:"onesignal", p_auth:"onesignal"});
+    AVISOS_FALLO = !!error; return !error;
+  } catch { if (Notification.permission === "granted") AVISOS_FALLO = true; return false; }
+}
+function osSalir(){ if (osListo) osListo.then(OS => OS.logout()).catch(()=>{}); }
 async function activarAvisos(pedir){
+  if (PUSH_OK && sb && trab && CONFIG.ONESIGNAL_APP) return activarOneSignal(pedir);
   if (!PUSH_OK || !sb || !trab || !CONFIG.VAPID_PUBLICA) return false;
   try {
     if (Notification.permission === "default" && pedir) await Notification.requestPermission();
@@ -1682,7 +1714,7 @@ async function activarAvisos(pedir){
   } catch { if (Notification.permission === "granted") AVISOS_FALLO = true; return false; }
 }
 function bloqueAvisos(){
-  if (!sb || !CONFIG.VAPID_PUBLICA) return "";
+  if (!sb || !(CONFIG.VAPID_PUBLICA || CONFIG.ONESIGNAL_APP)) return "";
   if (IOS && !EN_APP) return `<div class="inst noprint"><img src="icons/icon-192.png" alt="" width="48" height="48"><div><b>Avisos con el móvil bloqueado</b>
     <p>En iPhone solo llegan si instalas el panel: toca <b>Compartir</b> y luego <b>“Añadir a pantalla de inicio”</b>, y ábrelo desde el icono.</p></div></div>`;
   if (!PUSH_OK) return "";
@@ -1822,7 +1854,7 @@ async function pintar(){
       <div class="arr-mini"><button data-p="fichajes">Mis fichajes</button>${trab.admin?`<a href="${location.pathname}?gestion">Gestión</a>`:""}<button id="leerQR">📷 Leer QR de mesa</button><button id="verSonido">🔊 Sonido</button><button id="salirTrab">Cambiar de trabajador</button></div></div></div>`;
     document.getElementById("pulsador").onclick = e => cambiarServicio(e.currentTarget);
     cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
-    document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
+    document.getElementById("salirTrab").onclick = ()=>{ osSalir(); trab=null; ls.set("esencia_trab",null); panel(); };
   { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; const v = document.getElementById("verSonido"); if (v) v.onclick = pantallaSonido; }
     return;
   }
@@ -1879,7 +1911,7 @@ async function pintar(){
   cuerpo.querySelectorAll("details[data-k]").forEach(d=>{ if (abiertos.has(d.dataset.k)) d.open = true; });
 
   cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
-  document.getElementById("salirTrab").onclick = ()=>{ trab=null; ls.set("esencia_trab",null); panel(); };
+  document.getElementById("salirTrab").onclick = ()=>{ osSalir(); trab=null; ls.set("esencia_trab",null); panel(); };
   { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; const v = document.getElementById("verSonido"); if (v) v.onclick = pantallaSonido; }
   const aa = document.getElementById("actAvisos");
   if (aa) aa.onclick = async ()=>{ aa.disabled = true; const ok = await activarAvisos(true);
