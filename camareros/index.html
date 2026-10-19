@@ -2234,12 +2234,23 @@ async function gestion(){
   $app.innerHTML = (DEMO?`<div class="demo noprint">MODO PRUEBA · Lo que apuntes solo se guarda en este navegador.</div>`:"") +
     `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Gestión</small></div>
      <a class="svc off noprint" href="${location.pathname}?panel" style="text-decoration:none">Volver al panel</a></div></header>
-    <main class="wrap gest"><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["productos","Productos"],["precios","Precios"],["avisos","Avisos"],["carta","Carta y QR"]]
+    <main class="wrap gest"><div id="gObrasBox"></div><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["productos","Productos"],["precios","Precios"],["avisos","Avisos"],["carta","Carta y QR"]]
       .map(([k,t])=>`<button class="tab" data-g="${k}" aria-selected="${gTab===k}">${t}</button>`).join("")}</div>
     <div id="gCuerpo">Cargando…</div></main>`;
   $app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ gTab = b.dataset.g; gInv = false;
     $app.querySelectorAll("[data-g]").forEach(x=>x.setAttribute("aria-selected", x===b)); pintaGestion(); });
-  pintaGestion();
+  pintaObras(); pintaGestion();
+}
+// cartel "En construcción": arriba del todo en Gestión, se ve en todas las pestañas (Jamal)
+function pintaObras(){
+  const box = document.getElementById("gObrasBox"); if (!box) return;
+  box.innerHTML = `<div class="gobras ${enObras()?"on":""}"><b>${enObras()?"🚧 La app está EN CONSTRUCCIÓN":"La app está abierta a clientes y camareros"}</b>
+      <p class="sub">${enObras()?"Los clientes y los camareros ven el cartel de obras y no pueden usar la app. Los encargados sí la ven normal.":"Si vas a cambiar cosas, pon el cartel: solo los encargados podrán usar la app mientras tanto."}</p>
+      <button class="act ${enObras()?"pay":"go"}" id="gObras">${enObras()?"Quitar el cartel y abrir la app":"🚧 Poner \"En construcción\""}</button></div>`;
+  box.querySelector("#gObras").onclick = async e => { e.currentTarget.disabled = true; const pon = !enObras();
+    try { await Store.preciosGuardar(trab, [{clave:"_obras", precio: pon ? 1 : null}]); PRECIOS = await Store.precios(); ls.set("esencia_precios", PRECIOS);
+          toast(pon ? "Cartel de obras puesto" : "Carta abierta otra vez"); pintaObras(); }
+    catch { e.currentTarget.disabled = false; toast("No se ha podido cambiar. ¿Has pegado el SQL de precios?"); } };
 }
 async function pintaGestion(){
   const box = document.getElementById("gCuerpo"); if (!box) return;
@@ -2429,10 +2440,7 @@ async function gPrecios(){
     <button class="act pay" id="gPreOk2">Guardar precios</button>`;
 }
 async function gCarta(){
-  return `<div class="gobras ${enObras()?"on":""}"><b>${enObras()?"🚧 La app está EN CONSTRUCCIÓN":"La app está abierta a clientes y camareros"}</b>
-      <p class="sub">${enObras()?"Los clientes y los camareros ven el cartel de obras y no pueden usar la app. Los encargados sí la ven normal.":"Si vas a cambiar cosas, pon el cartel: solo los encargados podrán usar la app mientras tanto."}</p>
-      <button class="act ${enObras()?"pay":"go"}" id="gObras">${enObras()?"Quitar el cartel y abrir la app":"🚧 Poner \"En construcción\""}</button></div>
-    <div class="glinks"><a class="ghost" href="${location.pathname}?qr">QR de las mesas<small>Descargar o imprimir el QR de cada mesa</small></a>
+  return `<div class="glinks"><a class="ghost" href="${location.pathname}?qr">QR de las mesas<small>Descargar o imprimir el QR de cada mesa</small></a>
     <a class="ghost" href="${location.pathname}?fotos">Fotos de la carta<small>Poner o cambiar la foto de cada producto</small></a></div>`;
 }
 function gEnlaces(box){
@@ -2451,10 +2459,6 @@ function gEnlaces(box){
   box.querySelectorAll("[data-quita]").forEach(b => b.onclick = () => {
     if (b.dataset.seguro !== "1"){ b.dataset.seguro = "1"; b.textContent = "¿Seguro? Quitar"; return; }
     b.disabled = true; guardaProd([{...filaDe(b.dataset.quita), oculto:true}], "Quitado de la carta"); });
-  if ($("#gObras")) $("#gObras").onclick = async e => { e.currentTarget.disabled = true; const pon = !enObras();
-    try { await Store.preciosGuardar(trab, [{clave:"_obras", precio: pon ? 1 : null}]); PRECIOS = await Store.precios(); ls.set("esencia_precios", PRECIOS);
-          toast(pon ? "Cartel de obras puesto" : "Carta abierta otra vez"); pintaGestion(); }
-    catch { e.currentTarget.disabled = false; toast("No se ha podido cambiar. ¿Has pegado el SQL de precios?"); } };
   box.querySelectorAll("[data-opc]").forEach(b => b.onclick = () => {
     const id = b.dataset.opc, i = findItem(id), sel = new Set(opcionesDe(id).flatMap(f=>f.o));
     document.querySelector(".modal.hoja")?.remove();
