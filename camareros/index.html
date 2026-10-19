@@ -303,6 +303,12 @@ body.staff .wrap{max-width:1200px}
 .ptabs{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
 .ptabs .tab{flex:0 1 auto;padding:10px 18px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
+/* mesas abiertas y cobradas: tarjetas una al lado de otra, hasta 4 por fila (Jamal) */
+.grid.g4,body.staff.muchas .grid.g4{grid-template-columns:minmax(0,1fr)}
+@media (min-width:560px){.grid.g4,body.staff.muchas .grid.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:860px){.grid.g4,body.staff.muchas .grid.g4{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:1150px){.grid.g4,body.staff.muchas .grid.g4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.grid.g4 .hist.pago{margin:0}
 .mc{background:var(--card);border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .mc.hot{border-color:var(--alert);box-shadow:0 0 0 2px var(--alert)}
 .mc .h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:14px 16px 6px}
@@ -1950,18 +1956,13 @@ async function pintar(){
   let h = bloqueAvisos() + tiraEnLinea() + `<div class="ptabs">
     <button class="tab" data-p="abiertas" aria-selected="${pestana==="abiertas"}">Mesas abiertas (${mesasAb.length})</button>
     <button class="tab" data-p="cerradas" aria-selected="${pestana==="cerradas"}">Cobradas (7 días)</button>
-    <button class="tab" data-p="bloqueados" aria-selected="${pestana==="bloqueados"}">Móviles bloqueados (${bloqs.length})</button>
     <button class="tab" data-p="fichajes">Mis fichajes</button></div>`;
 
   if (pestana==="abiertas"){
-    document.body.classList.toggle("muchas", mesasAb.length > 2);
+    document.body.classList.toggle("muchas", mesasAb.length > 0);
     h += `<button class="act pay nueva-com" id="nuevaCom">📝 Nueva comanda (sin QR)</button>`;
-    h += mesasAb.length ? `<div class="grid">${mesasAb.map(m=>tarjetaMesa(m, abiertas[m])).join("")}</div>`
+    h += mesasAb.length ? `<div class="grid g4">${mesasAb.map(m=>tarjetaMesa(m, abiertas[m])).join("")}</div>`
                         : `<p class="empty">No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.</p>`;
-  } else if (pestana==="bloqueados"){
-    h += bloqs.length ? `<div class="grid">${bloqs.map(b=>`<div class="hist"><span><b>${esc(b.cliente||"Sin nombre")}</b><br><span class="t">Mesa ${esc(b.mesa||"?")} · bloqueado ${b.created_at?hace(b.created_at):""}</span></span>
-        <button class="act no" data-desbloq="${esc(b.dispositivo)}">Desbloquear</button></div>`).join("")}</div>`
-      : `<p class="empty">No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Rechazar y bloquear contacto” en su aviso.</p>`;
   } else {
     let cob = []; try { cob = (await Store.cobradas()).map(conApodo); } catch { toast("Sin conexión con el servidor"); }
     const porCierre = {}; cob.forEach(r=>{ const k=r.mesa+"|"+r.cerrado_at; (porCierre[k]=porCierre[k]||[]).push(r); });
@@ -1969,11 +1970,12 @@ async function pintar(){
     const dia = iso => new Date(iso).toLocaleDateString(LOC,{weekday:"long",day:"numeric",month:"long"});
     let ultimo = "", totDia = {};
     lista.forEach(([k,rs])=>{ const d=dia(rs[0].cerrado_at); totDia[d]=(totDia[d]||0)+rs.filter(r=>r.tipo==="pedido").reduce((a,r)=>a+Number(r.total||0),0); });
+    document.body.classList.toggle("muchas", lista.length > 0);
     h += lista.length ? lista.map(([k,rs])=>{
         const d = dia(rs[0].cerrado_at), peds = rs.filter(r=>r.tipo==="pedido"), tot = peds.reduce((a,r)=>a+Number(r.total||0),0);
-        const cab = d!==ultimo ? `<h3 class="dia">${esc(d)} · ${eur(totDia[d])}</h3>` : ""; ultimo = d;
+        const cab = d!==ultimo ? (ultimo?`</div>`:"") + `<h3 class="dia">${esc(d)} · ${eur(totDia[d])}</h3><div class="grid g4">` : ""; ultimo = d;
         return cab + `<details class="hist pago" data-k="${esc(k)}"><summary><span><b>Mesa ${esc(rs[0].mesa)}</b> · cobrada a las ${hora(rs[0].cerrado_at)}${(n=>n.length?`<br><small class="t">${n.map(esc).join(" · ")}</small>`:"")([...new Set(rs.map(r=>r.cliente).filter(Boolean))])}</span><b style="font-variant-numeric:tabular-nums">${eur(tot)}</b></summary>${peds.length?tablaCuenta(peds, "Lo cobrado"):"<p class='t'>Solo llamadas, sin pedidos.</p>"}</details>`;
-      }).join("") : `<p class="empty">No se ha cobrado ninguna mesa en los últimos 7 días.</p>`;
+      }).join("") + `</div>` : `<p class="empty">No se ha cobrado ninguna mesa en los últimos 7 días.</p>`;
   }
   // también de servicio: las herramientas del encargado y cambiar de trabajador, abajo del todo
   h += `<div class="offacts herr">${trab.admin?`<a class="ghost" href="${location.pathname}?gestion">Gestión</a>`:""}
@@ -2302,7 +2304,7 @@ async function gestion(){
   $app.innerHTML = (DEMO?`<div class="demo noprint">MODO PRUEBA · Lo que apuntes solo se guarda en este navegador.</div>`:"") +
     `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Gestión</small></div>
      <a class="svc off noprint" href="${location.pathname}?panel" style="text-decoration:none">Volver al panel</a></div></header>
-    <main class="wrap gest"><div id="gObrasBox"></div><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["productos","Productos"],["precios","Precios"],["avisos","Avisos"],["carta","Carta y QR"]]
+    <main class="wrap gest"><div id="gObrasBox"></div><div class="ptabs">${[["cuentas","Cuentas"],["pedidos","Pedidos"],["deudores","Deudores"],["stock","Stock"],["fichajes","Fichajes"],["camareros","Camareros"],["productos","Productos"],["precios","Precios"],["avisos","Avisos"],["bloqueados","Bloqueados"],["carta","Carta y QR"]]
       .map(([k,t])=>`<button class="tab" data-g="${k}" aria-selected="${gTab===k}">${t}</button>`).join("")}</div>
     <div id="gCuerpo">Cargando…</div></main>`;
   $app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{ gTab = b.dataset.g; gInv = false;
@@ -2324,7 +2326,7 @@ async function pintaGestion(){
   const box = document.getElementById("gCuerpo"); if (!box) return;
   box.textContent = "Cargando…";
   if (gTab==="camareros") return pantallaPins(box);
-  try { box.innerHTML = await {cuentas:gCuentas, pedidos:gPedidos, deudores:gDeudores, stock:gStock, fichajes:gFichajes, productos:gProductos, precios:gPrecios, avisos:gAvisos, carta:gCarta}[gTab](); }
+  try { box.innerHTML = await {cuentas:gCuentas, pedidos:gPedidos, deudores:gDeudores, stock:gStock, fichajes:gFichajes, productos:gProductos, precios:gPrecios, avisos:gAvisos, bloqueados:gBloqueados, carta:gCarta}[gTab](); }
   catch(err) { if (gTab==="productos") { box.innerHTML = `<p class="empty">Falta pegar el SQL de productos en Supabase.</p>`; return; }
     if (gTab==="avisos") { box.innerHTML = `<p class="empty">Falta pegar el SQL de avisos en Supabase.</p>`; return; }
     if (gTab==="precios") { box.innerHTML = `<p class="empty">Falta pegar el SQL de precios en Supabase.</p>`; return; }
@@ -2512,7 +2514,18 @@ async function gCarta(){
   return `<div class="glinks"><a class="ghost" href="${location.pathname}?qr">QR de las mesas<small>Descargar o imprimir el QR de cada mesa</small></a>
     <a class="ghost" href="${location.pathname}?fotos">Fotos de la carta<small>Poner o cambiar la foto de cada producto</small></a></div>`;
 }
+// móviles bloqueados: siguen bloqueados, pero la lista ya no sale en el panel de camareros, solo aquí (Jamal)
+async function gBloqueados(){
+  const bloqs = await Store.bloqueados();
+  return `<h3>Móviles bloqueados (${bloqs.length})</h3><p class="sub">Siguen sin poder pedir ni llamar. Desbloquea uno si fue un error.</p>` + (bloqs.length
+    ? `<div class="grid g4">${bloqs.map(b=>`<div class="hist"><span><b>${esc(b.cliente||"Sin nombre")}</b><br><span class="t">Mesa ${esc(b.mesa||"?")} · bloqueado ${b.created_at?hace(b.created_at):""}</span></span>
+        <button class="act no" data-desbloq="${esc(b.dispositivo)}">Desbloquear</button></div>`).join("")}</div>`
+    : `<p class="empty">No hay ningún móvil bloqueado. Si alguien pide o llama de broma, el camarero toca “Rechazar y bloquear contacto” en su aviso.</p>`);
+}
 function gEnlaces(box){
+  box.querySelectorAll("[data-desbloq]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
+    try{ await Store.desbloquear(b.dataset.desbloq); toast("Móvil desbloqueado"); pintaGestion(); }
+    catch{ b.disabled=false; toast("No se ha podido desbloquear. Prueba otra vez."); } });
   const $ = q => box.querySelector(q);
   const filaDe = id => { const r = PRODUCTOS.find(x=>x.id===id), i = findItem(id) || OCULTOS.find(o=>o.i.id===id)?.i;
     return {id, grupo: r?.grupo || GRUPO_DE[id], n: i?.n || r?.n, m: i?.m || null, d: i?.d || null, p: r?.p ?? null, oculto: !!r?.oculto, ops: r?.ops ?? null}; };
