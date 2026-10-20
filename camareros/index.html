@@ -612,8 +612,7 @@ body{font-variant-numeric:lining-nums}
 .fav.vacio small{color:#9C8468;padding:0}
 .otra{display:block;width:100%;margin:16px 0 4px;padding:18px;border-radius:18px;font:inherit;font-size:1.2em;font-weight:900;letter-spacing:.04em;cursor:pointer;
   border:1.5px solid #F0C979;background:transparent;color:#F0C979}
-.mesa-fila{flex-basis:100%;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.otra.otra-top{display:inline-block;width:auto;margin:0;padding:8px 18px;border-radius:999px;font-size:1em;font-weight:800;text-shadow:none}
+.otra.otra-mid{grid-column:1/-1;margin:0}
 </style>
 </head>
 <body>
@@ -1250,10 +1249,8 @@ const udsDe = id => Object.entries(cesta).reduce((a,[k,q])=>a+(lineaCesta(k).id=
 function header(){
   if (vista==="carta" || vista==="resumen"){
     const sec = vista==="resumen" ? "Tu pedido" : catSel==="★" ? "Bebida favorita" : catSel && catSel!=="·" ? catSel : "La carta";
-    // "Otra cosa" arriba, a la altura de la mesa y debajo de las banderas (Jamal)
-    const otra = vista==="carta" && !catSel && !MODO_FOTOS ? `<button class="otra otra-top" id="otraCosa">Otra cosa</button>` : "";
     return `<header class="top ctop"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>${esc(sec)}</small></div>
-      ${mesa||otra?`<div class="mesa-fila">${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:"<span></span>"}${otra}</div>`:""}</div></header>`;
+      ${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:""}</div></header>`;
   }
   return `<header class="top"><div class="wrap">
     <div class="logo">${esc(CONFIG.NOMBRE)}<small>Terraza</small></div>
@@ -1429,11 +1426,15 @@ function cliente(){
     if (!catSel && !MODO_FOTOS){
       // al abrir con el QR: lo que más pide este cliente, 1 y 2 arriba, 3 y 4 abajo; se va llenando según pide (Jamal)
       const top = Object.entries(MIO()).sort((a,b)=>b[1]-a[1]).map(([id])=>findItem(id)).filter(Boolean).slice(0,4);
-      h += `<h2 class="ch">${top.length?`Lo que más pides, ${esc(yo.nombre)}`:`Hola, ${esc(yo.nombre)}`}</h2><div class="favs">${[0,1,2,3].map(n=>{ const i = top[n];
+      const fav = (i, n) => {
           if (!i) return `<div class="fav vacio"><span class="fv-n">${n+1}</span><small>Aquí saldrá lo que más pidas</small></div>`;
           const q = udsDe(i.id);
           return `<button class="fav" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}"><span class="fv-f pc-foto">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</span><span class="fv-n">${n+1}</span>
-            <b class="fv-t">${esc(i.n)}</b>${i.d?`<small>${esc(i.d)}</small>`:""}<span class="fv-p">${eur(i.p)}</span></button>`; }).join("")}</div>`;
+            <b class="fv-t">${esc(i.n)}</b>${i.d?`<small>${esc(i.d)}</small>`:""}<span class="fv-p">${eur(i.p)}</span></button>`; };
+      h += `<h2 class="ch">${top.length?`Lo que más pides, ${esc(yo.nombre)}`:`Hola, ${esc(yo.nombre)}`}</h2><div class="favs">${[0,1,2,3].map(n=>{ const i = top[n];
+          // "Pedir otra cosa" a todo el ancho, entre los dos de arriba y los dos de abajo (Jamal)
+          if (n===2) return `<button class="otra otra-mid" id="otraCosa">Pedir otra cosa</button>` + fav(i, n);
+          return fav(i, n); }).join("")}</div>`;
     } else if (!catSel || catSel==="·"){
       // portada: las secciones como iconos de aplicaciones del móvil
       h += `<h2 class="ch">¿Qué te apetece?</h2><div class="apps">${TODAS.map((x,n)=>`<div class="apw" style="--d:${n*35}ms">${botonFoto(fk(x))}<button class="app a${n%3}" data-cat="${esc(x.k)}"><span class="api">${icono(x)}</span><span class="apt">${esc(x.t)}</span></button></div>`).join("")}</div>
@@ -2737,7 +2738,7 @@ const ZH = {
   "Bocina":"喇叭",
   "Pitido":"哔哔声",
   "Para que suene más: sube el volumen del móvil con los botones del lateral. En iPhone, con la app cerrada el aviso usa el sonido del iPhone: Ajustes → Sonidos y vibraciones → sube \"Tono y avisos\".":"想更响：用手机侧面的按键调高音量。iPhone 在应用关闭时用系统声音：设置 → 声音与触感 → 调高“铃声和提醒”。",
-  "Otra cosa":"别的东西",
+  "Otra cosa":"别的东西","Pedir otra cosa":"点别的",
   "Aquí saldrá lo que más pidas":"这里会显示你最常点的",
   "App en construcción":"应用正在建设中",
   "Estamos preparando la app. Vuelve a entrar más tarde.":"我们正在准备应用。请稍后再进入。",
@@ -3175,7 +3176,7 @@ const CA = {
   "Bocina":"Botzina",
   "Pitido":"Xiulet",
   "Para que suene más: sube el volumen del móvil con los botones del lateral. En iPhone, con la app cerrada el aviso usa el sonido del iPhone: Ajustes → Sonidos y vibraciones → sube \"Tono y avisos\".":"Perquè soni més: puja el volum del mòbil amb els botons del lateral. A l'iPhone, amb l'app tancada l'avís fa servir el so de l'iPhone: Configuració → Sons i vibracions → puja \"To i avisos\".",
-  "Otra cosa":"Una altra cosa",
+  "Otra cosa":"Una altra cosa","Pedir otra cosa":"Demanar una altra cosa",
   "Aquí saldrá lo que más pidas":"Aquí sortirà el que més demanis",
   "App en construcción":"App en construcció",
   "Estamos preparando la app. Vuelve a entrar más tarde.":"Estem preparant l'app. Torna a entrar més tard.",
