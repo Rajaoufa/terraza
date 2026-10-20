@@ -386,7 +386,13 @@ body.ini-cli .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.35) 0,rgba(
 body.ini-cli main.wrap{background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgba(29,18,11,.55) 170px,rgba(29,18,11,.97) 290px),var(--foto-dibujo) center top/max(100%,700px) auto no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97));color:#F5E9D3}
 /* móvil: la foto alejada para que se vea el barrio entero, sobre la misma foto oscurecida (Jamal) */
 @media (max-width:700px){body.ini-cli .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.25),rgba(8,6,4,0) 40%),url("img/noche.jpg"),linear-gradient(rgba(8,6,4,.72),rgba(8,6,4,.72)),url("img/noche.jpg");background-size:100% 100%,100% calc(100% - 168px),100% 100%,cover;background-position:center,center top 80px,center,center 60%;background-repeat:no-repeat}
-  body.ini-cli .top{position:relative}body.ini-cli .top .hr .mesa{position:absolute;right:16px;bottom:44px}}
+  body.ini-cli .top{position:relative}body.ini-cli .top .hr .mesa{position:absolute;right:16px;bottom:44px}
+  /* Jamal: el cielo del Pont del Diable sube hasta Mesa 4 (Mesa no se mueve, más pequeña y con el color del cielo) */
+  body.ini-cli .bg{background-size:100% 100%,100% calc(100% - 258px),100% 100%,cover;background-position:center,center top 80px,center,center 60%}
+  body.ini-cli .top{z-index:2}
+  body.ini-cli main.wrap{margin-top:-118px;padding-top:98px;background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgba(29,18,11,.2) 90px,rgba(29,18,11,.55) 260px,rgba(29,18,11,.97) 380px),linear-gradient(180deg,#F6D08A 0,#F6D08A 92px,rgba(246,208,138,0) 150px),var(--foto-dibujo) center top 90px/max(100%,700px) auto no-repeat,linear-gradient(#F6D08A,#F6D08A) center top/100% 92px no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97))}
+  body.ini-cli .top .hr .mesa{padding:4px 10px;border-radius:10px;background:#E6BC6E;box-shadow:none}body.ini-cli .top .hr .mesa b{font-size:1.25em}
+  body.ini-cli .top .wrap:first-child{align-items:flex-start}body.ini-cli .top .wrap:first-child .idiomas{margin-top:4px}}
 body.ini-cli .big-btns{margin-top:clamp(70px,14vw,90px)}
 body.cam .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.35) 0,rgba(8,6,4,.1) 45%,rgba(8,6,4,.45) 100%),url("img/noche.jpg");background-size:cover,cover;background-position:center,center 60%;filter:none}
 body.staff.cam:not(.plain){background:linear-gradient(#120c08,#120c08)}
