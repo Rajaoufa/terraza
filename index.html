@@ -163,6 +163,8 @@ body.oscura .back{color:#E9C27E}
 .idiomas button{width:38px;height:26px;padding:0;border:2px solid rgba(255,255,255,.5);border-radius:6px;overflow:hidden;background:none;cursor:pointer;opacity:.75;box-shadow:0 1px 6px rgba(0,0,0,.3)}
 .idiomas button svg{display:block;width:100%;height:100%}
 .idiomas button[aria-pressed="true"]{border-color:#fff;opacity:1}
+/* banderas sin brillo (Jamal): sin borde blanco ni sombra */
+.idiomas button,.idiomas button[aria-pressed="true"]{border:1px solid rgba(0,0,0,.35);box-shadow:none}
 /* contenido en una hoja clara que sube sobre la foto: se lee bien al sol */
 main.wrap{background:var(--bg);border-radius:28px 28px 0 0;margin-top:-28px;position:relative;padding-top:8px;
   min-height:calc(100vh - var(--hero) + 28px);box-shadow:0 -10px 30px rgba(0,0,0,.18)}
@@ -394,7 +396,7 @@ body.ini-cli main.wrap{background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgb
   body.ini-cli .top .hr .mesa{padding:4px 10px;border-radius:10px;background:transparent;box-shadow:none}body.ini-cli .top .hr .mesa b{font-size:1.25em}
   body.ini-cli .top .wrap:first-child{align-items:flex-start}body.ini-cli .top .wrap:first-child .idiomas{margin-top:4px}
   body.ini-cli .lugar span{background:none;padding:0;color:#2A140A;text-shadow:none;letter-spacing:.04em}body.ini-cli .lugar svg{display:none}}
-body.ini-cli .big-btns{margin-top:clamp(70px,14vw,90px)}
+body.ini-cli .big-btns{margin-top:96px}
 body.cam .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.35) 0,rgba(8,6,4,.1) 45%,rgba(8,6,4,.45) 100%),url("img/noche.jpg");background-size:cover,cover;background-position:center,center 60%;filter:none}
 body.staff.cam:not(.plain){background:linear-gradient(#120c08,#120c08)}
 body.staff main.wrap.panel-cam{background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgba(29,18,11,.55) 170px,rgba(29,18,11,.97) 290px),var(--foto-dibujo) center top/max(100%,700px) auto no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97))}
