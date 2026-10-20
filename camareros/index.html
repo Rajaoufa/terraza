@@ -612,6 +612,8 @@ body{font-variant-numeric:lining-nums}
 .fav.vacio small{color:#9C8468;padding:0}
 .otra{display:block;width:100%;margin:16px 0 4px;padding:18px;border-radius:18px;font:inherit;font-size:1.2em;font-weight:900;letter-spacing:.04em;cursor:pointer;
   border:1.5px solid #F0C979;background:transparent;color:#F0C979}
+.mesa-fila{flex-basis:100%;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.otra.otra-top{display:inline-block;width:auto;margin:0;padding:8px 18px;border-radius:999px;font-size:1em;font-weight:800;text-shadow:none}
 </style>
 </head>
 <body>
@@ -1248,8 +1250,10 @@ const udsDe = id => Object.entries(cesta).reduce((a,[k,q])=>a+(lineaCesta(k).id=
 function header(){
   if (vista==="carta" || vista==="resumen"){
     const sec = vista==="resumen" ? "Tu pedido" : catSel==="★" ? "Bebida favorita" : catSel && catSel!=="·" ? catSel : "La carta";
+    // "Otra cosa" arriba, a la altura de la mesa y debajo de las banderas (Jamal)
+    const otra = vista==="carta" && !catSel && !MODO_FOTOS ? `<button class="otra otra-top" id="otraCosa">Otra cosa</button>` : "";
     return `<header class="top ctop"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>${esc(sec)}</small></div>
-      ${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:""}</div></header>`;
+      ${mesa||otra?`<div class="mesa-fila">${mesa?`<div class="mesa"><span>Mesa</span><b>${esc(mesa)}</b></div>`:"<span></span>"}${otra}</div>`:""}</div></header>`;
   }
   return `<header class="top"><div class="wrap">
     <div class="logo">${esc(CONFIG.NOMBRE)}<small>Terraza</small></div>
@@ -1429,8 +1433,7 @@ function cliente(){
           if (!i) return `<div class="fav vacio"><span class="fv-n">${n+1}</span><small>Aquí saldrá lo que más pidas</small></div>`;
           const q = udsDe(i.id);
           return `<button class="fav" data-a="${i.id}" aria-label="Añadir ${esc(label(i))}"><span class="fv-f pc-foto">${conFoto(i)}${q?`<b class="qb">${q}</b>`:""}</span><span class="fv-n">${n+1}</span>
-            <b class="fv-t">${esc(i.n)}</b>${i.d?`<small>${esc(i.d)}</small>`:""}<span class="fv-p">${eur(i.p)}</span></button>`; }).join("")}</div>
-        <button class="otra" id="otraCosa">Otra cosa</button>`;
+            <b class="fv-t">${esc(i.n)}</b>${i.d?`<small>${esc(i.d)}</small>`:""}<span class="fv-p">${eur(i.p)}</span></button>`; }).join("")}</div>`;
     } else if (!catSel || catSel==="·"){
       // portada: las secciones como iconos de aplicaciones del móvil
       h += `<h2 class="ch">¿Qué te apetece?</h2><div class="apps">${TODAS.map((x,n)=>`<div class="apw" style="--d:${n*35}ms">${botonFoto(fk(x))}<button class="app a${n%3}" data-cat="${esc(x.k)}"><span class="api">${icono(x)}</span><span class="apt">${esc(x.t)}</span></button></div>`).join("")}</div>
