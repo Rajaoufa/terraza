@@ -382,8 +382,10 @@ body.staff .cbar{display:flex;align-items:center;justify-content:space-between;g
 /* el nombre del bar abajo del todo, casi tocando la hoja marrón, para dejar el puente libre (Jamal) */
 .tcam .wrap.el-arriba{padding-block:16px 0}
 .tcam .wrap.abajo{margin-top:auto;padding-block:10px 36px}
-/* panel de camareros: foto de Martorell de noche de fondo, con capa oscura para leer bien (Jamal) */
-body.staff main.wrap.panel-cam{background:linear-gradient(180deg,rgba(29,18,11,.25) 0,rgba(29,18,11,.55) 150px,rgba(29,18,11,.97) 260px),url("img/noche.jpg") center top/max(100%,1104px) auto no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97))}
+/* panel de camareros, fondos a la inversa (Jamal): arriba la foto del barrio de noche; en la hoja, el dibujo del puente */
+body.cam .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.35) 0,rgba(8,6,4,.1) 45%,rgba(8,6,4,.45) 100%),url("img/noche.jpg");background-size:cover,cover;background-position:center,center 60%;filter:none}
+body.staff.cam:not(.plain){background:linear-gradient(#120c08,#120c08)}
+body.staff main.wrap.panel-cam{background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgba(29,18,11,.55) 170px,rgba(29,18,11,.97) 290px),var(--foto-dibujo) center top/max(100%,700px) auto no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97))}
 .cam-tit{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 /* BAR ESSENCIA centrado abajo, en dorado (Jamal) */
 .tcam .abajo .cam-tit{align-items:center;text-align:center;width:100%}
@@ -1942,6 +1944,7 @@ async function entrarPanel(){ await cargaEstado(); panel(); pintar(); pantallaEn
 function panel(){
   document.body.classList.add("staff");
   if (!trab) return pantallaPin("Camareros", entrarPanel);
+  document.body.classList.add("cam");
   aplicaObras();
   $app.innerHTML = (DEMO?`<div class="demo">MODO PRUEBA · Solo funciona en este navegador. Pon los datos de Supabase para usarlo de verdad.</div>`:"") +
     `<header class="top tcam"><div class="wrap el-arriba"><div class="el-mini" id="elTop" aria-label="Trabajando ahora"></div></div><div class="wrap abajo"><div class="cam-tit"><div class="logo">${esc(CONFIG.NOMBRE)}</div></div></div></header>
