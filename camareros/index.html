@@ -383,6 +383,10 @@ body.staff .cbar{display:flex;align-items:center;justify-content:space-between;g
 .tcam .wrap.el-arriba{padding-block:16px 0}
 .tcam .wrap.abajo{margin-top:auto;padding-block:10px 36px}
 /* panel de camareros, fondos a la inversa (Jamal): arriba la foto del barrio de noche; en la hoja, el dibujo del puente */
+/* cliente, "¿Qué necesitas?" (Jamal): arriba el barrio de noche; abajo, donde pone Hola, el dibujo del puente */
+body.ini-cli .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.35) 0,rgba(8,6,4,.1) 45%,rgba(8,6,4,.45) 100%),url("img/noche.jpg");background-size:cover,cover;background-position:center,center 60%;filter:none}
+body.ini-cli main.wrap{background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgba(29,18,11,.55) 170px,rgba(29,18,11,.97) 290px),var(--foto-dibujo) center top/max(100%,700px) auto no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97));color:#F5E9D3}
+body.ini-cli .big-btns{margin-top:clamp(70px,14vw,90px)}
 body.cam .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.35) 0,rgba(8,6,4,.1) 45%,rgba(8,6,4,.45) 100%),url("img/noche.jpg");background-size:cover,cover;background-position:center,center 60%;filter:none}
 body.staff.cam:not(.plain){background:linear-gradient(#120c08,#120c08)}
 body.staff main.wrap.panel-cam{background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgba(29,18,11,.55) 170px,rgba(29,18,11,.97) 290px),var(--foto-dibujo) center top/max(100%,700px) auto no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97))}
@@ -1266,7 +1270,7 @@ if (!yo.nombre) yo.nombre = ls.get("esencia_nombre", "");   // el móvil recuerd
 let bloqueado = false;
 let misFilas = [];
 let cesta = {};
-let vista = yo.nombre ? "carta" : "nombre";
+let vista = yo.nombre ? "inicio" : "nombre";   // Jamal: el QR abre "¿Qué necesitas?" (llamar al camarero o carta)
 let catSel = null;   // null = portada con las secciones como iconos de apps; "★" = Favoritas; si no, nombre de la sección
 let abrirDesde = null;   // centro del icono tocado, para el efecto de abrir la sección
 let filasMesa = [];
@@ -1407,6 +1411,7 @@ function cliente(){
   aplicaObras();
   document.body.classList.toggle("compact", ["carta","resumen"].includes(vista));
   document.body.classList.toggle("oscura", ["carta","resumen"].includes(vista) && !!mesa);
+  document.body.classList.toggle("ini-cli", vista==="inicio" && !!mesa);
   if (!mesa && !MODO_FOTOS){
     const escaner = "BarcodeDetector" in window && navigator.mediaDevices?.getUserMedia;
     $app.innerHTML = header() + `<main class="wrap pick">
@@ -1532,7 +1537,7 @@ function go(v){ vista=v; cliente(); scrollTo(0,0); }
 function bindCliente(){
   const on = (id,fn) => { const el=document.getElementById(id); if(el) el.onclick=fn; };
   const fn = document.getElementById("fn");
-  if (fn) fn.onsubmit = e => { e.preventDefault(); const v=document.getElementById("nom").value.trim().slice(0,30); if(!v) return; yo.nombre=v; guardaYo(); go("carta"); };
+  if (fn) fn.onsubmit = e => { e.preventDefault(); const v=document.getElementById("nom").value.trim().slice(0,30); if(!v) return; yo.nombre=v; guardaYo(); go("inicio"); };
   on("cambiaNom", ()=>go("nombre"));
   on("cambiaMesa", ()=>{ ls.set("esencia_mesa", null); location.href = location.pathname + "?app"; });
   on("carta", ()=>{ catSel = null; go("carta"); cargaFotos(); if (!MAS_PEDIDOS) Store.masPedidos().then(c=>{ MAS_PEDIDOS=c; if (vista==="carta") cliente(); }).catch(()=>{}); });
