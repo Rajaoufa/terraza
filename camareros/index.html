@@ -388,15 +388,15 @@ body.staff .cbar{display:flex;align-items:center;justify-content:space-between;g
 .el-mini .no{opacity:.75}.el-mini .no i{background:#B9A58C;box-shadow:none}
 .tcam .wrap{position:relative}
 /* silueta de fichajes debajo de las banderas; Scan abajo a la derecha (Jamal) */
-.tcam .h-fich{position:absolute;top:34px;right:max(16px,env(safe-area-inset-right,0px))}
-.tcam .h-scan{position:absolute;bottom:36px;right:max(16px,env(safe-area-inset-right,0px))}
+/* fila de pestañas: Mesas abiertas · $ · 📝 … Scan a la derecha (Jamal) */
+.ptabs .scan-b{margin-left:auto;flex:0 0 auto;width:52px;height:52px}
 .tcam .el-arriba .idiomas{position:absolute;top:10px;right:max(16px,env(safe-area-inset-right,0px));gap:5px;margin:0;opacity:.85}
 .tcam .el-arriba .idiomas button{width:20px;height:14px;border-width:1px;border-radius:3px;box-shadow:none}
-.ptabs .ped-b{margin-left:auto;flex:0 0 auto}
+.ptabs .ped-b{flex:0 0 auto}
 /* Pedidos: círculo con el lápiz y la libreta; Cobradas: círculo con $ (Jamal) */
 .ptabs .tab.tab-ico{width:52px;height:52px;min-height:0;padding:0;flex:0 0 auto;border-radius:50%;font-size:1.45em;font-weight:900;line-height:1}
 .ptabs .cb-ico.ped-b{width:52px;height:52px;font-size:1.5em;line-height:1}
-@media (max-width:600px){.ptabs{gap:6px;flex-wrap:nowrap}.ptabs .tab{padding:8px 10px;font-size:.85em;white-space:nowrap;min-height:44px}.ptabs .cb-ico.ped-b,.ptabs .tab.tab-ico{width:46px;height:46px;padding:0}.ptabs .t7{display:none}}
+@media (max-width:600px){.ptabs{gap:6px;flex-wrap:nowrap}.ptabs .tab{padding:8px 10px;font-size:.85em;white-space:nowrap;min-height:44px}.ptabs .cb-ico.ped-b,.ptabs .tab.tab-ico,.ptabs .scan-b{width:46px;height:46px;padding:0}.ptabs .t7{display:none}}
 .svc.on{font-size:.95em;padding:10px 16px}.svc.on i{background:#7CFC9A;box-shadow:0 0 8px #7CFC9A}
 .glinks{display:grid;gap:12px;margin-top:8px}.glinks .ghost{margin:0;text-decoration:none;color:var(--ink);display:grid;gap:4px;text-align:left}
 .glinks small{font-weight:400;color:var(--muted)}
@@ -1936,14 +1936,13 @@ function panel(){
   if (!trab) return pantallaPin("Camareros", entrarPanel);
   aplicaObras();
   $app.innerHTML = (DEMO?`<div class="demo">MODO PRUEBA · Solo funciona en este navegador. Pon los datos de Supabase para usarlo de verdad.</div>`:"") +
-    `<header class="top tcam"><div class="wrap el-arriba"><div class="el-mini" id="elTop" aria-label="Trabajando ahora"></div><button class="cb-ico h-fich" id="misF" aria-label="Mis fichajes" title="Mis fichajes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5z"/></svg></button></div><div class="wrap abajo"><div class="cam-tit"><div class="logo">${esc(CONFIG.NOMBRE)}</div></div><button class="cb-ico h-scan" id="scanB" aria-label="Scan" title="Leer QR de mesa"><svg viewBox="0 0 24 24" aria-hidden="true" class="sc"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg></button></div></header>
+    `<header class="top tcam"><div class="wrap el-arriba"><div class="el-mini" id="elTop" aria-label="Trabajando ahora"></div></div><div class="wrap abajo"><div class="cam-tit"><div class="logo">${esc(CONFIG.NOMBRE)}</div></div></div></header>
      <main class="wrap"><div class="cbar noprint">
        <button class="cb-btn" id="desc"><i class="${enServicio?"on":""}"></i>Desconectar</button>
-</div>
+       <button class="cb-ico" id="misF" aria-label="Mis fichajes" title="Mis fichajes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5z"/></svg></button></div>
      <div id="cuerpo"></div></main>`;
   document.getElementById("desc").onclick = preguntaSalir;
   document.getElementById("misF").onclick = () => { pestana = "fichajes"; pintar(); };
-  document.getElementById("scanB").onclick = escanearQR;
 }
 // Jamal: "Desconectar" pregunta si cambiar de trabajador o salir (fichar la salida)
 function preguntaSalir(){
@@ -2017,7 +2016,7 @@ async function pintar(){
   let h = bloqueAvisos() + `<div class="ptabs">
     <button class="tab" data-p="abiertas" aria-selected="${pestana==="abiertas"}">Mesas abiertas (${mesasAb.length})</button>
     <button class="tab tab-ico" data-p="cerradas" aria-selected="${pestana==="cerradas"}" aria-label="Cobradas (7 días)" title="Cobradas (7 días)">$</button>
-    <button class="cb-ico ped-b" id="nuevaCom" aria-label="Pedidos" title="Pedidos">📝</button></div>`;
+    <button class="cb-ico ped-b" id="nuevaCom" aria-label="Pedidos" title="Pedidos">📝</button><button class="cb-ico scan-b" id="scanB" aria-label="Scan" title="Leer QR de mesa"><svg viewBox="0 0 24 24" aria-hidden="true" class="sc"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg></button></div>`;
 
   if (pestana==="abiertas"){
     document.body.classList.toggle("muchas", mesasAb.length > 0);
@@ -2063,7 +2062,7 @@ async function pintar(){
     if (d){ d.open = !d.open; if (d.open) d.scrollIntoView({behavior:"smooth", block:"nearest"}); } });
   cuerpo.querySelectorAll("[data-apodo]").forEach(b=>b.onclick=()=>pantallaApodos(b.dataset.apodo));
   cuerpo.querySelectorAll("[data-anotar]").forEach(b=>b.onclick=()=>anotarComanda(b.dataset.anotar, b.dataset.disp, b.dataset.llamada));
-  { const n = document.getElementById("nuevaCom"); if (n) n.onclick = () => nuevaComanda(); }
+  { const n = document.getElementById("nuevaCom"); if (n) n.onclick = () => nuevaComanda(); const sc = document.getElementById("scanB"); if (sc) sc.onclick = escanearQR; }
   cuerpo.querySelectorAll("[data-nueva]").forEach(b=>b.onclick=()=>nuevaComanda(b.dataset.nueva));
   cuerpo.querySelectorAll("[data-cobrar]").forEach(b=>b.onclick=()=>{ cobrando=b.dataset.cobrar; pintar(); });
   cuerpo.querySelectorAll("[data-cerrarc]").forEach(b=>b.onclick=async()=>{ b.disabled=true; const [m, ...n] = b.dataset.cerrarc.split("|"), nom = n.join("|");
