@@ -1,5 +1,5 @@
 // Esencia: guarda la app para que abra rápido. Siempre intenta la versión nueva primero.
-const CACHE = "esencia-v85";
+const CACHE = "esencia-v86";
 // OneSignal: los avisos de los camareros (si no carga, la app sigue funcionando igual)
 try { importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js"); } catch {}
 const BASE = ["./", "./camareros/", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "fondo-dibujo.svg", "barrio.svg"];
