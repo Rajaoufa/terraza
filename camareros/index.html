@@ -2187,7 +2187,7 @@ function tarjetaMesa(m, rs){
          <ul>${(r.items||[]).map(i=>`<li><b>${Number(i.q)||0}×</b> ${esc(i.n)}</li>`).join("")}</ul>
          ${r.nota?`<div class="nota">${esc(r.nota)}</div>`:""}
          <button class="act ok" data-acc="${esc(r.id)}">Recibido</button>${botonBloq(r)}</div>`).join("")}
-    ${m!=="Barra" && peds.length ? `<div class="gente-mesa">${(()=>{ const g={}; peds.forEach(r=>{ const k=r.cliente||"Sin nombre"; (g[k]=g[k]||[]).push(r); });
+    ${m!=="Barra" && new Set(peds.map(r=>r.cliente||"Sin nombre")).size > 1 ? `<div class="gente-mesa">${(()=>{ const g={}; peds.forEach(r=>{ const k=r.cliente||"Sin nombre"; (g[k]=g[k]||[]).push(r); });
         return Object.entries(g).map(([n,ps])=>`<div class="gm"><div class="gm-h"><b>${esc(n)}</b><span>${eur(ps.reduce((a,r)=>a+Number(r.total||0),0))}</span></div>${llevaDe(ps)}</div>`).join(""); })()}</div>` : ""}
     ${Object.keys(cons).length?`<details class="cons" data-k="cons-${esc(m)}"><summary><span class="cap">Consumo de la mesa</span><b>${eur(total)}</b></summary>
       ${Object.entries(cons).map(([n,c])=>`<div class="row"><span><b>${c.q}×</b> ${esc(n)}<small>${eur(c.p)} c/u</small></span><span>${eur(c.q*c.p)}</span></div>`).join("")}
