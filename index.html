@@ -395,7 +395,18 @@ body.staff main.wrap.panel-cam{background:linear-gradient(180deg,rgba(29,18,11,.
 /* silueta de fichajes debajo de las banderas; Scan abajo a la derecha (Jamal) */
 /* fila de pestañas: Mesas abiertas · $ · 📝 … Scan a la derecha (Jamal) */
 .ptabs .scan-b{margin-left:auto;flex:0 0 auto;width:52px;height:52px}
-.tcam .el-arriba .idiomas{position:absolute;top:10px;right:max(16px,env(safe-area-inset-right,0px));gap:5px;margin:0;opacity:.85}
+/* Jamal: botones en las cuatro esquinas de la hoja y el puente libre en medio */
+.panel-cam.con-tabs>.cbar{display:none}
+.ptabs.p4{display:block;margin-top:14px}
+.ptabs.p4 .pf{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ptabs.p4 .pf2{margin-top:clamp(120px,22vw,200px)}
+.ptabs.p4 .pf2 .mis-b{margin-left:auto;width:52px;height:52px}
+.ptabs.p4 .pf2 .scan-b{margin-left:0}
+@media (max-width:600px){.ptabs.p4 .pf{gap:6px}.ptabs.p4 .pf2 .mis-b{width:46px;height:46px}}
+/* Jamal: en el barrio, BAR ESSENCIA arriba centrado; abajo los que trabajan y las banderas */
+.tcam .wrap.abajo{order:-1;margin-top:0;padding-block:18px 0}
+.tcam .wrap.el-arriba{margin-top:auto;padding-block:0 40px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tcam .el-arriba .idiomas{position:static;gap:5px;margin:0;opacity:.85}
 .tcam .el-arriba .idiomas button{width:20px;height:14px;border-width:1px;border-radius:3px;box-shadow:none}
 .ptabs .ped-b{flex:0 0 auto}
 /* Pedidos: círculo con el lápiz y la libreta; Cobradas: círculo con $ (Jamal) */
@@ -1989,6 +2000,7 @@ async function pintar(){
   if (enServicio && Date.now() - fichajeVisto > 5*60e3) { fichajeVisto = Date.now(); await cargaEstado();
     if (!enServicio) { pantallaEncendida(false); toast("Llevabas más de 8 horas: se ha fichado tu salida (olvidó fichar salida)."); panel(); } }
   const cuerpo = document.getElementById("cuerpo"); if (!cuerpo) return;
+  cuerpo.parentElement.classList.remove("con-tabs");
   try { EN_LINEA = (await Store.enServicio(trab)).filter(noEsAdmin); } catch { EN_LINEA = null; }
   { const el = document.getElementById("elTop"); if (el) el.innerHTML = !EN_LINEA ? "" : EN_LINEA.length
       ? EN_LINEA.map(w=>`<span title="Trabajando desde ${fHora(w.desde)}"><i></i>${esc(w.nombre)}</span>`).join("") : `<span class="no"><i></i>Nadie trabajando</span>`; }
@@ -2022,10 +2034,12 @@ async function pintar(){
     return ha!==hb ? (ha?-1:1) : a.localeCompare(b,"es",{numeric:true});
   });
 
-  let h = bloqueAvisos() + `<div class="ptabs">
+  // Jamal: botones en las esquinas para que se vea el puente; arriba Mesas abiertas · Desconectar, abajo $ 📝 · silueta Scan
+  let h = bloqueAvisos() + `<div class="ptabs p4"><div class="pf">
     <button class="tab" data-p="abiertas" aria-selected="${pestana==="abiertas"}">Mesas abiertas (${mesasAb.length})</button>
+    <button class="cb-btn" id="desc2"><i class="${enServicio?"on":""}"></i>Desconectar</button></div><div class="pf pf2">
     <button class="tab tab-ico" data-p="cerradas" aria-selected="${pestana==="cerradas"}" aria-label="Cobradas (7 días)" title="Cobradas (7 días)">$</button>
-    <button class="cb-ico ped-b" id="nuevaCom" aria-label="Pedidos" title="Pedidos"><svg viewBox="0 0 24 24" aria-hidden="true" class="sc"><path d="M14 4H6a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-6M8 9h5M8 13h4M8 17h6M19.5 3.5l1 1a1.4 1.4 0 0 1 0 2L14 13l-3 1 1-3 6.5-6.5a1.4 1.4 0 0 1 2 0z"/></svg></button><button class="cb-ico scan-b" id="scanB" aria-label="Scan" title="Leer QR de mesa"><svg viewBox="0 0 24 24" aria-hidden="true" class="sc"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg></button></div>`;
+    <button class="cb-ico ped-b" id="nuevaCom" aria-label="Pedidos" title="Pedidos"><svg viewBox="0 0 24 24" aria-hidden="true" class="sc"><path d="M14 4H6a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-6M8 9h5M8 13h4M8 17h6M19.5 3.5l1 1a1.4 1.4 0 0 1 0 2L14 13l-3 1 1-3 6.5-6.5a1.4 1.4 0 0 1 2 0z"/></svg></button><button class="cb-ico mis-b" id="misF2" aria-label="Mis fichajes" title="Mis fichajes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5z"/></svg></button><button class="cb-ico scan-b" id="scanB" aria-label="Scan" title="Leer QR de mesa"><svg viewBox="0 0 24 24" aria-hidden="true" class="sc"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg></button></div></div>`;
 
   if (pestana==="abiertas"){
     document.body.classList.toggle("muchas", mesasAb.length > 0);
@@ -2049,6 +2063,9 @@ async function pintar(){
   if (trab.admin) h += `<div class="offacts herr"><a class="ghost" href="${location.pathname}?gestion">Gestión</a></div>`;
   const abiertos = new Set([...cuerpo.querySelectorAll("details[open][data-k]")].map(d=>d.dataset.k));
   cuerpo.innerHTML = h; pideAvisos();
+  cuerpo.parentElement.classList.add("con-tabs");
+  document.getElementById("desc2").onclick = preguntaSalir;
+  document.getElementById("misF2").onclick = () => { pestana = "fichajes"; pintar(); };
   cuerpo.querySelectorAll("details[data-k]").forEach(d=>{ if (abiertos.has(d.dataset.k)) d.open = true; });
 
   cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
