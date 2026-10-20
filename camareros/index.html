@@ -387,8 +387,8 @@ body.staff .cbar{display:flex;align-items:center;justify-content:space-between;g
 .el-mini span{display:inline-flex;align-items:center;gap:4px}.el-mini i{width:7px;height:7px;border-radius:50%;background:#4FAF73;box-shadow:0 0 5px #4FAF73}
 .el-mini .no{opacity:.75}.el-mini .no i{background:#B9A58C;box-shadow:none}
 .tcam .wrap{position:relative}
-.tcam .cam-tit .idiomas{position:absolute;bottom:40px;right:max(16px,env(safe-area-inset-right,0px));gap:5px;margin:0;opacity:.85}
-.tcam .cam-tit .idiomas button{width:20px;height:14px;border-width:1px;border-radius:3px;box-shadow:none}
+.tcam .el-arriba .idiomas{position:absolute;top:10px;right:max(16px,env(safe-area-inset-right,0px));gap:5px;margin:0;opacity:.85}
+.tcam .el-arriba .idiomas button{width:20px;height:14px;border-width:1px;border-radius:3px;box-shadow:none}
 .ptabs .ped-b{margin-left:auto;width:auto;flex:0 0 auto;padding:10px 18px}
 @media (max-width:600px){.ptabs{gap:6px;flex-wrap:nowrap}.ptabs .tab,.ptabs .ped-b{padding:8px 10px;font-size:.85em;white-space:nowrap;min-height:44px}.ptabs .t7{display:none}}
 .svc.on{font-size:.95em;padding:10px 16px}.svc.on i{background:#7CFC9A;box-shadow:0 0 8px #7CFC9A}
@@ -3607,11 +3607,12 @@ const BANDERA = {
 };
 function ponBanderas(){
   document.querySelectorAll("header.top .logo").forEach(logo=>{
-    if (logo.parentElement.querySelector(".idiomas")) return;
+    const arriba = logo.closest(".tcam")?.querySelector(".el-arriba");   // panel de camareros: banderas arriba a la derecha
+    if ((arriba || logo.parentElement).querySelector(".idiomas")) return;
     const d = document.createElement("div"); d.className = "idiomas noprint";
     d.innerHTML = [["es","Español"],["ca","Català"],["zh","中文"]].map(([k,t])=>`<button data-lang="${k}" aria-pressed="${k===LANG}" aria-label="${t}" title="${t}">${BANDERA[k]}</button>`).join("");
     d.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ if (b.dataset.lang===LANG) return; ls.set("esencia_lang", b.dataset.lang); location.reload(); });
-    logo.after(d);
+    if (arriba) arriba.appendChild(d); else logo.after(d);
   });
 }
 if (LANG !== "es") document.documentElement.lang = LANG === "zh" ? "zh-CN" : "ca";
