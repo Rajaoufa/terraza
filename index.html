@@ -380,6 +380,8 @@ body.staff .cbar{display:flex;align-items:center;justify-content:space-between;g
 /* el nombre del bar abajo del todo, casi tocando la hoja marrón, para dejar el puente libre (Jamal) */
 .tcam .wrap.el-arriba{padding-block:16px 0}
 .tcam .wrap.abajo{margin-top:auto;padding-block:10px 36px}
+/* panel de camareros: foto de Martorell de noche de fondo, con capa oscura para leer bien (Jamal) */
+body.staff main.wrap.panel-cam{background:linear-gradient(180deg,rgba(29,18,11,.25) 0,rgba(29,18,11,.55) 150px,rgba(29,18,11,.97) 260px),url("img/noche.jpg") center top/max(100%,1104px) auto no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97))}
 .cam-tit{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 /* BAR ESSENCIA centrado abajo, en dorado (Jamal) */
 .tcam .abajo .cam-tit{align-items:center;text-align:center;width:100%}
@@ -1941,7 +1943,7 @@ function panel(){
   aplicaObras();
   $app.innerHTML = (DEMO?`<div class="demo">MODO PRUEBA · Solo funciona en este navegador. Pon los datos de Supabase para usarlo de verdad.</div>`:"") +
     `<header class="top tcam"><div class="wrap el-arriba"><div class="el-mini" id="elTop" aria-label="Trabajando ahora"></div></div><div class="wrap abajo"><div class="cam-tit"><div class="logo">${esc(CONFIG.NOMBRE)}</div></div></div></header>
-     <main class="wrap"><div class="cbar noprint">
+     <main class="wrap panel-cam"><div class="cbar noprint">
        <button class="cb-btn" id="desc"><i class="${enServicio?"on":""}"></i>Desconectar</button>
        <button class="cb-ico" id="misF" aria-label="Mis fichajes" title="Mis fichajes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5z"/></svg></button></div>
      <div id="cuerpo"></div></main>`;
