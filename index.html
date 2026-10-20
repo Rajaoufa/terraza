@@ -392,7 +392,8 @@ body.ini-cli main.wrap{background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgb
   body.ini-cli .top{z-index:2}
   body.ini-cli main.wrap{margin-top:-118px;padding-top:98px;background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgba(29,18,11,.2) 90px,rgba(29,18,11,.55) 260px,rgba(29,18,11,.97) 380px),linear-gradient(180deg,#F6D08A 0,#F6D08A 92px,rgba(246,208,138,0) 150px),var(--foto-dibujo) center top 90px/max(100%,700px) auto no-repeat,linear-gradient(#F6D08A,#F6D08A) center top/100% 92px no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97))}
   body.ini-cli .top .hr .mesa{padding:4px 10px;border-radius:10px;background:transparent;box-shadow:none}body.ini-cli .top .hr .mesa b{font-size:1.25em}
-  body.ini-cli .top .wrap:first-child{align-items:flex-start}body.ini-cli .top .wrap:first-child .idiomas{margin-top:4px}}
+  body.ini-cli .top .wrap:first-child{align-items:flex-start}body.ini-cli .top .wrap:first-child .idiomas{margin-top:4px}
+  body.ini-cli .lugar span{background:none;padding:0;color:#2A140A;text-shadow:none;letter-spacing:.04em}body.ini-cli .lugar svg{display:none}}
 body.ini-cli .big-btns{margin-top:clamp(70px,14vw,90px)}
 body.cam .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.35) 0,rgba(8,6,4,.1) 45%,rgba(8,6,4,.45) 100%),url("img/noche.jpg");background-size:cover,cover;background-position:center,center 60%;filter:none}
 body.staff.cam:not(.plain){background:linear-gradient(#120c08,#120c08)}
@@ -1448,9 +1449,8 @@ function cliente(){
   if (vista==="inicio"){
     const s = llamadaActual();
     h += `<p class="hello">Hola, ${esc(yo.nombre)}. ¿Qué necesitas?</p>
-      <p class="sub">Toca un botón grande.</p>
       <div class="big-btns">
-        <button class="bb call" id="call" ${s==="espera"?"disabled":""}>${ICON.bell}<span><strong>Llamar al camarero</strong><em>${s==="espera"?"Ya le hemos avisado":"Vendrá a tu mesa"}</em></span></button>
+        <button class="bb call" id="call" ${s==="espera"?"disabled":""}>${ICON.bell}<span><strong>Llamar al camarero</strong>${s==="espera"?"<em>Ya le hemos avisado</em>":""}</span></button>
         <button class="bb menu" id="carta">${ICON.menu}<span><strong>Ver la carta y pedir</strong><em>Bebidas y comidas</em></span></button>
       </div>${bloqueEstado()}${bloqueMios()}
       <p class="nopay">No pagas aquí. Pagas al final, como siempre, con el camarero.</p>${bloquePagados()}
