@@ -385,6 +385,9 @@ body.staff .cbar{display:flex;align-items:center;justify-content:space-between;g
 .el-mini span{display:inline-flex;align-items:center;gap:4px}.el-mini i{width:7px;height:7px;border-radius:50%;background:#4FAF73;box-shadow:0 0 5px #4FAF73}
 .el-mini .no{opacity:.75}.el-mini .no i{background:#B9A58C;box-shadow:none}
 .tcam .wrap{position:relative}
+/* silueta de fichajes debajo de las banderas; Scan abajo a la derecha (Jamal) */
+.tcam .h-fich{position:absolute;top:34px;right:max(16px,env(safe-area-inset-right,0px))}
+.tcam .h-scan{position:absolute;bottom:36px;right:max(16px,env(safe-area-inset-right,0px))}
 .tcam .el-arriba .idiomas{position:absolute;top:10px;right:max(16px,env(safe-area-inset-right,0px));gap:5px;margin:0;opacity:.85}
 .tcam .el-arriba .idiomas button{width:20px;height:14px;border-width:1px;border-radius:3px;box-shadow:none}
 .ptabs .ped-b{margin-left:auto;width:auto;flex:0 0 auto;padding:10px 18px}
@@ -1928,11 +1931,10 @@ function panel(){
   if (!trab) return pantallaPin("Camareros", entrarPanel);
   aplicaObras();
   $app.innerHTML = (DEMO?`<div class="demo">MODO PRUEBA · Solo funciona en este navegador. Pon los datos de Supabase para usarlo de verdad.</div>`:"") +
-    `<header class="top tcam"><div class="wrap el-arriba"><div class="el-mini" id="elTop" aria-label="Trabajando ahora"></div></div><div class="wrap abajo"><div class="cam-tit"><div class="logo">${esc(CONFIG.NOMBRE)}</div></div></div></header>
+    `<header class="top tcam"><div class="wrap el-arriba"><div class="el-mini" id="elTop" aria-label="Trabajando ahora"></div><button class="cb-ico h-fich" id="misF" aria-label="Mis fichajes" title="Mis fichajes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5z"/></svg></button></div><div class="wrap abajo"><div class="cam-tit"><div class="logo">${esc(CONFIG.NOMBRE)}</div></div><button class="cb-ico h-scan" id="scanB" aria-label="Scan" title="Leer QR de mesa"><svg viewBox="0 0 24 24" aria-hidden="true" class="sc"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg></button></div></header>
      <main class="wrap"><div class="cbar noprint">
        <button class="cb-btn" id="desc"><i class="${enServicio?"on":""}"></i>Desconectar</button>
-       <button class="cb-ico" id="misF" aria-label="Mis fichajes" title="Mis fichajes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5z"/></svg></button>
-       <button class="cb-ico" id="scanB" aria-label="Scan" title="Leer QR de mesa"><svg viewBox="0 0 24 24" aria-hidden="true" class="sc"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg></button></div>
+</div>
      <div id="cuerpo"></div></main>`;
   document.getElementById("desc").onclick = preguntaSalir;
   document.getElementById("misF").onclick = () => { pestana = "fichajes"; pintar(); };
