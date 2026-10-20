@@ -378,7 +378,8 @@ body.staff .cbar{display:flex;align-items:center;justify-content:space-between;g
 .cb-ico{width:42px;height:42px;border-radius:50%;background:#5A3A22;border:1px solid rgba(217,168,91,.45);display:grid;place-items:center;padding:0;cursor:pointer}
 .cb-ico svg{width:22px;height:22px;fill:#F2D29B}.cb-ico svg.sc{fill:none;stroke:#F2D29B;stroke-width:2;stroke-linecap:round}
 /* el nombre del bar abajo del todo, casi tocando la hoja marrón, para dejar el puente libre (Jamal) */
-.tcam .wrap{margin-top:auto;padding-block:10px 36px}
+.tcam .wrap.el-arriba{padding-block:16px 0}
+.tcam .wrap.abajo{margin-top:auto;padding-block:10px 36px}
 .cam-tit{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 .el-mini{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.72em;font-weight:700;color:#F5E9D3;min-height:1em}
 .el-mini span{display:inline-flex;align-items:center;gap:4px}.el-mini i{width:7px;height:7px;border-radius:50%;background:#4FAF73;box-shadow:0 0 5px #4FAF73}
@@ -1923,7 +1924,7 @@ function panel(){
   if (!trab) return pantallaPin("Camareros", entrarPanel);
   aplicaObras();
   $app.innerHTML = (DEMO?`<div class="demo">MODO PRUEBA · Solo funciona en este navegador. Pon los datos de Supabase para usarlo de verdad.</div>`:"") +
-    `<header class="top tcam"><div class="wrap"><div class="cam-tit"><div class="el-mini" id="elTop" aria-label="Trabajando ahora"></div><div class="logo">${esc(CONFIG.NOMBRE)}</div></div></div></header>
+    `<header class="top tcam"><div class="wrap el-arriba"><div class="el-mini" id="elTop" aria-label="Trabajando ahora"></div></div><div class="wrap abajo"><div class="cam-tit"><div class="logo">${esc(CONFIG.NOMBRE)}</div></div></div></header>
      <main class="wrap"><div class="cbar noprint">
        <button class="cb-btn" id="desc"><i class="${enServicio?"on":""}"></i>Desconectar</button>
        <button class="cb-ico" id="misF" aria-label="Mis fichajes" title="Mis fichajes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5z"/></svg></button>
