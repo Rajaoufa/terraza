@@ -314,7 +314,9 @@ body.staff .cbar+#cuerpo .ptabs{margin-top:12px}
 .mc.hot{border-color:var(--alert);box-shadow:0 0 0 2px var(--alert)}
 .mc .h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:14px 16px 6px}
 .mc .h b{font-family:var(--f-display);font-size:1.5em}
-.mc .who{padding:0 16px 10px;color:var(--muted);font-size:.9em;overflow-wrap:anywhere}
+.mc .who{padding:0 16px 10px;color:var(--muted);font-size:.9em;overflow-wrap:anywhere;display:flex;justify-content:space-between;align-items:center;gap:8px}
+/* "Ver comanda": abre y cierra el consumo de la mesa (Jamal) */
+.ver-com{flex:0 0 auto;background:transparent;border:1.5px solid #E9C27E;color:#E9C27E;border-radius:999px;padding:6px 12px;font:inherit;font-weight:700;font-size:.9em;cursor:pointer}
 .t{color:var(--muted);font-size:.85em;font-variant-numeric:tabular-nums}
 .ev{margin:0 10px 10px;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .ev.call{background:var(--warn-soft)}
@@ -2048,6 +2050,8 @@ async function pintar(){
   cuerpo.querySelectorAll("[data-desbloq]").forEach(b=>b.onclick=async()=>{ b.disabled=true;
     try{ await Store.desbloquear(b.dataset.desbloq); toast("Móvil desbloqueado"); pintar(); }
     catch{ b.disabled=false; toast("No se ha podido desbloquear. Prueba otra vez."); } });
+  cuerpo.querySelectorAll("[data-vercom]").forEach(b=>b.onclick=()=>{ const d = cuerpo.querySelector(`details[data-k="${CSS.escape(b.dataset.vercom)}"]`);
+    if (d){ d.open = !d.open; if (d.open) d.scrollIntoView({behavior:"smooth", block:"nearest"}); } });
   cuerpo.querySelectorAll("[data-apodo]").forEach(b=>b.onclick=()=>pantallaApodos(b.dataset.apodo));
   cuerpo.querySelectorAll("[data-anotar]").forEach(b=>b.onclick=()=>anotarComanda(b.dataset.anotar, b.dataset.disp, b.dataset.llamada));
   { const n = document.getElementById("nuevaCom"); if (n) n.onclick = () => nuevaComanda(); }
@@ -2179,7 +2183,7 @@ function tarjetaMesa(m, rs){
   const desde = rs[0]?.created_at;
   return `<article class="mc ${pend.length?"hot":""}">
     <div class="h"><b>${m==="Barra"?"Barra":"Mesa "+esc(m)}</b><span class="t">Abierta ${desde?hora(desde):""}</span></div>
-    ${nombres.length?`<div class="who">${nombres.join(" · ")}${rs.some(r=>r.dispositivo)?` <button class="act lnk apodo-b" data-apodo="${esc(m)}">✏️ Apodo</button>`:""}</div>`:""}
+    ${nombres.length||Object.keys(cons).length?`<div class="who"><span>${nombres.join(" · ")}${rs.some(r=>r.dispositivo)?` <button class="act lnk apodo-b" data-apodo="${esc(m)}">✏️ Apodo</button>`:""}</span>${Object.keys(cons).length?`<button class="ver-com" data-vercom="cons-${esc(m)}">Ver comanda</button>`:""}</div>`:""}
     ${pend.map(r=> r.tipo==="camarero"
       ? `<div class="ev call"><div class="l"><span>${esc(r.cliente||"Un cliente")} llama al camarero</span><span class="t">${hace(r.created_at)}</span></div>
          <button class="act go" data-acc="${esc(r.id)}">Voy para allá</button><button class="act pay" data-anotar="${esc(m)}" data-disp="${esc(r.dispositivo||"")}" data-llamada="${esc(r.id)}">📝 Anotar comanda</button>${botonBloq(r)}</div>`
@@ -2738,7 +2742,7 @@ const ZH = {
   "Bocina":"喇叭",
   "Pitido":"哔哔声",
   "Para que suene más: sube el volumen del móvil con los botones del lateral. En iPhone, con la app cerrada el aviso usa el sonido del iPhone: Ajustes → Sonidos y vibraciones → sube \"Tono y avisos\".":"想更响：用手机侧面的按键调高音量。iPhone 在应用关闭时用系统声音：设置 → 声音与触感 → 调高“铃声和提醒”。",
-  "Otra cosa":"别的东西","Pedir otra cosa":"点别的",
+  "Ver comanda":"看点单","Otra cosa":"别的东西","Pedir otra cosa":"点别的",
   "Aquí saldrá lo que más pidas":"这里会显示你最常点的",
   "App en construcción":"应用正在建设中",
   "Estamos preparando la app. Vuelve a entrar más tarde.":"我们正在准备应用。请稍后再进入。",
@@ -3176,7 +3180,7 @@ const CA = {
   "Bocina":"Botzina",
   "Pitido":"Xiulet",
   "Para que suene más: sube el volumen del móvil con los botones del lateral. En iPhone, con la app cerrada el aviso usa el sonido del iPhone: Ajustes → Sonidos y vibraciones → sube \"Tono y avisos\".":"Perquè soni més: puja el volum del mòbil amb els botons del lateral. A l'iPhone, amb l'app tancada l'avís fa servir el so de l'iPhone: Configuració → Sons i vibracions → puja \"To i avisos\".",
-  "Otra cosa":"Una altra cosa","Pedir otra cosa":"Demanar una altra cosa",
+  "Ver comanda":"Veure comanda","Otra cosa":"Una altra cosa","Pedir otra cosa":"Demanar una altra cosa",
   "Aquí saldrá lo que más pidas":"Aquí sortirà el que més demanis",
   "App en construcción":"App en construcció",
   "Estamos preparando la app. Vuelve a entrar más tarde.":"Estem preparant l'app. Torna a entrar més tard.",
