@@ -370,6 +370,22 @@ body.staff .wrap{max-width:1200px}
 .arr-txt{margin:0;color:rgba(255,255,255,.8)}
 .arr-mini{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
 .arr-mini a,.arr-mini button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:10px 16px;font:inherit;font-size:.9em;text-decoration:none;min-height:44px}
+/* camareros: barra marrón compacta arriba (Desconectar · Mis fichajes · Scan) y el puente se ve entero debajo (Jamal) */
+.tcam .cbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px max(10px,env(safe-area-inset-left,0px));background:rgba(44,27,16,.92);border-bottom:1px solid rgba(217,168,91,.35);text-shadow:none}
+.cb-btn{display:inline-flex;align-items:center;gap:7px;background:#5A3A22;color:#F5E9D3;border:1px solid rgba(217,168,91,.45);border-radius:999px;padding:7px 13px;font:inherit;font-weight:700;font-size:.88em;min-height:38px;cursor:pointer}
+.cb-btn i{width:9px;height:9px;border-radius:50%;background:#B9A58C}.cb-btn i.on{background:#7CFC9A;box-shadow:0 0 6px #7CFC9A}
+.cb-ico{width:42px;height:42px;border-radius:50%;background:#5A3A22;border:1px solid rgba(217,168,91,.45);display:grid;place-items:center;padding:0;cursor:pointer}
+.cb-ico svg{width:22px;height:22px;fill:#F2D29B}
+.tcam .wrap{padding-block:8px 0}
+.cam-tit{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.el-mini{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.72em;font-weight:700;color:#F5E9D3;min-height:1em}
+.el-mini span{display:inline-flex;align-items:center;gap:4px}.el-mini i{width:7px;height:7px;border-radius:50%;background:#4FAF73;box-shadow:0 0 5px #4FAF73}
+.el-mini .no{opacity:.75}.el-mini .no i{background:#B9A58C;box-shadow:none}
+.tcam .wrap{position:relative}
+.tcam .cam-tit .idiomas{position:absolute;top:10px;right:max(16px,env(safe-area-inset-right,0px));gap:5px;margin:0;opacity:.85}
+.tcam .cam-tit .idiomas button{width:20px;height:14px;border-width:1px;border-radius:3px;box-shadow:none}
+.ptabs .ped-b{margin-left:auto;width:auto;flex:0 0 auto;padding:10px 18px}
+@media (max-width:600px){.ptabs{gap:6px;flex-wrap:nowrap}.ptabs .tab,.ptabs .ped-b{padding:8px 10px;font-size:.85em;white-space:nowrap;min-height:44px}.ptabs .t7{display:none}}
 .svc.on{font-size:.95em;padding:10px 16px}.svc.on i{background:#7CFC9A;box-shadow:0 0 8px #7CFC9A}
 .glinks{display:grid;gap:12px;margin-top:8px}.glinks .ghost{margin:0;text-decoration:none;color:var(--ink);display:grid;gap:4px;text-align:left}
 .glinks small{font-weight:400;color:var(--muted)}
@@ -1905,10 +1921,29 @@ function panel(){
   if (!trab) return pantallaPin("Camareros", entrarPanel);
   aplicaObras();
   $app.innerHTML = (DEMO?`<div class="demo">MODO PRUEBA · Solo funciona en este navegador. Pon los datos de Supabase para usarlo de verdad.</div>`:"") +
-    `<header class="top"><div class="wrap"><div class="logo">${esc(CONFIG.NOMBRE)}<small>Camareros · ${esc(trab.nombre)}</small></div>
-     ${enServicio?`<button class="svc on" id="svc" aria-pressed="true"><i></i>Desconectar</button>`:""}</div></header>
+    `<header class="top tcam"><div class="cbar noprint">
+       <button class="cb-btn" id="desc"><i class="${enServicio?"on":""}"></i>Desconectar</button>
+       <button class="cb-ico" id="misF" aria-label="Mis fichajes" title="Mis fichajes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7.5 8-7.5s8 3.1 8 7.5z"/></svg></button>
+       <button class="cb-btn" id="scanB">📷 Scan</button></div>
+     <div class="wrap"><div class="cam-tit"><div class="el-mini" id="elTop" aria-label="Trabajando ahora"></div><div class="logo">${esc(CONFIG.NOMBRE)}<small>Camareros · ${esc(trab.nombre)}</small></div></div></div></header>
      <main class="wrap" id="cuerpo"></main>`;
-  const b = document.getElementById("svc"); if (b) b.onclick = e => cambiarServicio(e.currentTarget);
+  document.getElementById("desc").onclick = preguntaSalir;
+  document.getElementById("misF").onclick = () => { pestana = "fichajes"; pintar(); };
+  document.getElementById("scanB").onclick = escanearQR;
+}
+// Jamal: "Desconectar" pregunta si cambiar de trabajador o salir (fichar la salida)
+function preguntaSalir(){
+  const caja = document.createElement("div"); caja.className = "modal";
+  caja.innerHTML = `<div class="mbox"><b>¿Cambiar de trabajador o salir?</b>
+    <p class="sub">${enServicio ? "Salir ficha tu salida y dejan de llegarte los avisos." : "No has fichado la entrada."}</p>
+    <button class="act go" id="dCambiar">Cambiar de trabajador</button>
+    ${enServicio ? `<button class="act pay" id="dSalir">Salir (fichar la salida)</button>` : ""}
+    <button class="act no" id="dNo">Cancelar</button></div>`;
+  document.body.appendChild(caja);
+  caja.onclick = e => { if (e.target === caja) caja.remove(); };
+  caja.querySelector("#dNo").onclick = () => caja.remove();
+  caja.querySelector("#dCambiar").onclick = () => { caja.remove(); osSalir(); trab = null; ls.set("esencia_trab", null); pestana = "abiertas"; panel(); };
+  const sal = caja.querySelector("#dSalir"); if (sal) sal.onclick = e => { caja.remove(); cambiarServicio(e.currentTarget); };
 }
 // fichar entrada (pulsador rojo) o salida (punto verde "Desconectar")
 async function cambiarServicio(btn){
@@ -1923,26 +1958,25 @@ async function cambiarServicio(btn){
     panel(); pintar();
 }
 
-// camareros trabajando ahora (Jamal): tira con un punto verde por cada uno
+// camareros trabajando ahora (Jamal): punto verde y nombre, pequeño, en la cabecera
 let EN_LINEA = null;
-const tiraEnLinea = () => !EN_LINEA ? "" : `<div class="enlinea" aria-label="Trabajando ahora"><span class="el-t">Trabajando ahora</span>${EN_LINEA.length
-  ? EN_LINEA.map(w=>`<span class="el-p"><i></i>${esc(w.nombre)}<small>${fHora(w.desde)}</small></span>`).join("") : `<span class="el-p el-no">Nadie</span>`}</div>`;
 async function pintar(){
   if (Date.now() - precioVisto > 60e3) { precioVisto = Date.now(); cargaPrecios(); }
   const cuerpo = document.getElementById("cuerpo"); if (!cuerpo) return;
   try { EN_LINEA = (await Store.enServicio(trab)).filter(noEsAdmin); } catch { EN_LINEA = null; }
+  { const el = document.getElementById("elTop"); if (el) el.innerHTML = !EN_LINEA ? "" : EN_LINEA.length
+      ? EN_LINEA.map(w=>`<span title="Trabajando desde ${fHora(w.desde)}"><i></i>${esc(w.nombre)}</span>`).join("") : `<span class="no"><i></i>Nadie trabajando</span>`; }
   document.body.classList.remove("muchas");
   if (pestana==="fichajes") return pintaMisFichajes(cuerpo);
   if (!enServicio){
     cuerpo.innerHTML = `<div class="arranque"><div class="arr-in">
-      ${tiraEnLinea()}<p class="arr-quien">${esc(trab.nombre)}</p>
+      <p class="arr-quien">${esc(trab.nombre)}</p>
       <button class="pulsador" id="pulsador" aria-label="Empezar la jornada"><span>Empezar</span></button>
       <p class="arr-txt">Pulsa para fichar la entrada y empezar a recibir avisos.</p>
-      <div class="arr-mini"><button data-p="fichajes">Mis fichajes</button>${trab.admin?`<a href="${location.pathname}?gestion">Gestión</a>`:""}<button id="leerQR">📷 Leer QR de mesa</button><button id="verSonido">🔊 Sonido</button><button id="salirTrab">Cambiar de trabajador</button></div></div></div>`;
+      <div class="arr-mini"><button id="arrDesc">Desconectar</button><button data-p="fichajes">👤 Mis fichajes</button>${trab.admin?`<a href="${location.pathname}?gestion">Gestión</a>`:""}</div></div></div>`;
     document.getElementById("pulsador").onclick = e => cambiarServicio(e.currentTarget);
+    document.getElementById("arrDesc").onclick = preguntaSalir;
     cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
-    document.getElementById("salirTrab").onclick = ()=>{ osSalir(); trab=null; ls.set("esencia_trab",null); panel(); };
-  { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; const v = document.getElementById("verSonido"); if (v) v.onclick = pantallaSonido; }
     return;
   }
   try { filas = (await Store.list()).filter(r=>r.estado!=="anulado"); bloqs = await Store.bloqueados(); } catch { toast("Sin conexión con el servidor"); return; }
@@ -1962,14 +1996,13 @@ async function pintar(){
     return ha!==hb ? (ha?-1:1) : a.localeCompare(b,"es",{numeric:true});
   });
 
-  let h = bloqueAvisos() + tiraEnLinea() + `<div class="ptabs">
+  let h = bloqueAvisos() + `<div class="ptabs">
     <button class="tab" data-p="abiertas" aria-selected="${pestana==="abiertas"}">Mesas abiertas (${mesasAb.length})</button>
-    <button class="tab" data-p="cerradas" aria-selected="${pestana==="cerradas"}">Cobradas (7 días)</button>
-    <button class="tab" data-p="fichajes">Mis fichajes</button></div>`;
+    <button class="tab" data-p="cerradas" aria-selected="${pestana==="cerradas"}">Cobradas<span class="t7"> (7 días)</span></button>
+    <button class="act pay ped-b" id="nuevaCom">📝 Pedidos</button></div>`;
 
   if (pestana==="abiertas"){
     document.body.classList.toggle("muchas", mesasAb.length > 0);
-    h += `<button class="act pay nueva-com" id="nuevaCom">📝 Nueva comanda (sin QR)</button>`;
     h += mesasAb.length ? `<div class="grid g4">${mesasAb.map(m=>tarjetaMesa(m, abiertas[m])).join("")}</div>`
                         : `<p class="empty">No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.</p>`;
   } else {
@@ -1987,15 +2020,12 @@ async function pintar(){
       }).join("") + `</div>` : `<p class="empty">No se ha cobrado ninguna mesa en los últimos 7 días.</p>`;
   }
   // también de servicio: las herramientas del encargado y cambiar de trabajador, abajo del todo
-  h += `<div class="offacts herr">${trab.admin?`<a class="ghost" href="${location.pathname}?gestion">Gestión</a>`:""}
-    <button class="ghost" id="leerQR">📷 Leer QR de mesa</button><button class="ghost" id="verSonido">🔊 Sonido</button><button class="ghost" id="salirTrab">Cambiar de trabajador</button></div>`;
+  if (trab.admin) h += `<div class="offacts herr"><a class="ghost" href="${location.pathname}?gestion">Gestión</a></div>`;
   const abiertos = new Set([...cuerpo.querySelectorAll("details[open][data-k]")].map(d=>d.dataset.k));
   cuerpo.innerHTML = h; pideAvisos();
   cuerpo.querySelectorAll("details[data-k]").forEach(d=>{ if (abiertos.has(d.dataset.k)) d.open = true; });
 
   cuerpo.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{pestana=b.dataset.p;pintar()});
-  document.getElementById("salirTrab").onclick = ()=>{ osSalir(); trab=null; ls.set("esencia_trab",null); panel(); };
-  { const q = document.getElementById("leerQR"); if (q) q.onclick = escanearQR; const v = document.getElementById("verSonido"); if (v) v.onclick = pantallaSonido; }
   const aa = document.getElementById("actAvisos");
   if (aa) aa.onclick = async ()=>{ aa.disabled = true; const ok = await activarAvisos(true);
     toast(ok ? "Avisos activados. Te llegarán aunque el móvil esté bloqueado." : "No se han podido activar los avisos." + (AVISOS_ERROR ? " (" + AVISOS_ERROR + ")" : "")); pintar(); };
@@ -3022,6 +3052,7 @@ const ZH = {
   "Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.":"点上方的“下班”按钮打卡上班并开始。","Ver mis fichajes":"查看我的打卡",
   "Registro de jornada":"工时记录","QR de las mesas":"桌子二维码","Fotos de la carta":"菜单照片","Cambiar de trabajador":"切换员工",
   "No se ha podido fichar. Revisa la conexión y prueba otra vez.":"没能打卡。请检查网络后再试。",
+  "Cobradas":"已结账","(7 días)":"（7 天）","Scan":"扫码","📷 Scan":"📷 扫码","📝 Pedidos":"📝 点单","👤 Mis fichajes":"👤 我的打卡","Nadie trabajando":"没人上班","¿Cambiar de trabajador o salir?":"换员工还是下班？","Salir (fichar la salida)":"下班（打卡下班）","Salir ficha tu salida y dejan de llegarte los avisos.":"下班会打卡下班，之后不再收到通知。","No has fichado la entrada.":"你还没有打卡上班。",
   "Cobradas (7 días)":"已结账（7 天）","Mis fichajes":"我的打卡","No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.":"没有桌子点单。客人扫码点单后会显示在这里。",
   "Desbloquear":"解除屏蔽","No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Rechazar y bloquear contacto” en su aviso.":"没有被屏蔽的手机。如果有人恶作剧点单或呼叫，在通知里点“拒绝并屏蔽联系人”。",
   "Lo cobrado":"已收款","Solo llamadas, sin pedidos.":"只有呼叫，没有点单。","No se ha cobrado ninguna mesa en los últimos 7 días.":"最近 7 天没有结账的桌子。",
@@ -3453,6 +3484,7 @@ const CA = {
   "Pulsa “Fuera de servicio” arriba para fichar la entrada y empezar.":"Prem “Fora de servei” a dalt per fitxar l'entrada i començar.","Ver mis fichajes":"Veure els meus fitxatges",
   "Registro de jornada":"Registre de jornada","QR de las mesas":"QR de les taules","Fotos de la carta":"Fotos de la carta","Cambiar de trabajador":"Canviar de treballador",
   "No se ha podido fichar. Revisa la conexión y prueba otra vez.":"No s'ha pogut fitxar. Revisa la connexió i torna-ho a provar.",
+  "Cobradas":"Cobrades","(7 días)":"(7 dies)","Scan":"Escanejar","📷 Scan":"📷 Escanejar","📝 Pedidos":"📝 Comandes","👤 Mis fichajes":"👤 Els meus fitxatges","Nadie trabajando":"Ningú treballant","¿Cambiar de trabajador o salir?":"Canviar de treballador o sortir?","Salir (fichar la salida)":"Sortir (fitxar la sortida)","Salir ficha tu salida y dejan de llegarte los avisos.":"Sortir fitxa la teva sortida i deixen d'arribar-te els avisos.","No has fichado la entrada.":"No has fitxat l'entrada.",
   "Cobradas (7 días)":"Cobrades (7 dies)","Mis fichajes":"Els meus fitxatges","No hay mesas con pedidos. Cuando un cliente escanee el QR y pida, aparecerá aquí.":"No hi ha taules amb comandes. Quan un client escanegi el QR i demani, apareixerà aquí.",
   "Desbloquear":"Desbloquejar","No hay ningún móvil bloqueado. Si alguien pide o llama de broma, toca “Rechazar y bloquear contacto” en su aviso.":"No hi ha cap mòbil bloquejat. Si algú demana o crida de broma, toca “Rebutjar i bloquejar contacte” al seu avís.",
   "Lo cobrado":"El cobrat","Solo llamadas, sin pedidos.":"Només crides, sense comandes.","No se ha cobrado ninguna mesa en los últimos 7 días.":"No s'ha cobrat cap taula els últims 7 dies.",
