@@ -386,6 +386,8 @@ body.staff .cbar{display:flex;align-items:center;justify-content:space-between;g
 /* cliente, "¿Qué necesitas?" (Jamal): arriba el barrio de noche; abajo, donde pone Hola, el dibujo del puente */
 body.ini-cli .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.35) 0,rgba(8,6,4,.1) 45%,rgba(8,6,4,.45) 100%),url("img/noche.jpg");background-size:cover,cover;background-position:center,center 60%;filter:none}
 body.ini-cli main.wrap{background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgba(29,18,11,.55) 170px,rgba(29,18,11,.97) 290px),var(--foto-dibujo) center top/max(100%,700px) auto no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97));color:#F5E9D3}
+/* móvil: la foto alejada para que se vea el barrio entero, sobre la misma foto oscurecida (Jamal) */
+@media (max-width:700px){body.ini-cli .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.25),rgba(8,6,4,0)),url("img/noche.jpg"),linear-gradient(rgba(8,6,4,.72),rgba(8,6,4,.72)),url("img/noche.jpg");background-size:100% 100%,100% auto,100% 100%,cover;background-position:center,center bottom 88px,center,center 60%;background-repeat:no-repeat}}
 body.ini-cli .big-btns{margin-top:clamp(70px,14vw,90px)}
 body.cam .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.35) 0,rgba(8,6,4,.1) 45%,rgba(8,6,4,.45) 100%),url("img/noche.jpg");background-size:cover,cover;background-position:center,center 60%;filter:none}
 body.staff.cam:not(.plain){background:linear-gradient(#120c08,#120c08)}
