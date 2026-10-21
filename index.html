@@ -400,6 +400,9 @@ body.ini-cli main.wrap{background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgb
   body.ini-cli .top .wrap:first-child .idiomas{position:absolute;right:16px;bottom:128px;gap:5px;margin:0;opacity:.85}body.ini-cli .top .idiomas button{width:20px;height:14px;border-radius:3px}
   body.ini-cli .lugar span{background:none;padding:0;color:#2A140A;text-shadow:none;letter-spacing:.04em}body.ini-cli .lugar svg{display:none}}
 body.ini-cli .big-btns{margin-top:96px}
+/* solo avisar al camarero (Jamal): un botón grande en el centro con la campana */
+.big-btns.solo .bb{flex-direction:column;justify-content:center;text-align:center;gap:12px;min-height:200px}
+.big-btns.solo .bb svg{width:72px;height:72px}.big-btns.solo .bb strong{font-size:1.6em}
 body.cam .bg{background-image:linear-gradient(180deg,rgba(8,6,4,.35) 0,rgba(8,6,4,.1) 45%,rgba(8,6,4,.45) 100%),url("img/noche.jpg");background-size:cover,cover;background-position:center,center 60%;filter:none}
 body.staff.cam:not(.plain){background:linear-gradient(#120c08,#120c08)}
 body.staff main.wrap.panel-cam{background:linear-gradient(180deg,rgba(29,18,11,.2) 0,rgba(29,18,11,.55) 170px,rgba(29,18,11,.97) 290px),var(--foto-dibujo) center top/max(100%,700px) auto no-repeat,linear-gradient(180deg,rgba(44,27,16,.97),rgba(29,18,11,.97))}
@@ -671,6 +674,7 @@ body{font-variant-numeric:lining-nums}
    ========================================================== */
 const CONFIG = {
   NOMBRE: "BAR ESSENCIA",
+  SOLO_LLAMAR: true,   // Jamal (2026-10-21): de momento el cliente solo puede avisar al camarero; false = vuelve la carta y los pedidos
   SUPABASE_URL: "https://phhsrswqusmphbbabhmt.supabase.co",          // ej: https://xxxx.supabase.co   (vacío = modo prueba)
   SUPABASE_KEY: "sb_publishable_tAC4xxO1Lrxjo1NFSxMK4Q_S5VF1r1m",   // clave pública (publishable)
   // Con Supabase, cada trabajador entra con SU PIN (se dan de alta en supabase.sql).
@@ -1421,6 +1425,7 @@ function aplicaObras(){
 }
 let precioVisto = 0;   // el panel vuelve a mirar si hay cartel de obras cada minuto
 function cliente(){
+  if (CONFIG.SOLO_LLAMAR && mesa && !MODO_FOTOS && ["carta","resumen"].includes(vista)) vista = "inicio";
   aplicaObras();
   document.body.classList.toggle("compact", ["carta","resumen"].includes(vista));
   document.body.classList.toggle("oscura", ["carta","resumen"].includes(vista) && !!mesa);
@@ -1451,7 +1456,12 @@ function cliente(){
       <form id="fn"><input id="nom" maxlength="30" autocomplete="given-name" placeholder="Tu nombre" aria-label="Tu nombre" value="${esc(yo.nombre)}" required>
       <button class="cta c" style="margin-top:14px">Continuar</button></form></div>`;
   }
-  if (vista==="inicio"){
+  if (vista==="inicio" && CONFIG.SOLO_LLAMAR){
+    const s = llamadaActual();
+    h += `<p class="hello">Hola, ${esc(yo.nombre)}. ¿Qué necesitas?</p>
+      <div class="big-btns solo"><button class="bb call" id="call" ${s==="espera"?"disabled":""}>${ICON.bell}<span><strong>Avisar al camarero</strong>${s==="espera"?"<em>Ya le hemos avisado</em>":""}</span></button></div>
+      ${bloqueEstado()}<button class="back" id="cambiaNom">No soy ${esc(yo.nombre)}, cambiar nombre</button>`;
+  } else if (vista==="inicio"){
     const s = llamadaActual();
     h += `<p class="hello">Hola, ${esc(yo.nombre)}. ¿Qué necesitas?</p>
       <div class="big-btns">
@@ -1544,7 +1554,7 @@ function cliente(){
   if (bn && mw) mw.style.paddingBottom = (bn.offsetHeight + 24) + "px";
   const ml = document.querySelector(".mp-lista"); if (ml) ml.scrollTop = ml.scrollHeight;
 }
-function go(v){ vista=v; cliente(); scrollTo(0,0); }
+function go(v){ if (CONFIG.SOLO_LLAMAR && mesa && ["carta","resumen"].includes(v)) v = "inicio"; vista=v; cliente(); scrollTo(0,0); }
 
 function bindCliente(){
   const on = (id,fn) => { const el=document.getElementById(id); if(el) el.onclick=fn; };
@@ -2795,7 +2805,7 @@ const ZH = {
   "Bocina":"喇叭",
   "Pitido":"哔哔声",
   "Para que suene más: sube el volumen del móvil con los botones del lateral. En iPhone, con la app cerrada el aviso usa el sonido del iPhone: Ajustes → Sonidos y vibraciones → sube \"Tono y avisos\".":"想更响：用手机侧面的按键调高音量。iPhone 在应用关闭时用系统声音：设置 → 声音与触感 → 调高“铃声和提醒”。",
-  "Ver comanda":"看点单","Carta":"菜单","Llevabas más de 8 horas: se ha fichado tu salida (olvidó fichar salida).":"你已上班超过8小时：已自动为你打卡下班（忘记打卡下班）。","Otra cosa":"别的东西","Pedir otra cosa":"点别的",
+  "Ver comanda":"看点单","Avisar al camarero":"呼叫服务员","Carta":"菜单","Llevabas más de 8 horas: se ha fichado tu salida (olvidó fichar salida).":"你已上班超过8小时：已自动为你打卡下班（忘记打卡下班）。","Otra cosa":"别的东西","Pedir otra cosa":"点别的",
   "Aquí saldrá lo que más pidas":"这里会显示你最常点的",
   "App en construcción":"应用正在建设中",
   "Estamos preparando la app. Vuelve a entrar más tarde.":"我们正在准备应用。请稍后再进入。",
@@ -3233,7 +3243,7 @@ const CA = {
   "Bocina":"Botzina",
   "Pitido":"Xiulet",
   "Para que suene más: sube el volumen del móvil con los botones del lateral. En iPhone, con la app cerrada el aviso usa el sonido del iPhone: Ajustes → Sonidos y vibraciones → sube \"Tono y avisos\".":"Perquè soni més: puja el volum del mòbil amb els botons del lateral. A l'iPhone, amb l'app tancada l'avís fa servir el so de l'iPhone: Configuració → Sons i vibracions → puja \"To i avisos\".",
-  "Ver comanda":"Veure comanda","Carta":"Carta","Llevabas más de 8 horas: se ha fichado tu salida (olvidó fichar salida).":"Portaves més de 8 hores: s'ha fitxat la teva sortida (va oblidar fitxar la sortida).","Otra cosa":"Una altra cosa","Pedir otra cosa":"Demanar una altra cosa",
+  "Ver comanda":"Veure comanda","Avisar al camarero":"Avisar el cambrer","Carta":"Carta","Llevabas más de 8 horas: se ha fichado tu salida (olvidó fichar salida).":"Portaves més de 8 hores: s'ha fitxat la teva sortida (va oblidar fitxar la sortida).","Otra cosa":"Una altra cosa","Pedir otra cosa":"Demanar una altra cosa",
   "Aquí saldrá lo que más pidas":"Aquí sortirà el que més demanis",
   "App en construcción":"App en construcció",
   "Estamos preparando la app. Vuelve a entrar más tarde.":"Estem preparant l'app. Torna a entrar més tard.",
